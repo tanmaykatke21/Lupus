@@ -72,3 +72,11 @@ export function useTrip(from: LngLat | null, req: TripRequest | null, accessible
 
   return { data: key ? data : null, error: key ? error : null, loading };
 }
+
+const LIRR_STATION: Endpoint = { name: "Stony Brook LIRR Station", lng: -73.12855, lat: 40.92032, placeId: "lirr" };
+
+/** Trip to the station that arrives `bufferMin` before the train leaves. */
+export function catchTrainRequest(t: { expected: number; destination: string }, bufferMin: number): TripRequest {
+  const label = `the ${new Date(t.expected).toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" })} to ${t.destination.replace(" · change for NYC", "")}`;
+  return { to: LIRR_STATION, arriveBy: t.expected - bufferMin * 60_000, context: label, purpose: `to catch ${label}` };
+}

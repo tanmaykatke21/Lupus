@@ -5,7 +5,7 @@ import type { LirrTrain } from "@/lib/lirr";
 import { PLACES, placeById } from "@/lib/places";
 import type { SavedPlace } from "@/lib/storage";
 import { formatClock } from "@/lib/time";
-import type { Endpoint, TripRequest } from "@/lib/trip";
+import { catchTrainRequest, type Endpoint, type TripRequest } from "@/lib/trip";
 import { countdown } from "@/lib/useNow";
 
 interface Props {
@@ -50,16 +50,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
 
   const station: Endpoint | null = feed ? { name: "Stony Brook LIRR Station", lat: feed.station.lat, lng: feed.station.lng, placeId: "lirr" } : null;
 
-  const catchTrain = (t: LirrTrain) => {
-    if (!station) return;
-    const what = `the ${formatClock(t.expected)} to ${t.destination.replace(" · change for NYC", "")}`;
-    onPlan({
-      to: station,
-      arriveBy: t.expected - bufferMin * 60_000,
-      context: what,
-      purpose: `to catch ${what}`,
-    });
-  };
+  const catchTrain = (t: LirrTrain) => onPlan(catchTrainRequest(t, bufferMin));
 
   const goHome = (t: LirrTrain, placeId: string) => {
     const p = placeById(placeId);

@@ -3,7 +3,9 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCallback, useMemo, useState } from "react";
+import AskBar from "./AskBar";
 import BottomSheet, { type Snap } from "./BottomSheet";
+import ClassesPanel from "./ClassesPanel";
 import NavMode from "./NavMode";
 import ResultsPanel from "./ResultsPanel";
 import SearchPanel from "./SearchPanel";
@@ -12,9 +14,13 @@ import StopPanel from "./StopPanel";
 import TrainsPanel from "./TrainsPanel";
 import type { TripOverlay } from "./MapView";
 import { lngLat, PLACES, type Place } from "@/lib/places";
+import type { AskAction } from "@/lib/ask";
+import { NO_CLASSES, nextClass, type ClassEntry } from "@/lib/classes";
+import { meters } from "@/lib/geo";
 import type { RouteOption } from "@/lib/router";
+import { campusClock, formatClock } from "@/lib/time";
 import { DEFAULT_SETTINGS, NO_SAVED, useStored, type SavedPlace, type Settings } from "@/lib/storage";
-import { useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
+import { catchTrainRequest, useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
 import type { BusStop, LngLat } from "@/lib/types";
 import { useBuses, useNetwork } from "@/lib/useLiveData";
 import { useLeaveAlert } from "@/lib/useLeaveAlert";
@@ -48,6 +54,7 @@ export default function TransitApp() {
   const { buses, source, updatedAt, error: busError } = useBuses();
   const [settings, setSettings] = useStored<Settings>("settings", DEFAULT_SETTINGS);
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
+  const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
   const location = useLocation();
   const now = useNow();
 
@@ -58,7 +65,7 @@ export default function TransitApp() {
   const [origin, setOrigin] = useState<Origin>({ kind: "me" });
   const [request, setRequest] = useState<TripRequest | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [homeTab, setHomeTab] = useState<"go" | "trains">("go");
+  const [homeTab, setHomeTab] = useState<"go" | "trains" | "classes">("go");
   const [navOption, setNavOption] = useState<RouteOption | null>(null);
   const onHeight = useCallback((px: number) => setSheetPx(px), []);
 
@@ -89,6 +96,36 @@ export default function TransitApp() {
   useLeaveAlert(view === "results" ? selected : view === "nav" ? navOption ?? undefined : undefined, request, now, settings.voice, settings.language);
 
   const pickDestination = (p: Place) => goTo({ to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id } });
+
+  const goToClass = (cls: ClassEntry, startsAt: number) => {
+    const p = cls.placeId ? PLACES.find(x => x.id === cls.placeId) : undefined;
+    if (!p) return;
+    const label = `${cls.course} at ${formatClock(startsAt)}`;
+    goTo({
+      to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id },
+      arriveBy: startsAt - 2 * 60_000, // a couple of minutes to find a seat
+      context: label,
+      purpose: `to make ${label}`,
+    });
+  };
+
+  const onAsk = (a: AskAction) => {
+    if (a.type === "place") {
+      const p = PLACES.find(x => x.id === a.placeId);
+      if (p) pickDestination(p);
+    } else if (a.type === "category") {
+      const here = fromCoords ?? lngLat(PLACES.find(p => p.id === "sac")!);
+      const nearest = PLACES.filter(p => p.category === a.category)
+        .sort((x, y) => meters(here, lngLat(x)) - meters(here, lngLat(y)))[0];
+      if (nearest) pickDestination(nearest);
+    } else if (a.type === "train") {
+      goTo(catchTrainRequest(a.train, settings.trainBufferMin));
+    } else if (a.type === "class") {
+      const cls = classes.find(c => c.id === a.classId);
+      const next = cls && nextClass([cls], new Date(), campusClock);
+      if (cls && next) goToClass(cls, Date.now() + next.inMinutes * 60_000);
+    }
+  };
 
   const onStopClick = useCallback((s: BusStop) => {
     setStop(s);
@@ -167,11 +204,14 @@ export default function TransitApp() {
         }}
       />
     );
+  } else if (homeTab === "classes") {
+    body = <ClassesPanel classes={classes} now={now} onChange={setClasses} onGo={goToClass} />;
   } else if (homeTab === "trains") {
     body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} />;
   } else {
     body = (
       <>
+        <AskBar classes={classes} onAction={onAsk} />
         <button
           onClick={() => { setView("search-to"); setSnap("full"); }}
           className="mb-3 flex h-12 w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 text-left text-base text-muted"
@@ -223,11 +263,11 @@ export default function TransitApp() {
         onStopClick={onStopClick} bottomPadding={sheetPx} />
       <BottomSheet snap={snap} onSnapChange={setSnap} onHeightChange={onHeight} header={header}>
         {view === "home" && (
-          <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Sections">
-            {(["go", "trains"] as const).map(t => (
+          <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Sections">
+            {(["go", "trains", "classes"] as const).map(t => (
               <button key={t} role="tab" aria-selected={homeTab === t} onClick={() => setHomeTab(t)}
                 className={`min-h-11 rounded-lg text-sm font-semibold ${homeTab === t ? "plate" : "text-muted"}`}>
-                {t === "go" ? "🧭 Go" : "🚂 Trains"}
+                {t === "go" ? "🧭 Go" : t === "trains" ? "🚂 Trains" : "🎓 Classes"}
               </button>
             ))}
           </div>
