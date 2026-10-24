@@ -36,9 +36,12 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-:focus-visible {
-  outline: 3px solid var(--red);
-  outline-offset: 2px;
+/* Visible keyboard focus everywhere; in the base layer so a component can swap in its own indicator. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--red);
+    outline-offset: 2px;
+  }
 }
 
 /* The road: navy strip with a cream dashed centre line, echoing the U in the logo. */
@@ -89,6 +92,25 @@ body {
   border: 6px solid transparent;
   border-bottom: 8px solid var(--navy);
   border-top: 0;
+}
+
+/* Destination pin: a navy teardrop with a red center, the hard hat on the wolf. */
+.dest-pin {
+  width: 30px;
+  height: 30px;
+  border-radius: 50% 50% 50% 0;
+  rotate: -45deg;
+  background: var(--navy);
+  border: 3px solid var(--white);
+  box-shadow: 0 2px 6px rgb(38 40 64 / 0.35);
+  display: grid;
+  place-items: center;
+}
+.dest-pin span {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--red);
 }
 
 /* The only ambient motion: the live indicator breathes. */

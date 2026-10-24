@@ -26,6 +26,9 @@ LAN address in the phone's browser for everything except location.
 - **Map + bus list**: route-colored markers with heading arrows; the list sorts by soonest next stop.
   Buses due in under 2 minutes are marked in red. If the map tiles can't load, buses still show on a
   plain background.
+- **"Where to?" search**: type a building or nickname ("SAC", "jav", "javitz", "new cs") to pick a
+  destination; it drops a pin on the map and remembers your last three destinations on this device.
+  Places come from `data/place-catalog.json` (names and nicknames) plus OpenStreetMap coordinates.
 
 ## Scripts
 
@@ -35,6 +38,7 @@ LAN address in the phone's browser for everything except location.
 | `npm test` | Unit tests (Vitest) against two real ETA Spot snapshots in `data/samples/` |
 | `npm run typecheck` / `lint` | Type and lint checks |
 | `npm run save:etaspot` | Save ETA Spot's routes, stops and a vehicle snapshot to `data/samples/` |
+| `npm run build:places` | Look up campus buildings in OpenStreetMap and write `data/places.json` (add `--refresh` to re-download) |
 
 ## Environment variables
 

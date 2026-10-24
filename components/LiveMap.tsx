@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MlMap, Marker } from "maplibre-gl";
 import type { Bus } from "@/lib/etaspot";
+import type { Place } from "@/lib/places";
 import { routeColor } from "@/lib/routes";
 
 // Center of the main Stony Brook campus.
@@ -20,15 +21,17 @@ interface Props {
   buses: Bus[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  destination: Place | null;
 }
 
-export default function LiveMap({ buses, selectedId, onSelect }: Props) {
+export default function LiveMap({ buses, selectedId, onSelect, destination }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
   const lib = useRef<typeof import("maplibre-gl") | null>(null);
   const [ready, setReady] = useState(false);
   const fitted = useRef(false);
+  const destMarker = useRef<Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -139,6 +142,22 @@ export default function LiveMap({ buses, selectedId, onSelect }: Props) {
     // Only when the selection changes, not on every position update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
+
+  // Pin the chosen destination and bring it into view.
+  useEffect(() => {
+    const m = map.current;
+    const maplibre = lib.current;
+    if (!ready || !m || !maplibre) return;
+    destMarker.current?.remove();
+    destMarker.current = null;
+    if (!destination) return;
+    const el = document.createElement("div");
+    el.innerHTML = `<div class="dest-pin" role="img" aria-label="Destination: ${destination.name.replace(/"/g, "")}"><span></span></div>`;
+    destMarker.current = new maplibre.Marker({ element: el, anchor: "bottom" })
+      .setLngLat([destination.lng, destination.lat])
+      .addTo(m);
+    m.easeTo({ center: [destination.lng, destination.lat], zoom: Math.max(m.getZoom(), 15.5), duration: 700 });
+  }, [ready, destination]);
 
   // MapLibre sets position: relative on its container, so the container fills a positioned wrapper.
   return (
