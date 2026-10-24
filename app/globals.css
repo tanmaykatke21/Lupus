@@ -1,0 +1,109 @@
+@import "tailwindcss";
+
+/* Palette lifted from the Lupus mascot: wolf navy, hard-hat red, lane cream, fur gray. */
+:root {
+  --navy: #262840;
+  --navy-deep: #1b1c2e;
+  --red: #e8264f;
+  --red-deep: #b8163a;
+  --lane: #f2f3d5;
+  --fur: #8e8b9b;
+  --fur-dark: #5d5a6b;
+  --concrete: #eeedf2;
+  --white: #ffffff;
+}
+
+@theme inline {
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-red: var(--red);
+  --color-red-deep: var(--red-deep);
+  --color-lane: var(--lane);
+  --color-fur: var(--fur);
+  --color-fur-dark: var(--fur-dark);
+  --color-concrete: var(--concrete);
+  --font-sans: var(--font-rubik), ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  background: var(--concrete);
+  color: var(--navy);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 3px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* The road: navy strip with a cream dashed centre line, echoing the U in the logo. */
+.lane {
+  background-color: var(--navy);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--lane) 0 10px,
+    transparent 10px 18px
+  );
+  background-size: 100% 2px;
+  background-position: 0 50%;
+  background-repeat: no-repeat;
+}
+
+/* Bus markers on the map */
+.bus-marker {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 3px solid var(--white);
+  color: var(--white);
+  font: 600 13px/1 var(--font-sans);
+  box-shadow: 0 2px 6px rgb(38 40 64 / 0.35);
+  cursor: pointer;
+}
+.bus-marker[data-soon="true"] {
+  border-color: var(--red);
+}
+.bus-marker[data-selected="true"] {
+  transform: scale(1.18);
+  z-index: 2;
+}
+.bus-marker .heading {
+  position: absolute;
+  inset: -11px;
+  pointer-events: none;
+}
+.bus-marker .heading::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  border: 6px solid transparent;
+  border-bottom: 8px solid var(--navy);
+  border-top: 0;
+}
+
+/* The only ambient motion: the live indicator breathes. */
+@media (prefers-reduced-motion: no-preference) {
+  .live-dot {
+    animation: breathe 2s ease-in-out infinite;
+  }
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.maplibregl-ctrl-attrib {
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
