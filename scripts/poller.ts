@@ -8,11 +8,13 @@ import { readFileSync } from "node:fs";
 import postgres from "postgres";
 import { ArrivalDetector, type Arrival } from "../lib/arrivals";
 import { getStopEtas, getStops, getVehicles } from "../lib/etaspot";
+import { INSERT_PREDICTION_ERRORS } from "../lib/queries";
 import type { Bus, BusStop, StopEta } from "../lib/types";
 
 config({ path: [".env.local", ".env"], quiet: true });
 
 const VEHICLE_EVERY_MS = 10_000;
+const MAX_SEGMENT_MS = 45 * 60_000; // longer gaps mean the bus went off route or out of service
 const STOP_ETAS_EVERY_MS = 60_000;
 const STOP_REFRESH_MS = 60 * 60_000;
 const ETA_CONCURRENCY = 4;
@@ -31,7 +33,8 @@ const log = (...args: unknown[]) => console.log(new Date().toLocaleTimeString("e
 
 let stops: BusStop[] = [];
 let detector: ArrivalDetector;
-const stats = { snapshots: 0, predictions: 0, arrivals: 0, errors: 0 };
+const stats = { snapshots: 0, predictions: 0, arrivals: 0, segments: 0, predictionErrors: 0, errors: 0 };
+const lastArrival = new Map<string, Arrival>(); // per vehicle
 
 async function writeSnapshots(buses: Bus[]) {
   if (!buses.length) return;
@@ -77,7 +80,25 @@ async function writeArrivals(arrivals: Arrival[]) {
   }));
   if (sql) await sql`INSERT INTO stop_arrivals ${sql(rows)} ON CONFLICT DO NOTHING`;
   stats.arrivals += rows.length;
-  for (const a of arrivals) log(`arrival  bus ${a.vehicleId} at stop ${a.stopId} (${a.distanceM.toFixed(0)} m)`);
+
+  for (const a of arrivals) {
+    log(`arrival  bus ${a.vehicleId} at stop ${a.stopId} (${a.distanceM.toFixed(0)} m)`);
+
+    // Stop-to-stop travel time since this bus's previous stop.
+    const prev = lastArrival.get(a.vehicleId);
+    lastArrival.set(a.vehicleId, a);
+    if (prev && prev.routeId === a.routeId && prev.stopId !== a.stopId && a.time - prev.time < MAX_SEGMENT_MS) {
+      const seg = { time: new Date(a.time), vehicle_id: a.vehicleId, route_id: a.routeId, from_stop: prev.stopId, to_stop: a.stopId, seconds: (a.time - prev.time) / 1000 };
+      if (sql) await sql`INSERT INTO segment_times ${sql(seg)} ON CONFLICT DO NOTHING`;
+      stats.segments++;
+    }
+
+    // How wrong was ETA Spot 2-5, 5-10 and 10-20 minutes ago?
+    if (sql) {
+      const res = await sql.unsafe(INSERT_PREDICTION_ERRORS, [new Date(a.time), a.routeId, a.stopId, a.vehicleId]);
+      stats.predictionErrors += res.count;
+    }
+  }
 }
 
 async function pollVehicles() {

@@ -63,6 +63,7 @@ export default function RouteCard({ option, now, selected, fastest, onSelect }: 
           : <span className="text-muted">{option.estimated ? "estimated" : "scheduled"}</span>)}
         {stairs && <span className="text-muted">· stairs</span>}
       </div>
+      {option.reliability && <p className="mt-1.5 text-xs text-copper">⏱ {option.reliability}</p>}
     </button>
   );
 }

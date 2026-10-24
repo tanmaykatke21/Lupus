@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { LANGUAGES } from "@/lib/languages";
 import type { Settings } from "@/lib/storage";
 
@@ -7,9 +9,13 @@ interface Props {
   settings: Settings;
   onChange: (s: Settings) => void;
   onClose: () => void;
+  replay: boolean;
+  onReplay: (on: boolean) => void;
 }
 
-export default function SettingsPanel({ settings, onChange, onClose }: Props) {
+export default function SettingsPanel({ settings, onChange, onClose, replay, onReplay }: Props) {
+  const [taps, setTaps] = useState(0);
+  const demo = taps >= 5 || replay;
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -54,6 +60,28 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
           </select>
         </label>
       </div>
+
+      <Link href="/stats" className="mt-4 flex min-h-12 items-center justify-between rounded-xl border border-line bg-surface px-3 font-medium">
+        How accurate are bus ETAs? <span aria-hidden>→</span>
+      </Link>
+
+      {demo && (
+        <section className="mt-4 rounded-xl border border-dashed border-brass p-3" aria-label="Demo tools">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-brass">Demo tools</p>
+          <label className="flex min-h-12 items-center justify-between gap-3">
+            <span>
+              <span className="block font-medium">Replay mode</span>
+              <span className="block text-xs text-muted">Play recorded buses from Tiger Data as if live</span>
+            </span>
+            <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={replay} onChange={e => onReplay(e.target.checked)} />
+          </label>
+        </section>
+      )}
+
+      {/* Tapping the version five times reveals the demo tools. */}
+      <button onClick={() => setTaps(t => t + 1)} className="mt-6 w-full py-2 text-center text-xs text-muted">
+        Lupus 0.1 · SBUHacks 2026
+      </button>
     </div>
   );
 }

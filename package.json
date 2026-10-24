@@ -14,7 +14,8 @@
     "build:lirr": "tsx scripts/build-lirr.ts",
     "build:walk": "tsx scripts/build-walk-graph.ts",
     "build:timing": "tsx scripts/build-route-timing.ts",
-    "make:whistle": "tsx scripts/make-whistle.ts"
+    "make:whistle": "tsx scripts/make-whistle.ts",
+    "accuracy": "tsx scripts/accuracy.ts"
   },
   "dependencies": {
     "@google/genai": "^2.31.0",

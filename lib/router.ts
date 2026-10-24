@@ -67,6 +67,7 @@ export interface RouteOption {
   totalMinutes: number;
   breakdown: { walk: number; wait: number; ride: number }; // minutes
   estimated: boolean; // departure projected from headway rather than a listed ETA
+  reliability?: string | null; // from Tiger Data history, e.g. "Usually 2 min later than shown"
   legs: Leg[];
 }
 

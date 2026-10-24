@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AskBar from "./AskBar";
 import BottomSheet, { type Snap } from "./BottomSheet";
 import ClassesPanel from "./ClassesPanel";
@@ -51,8 +51,9 @@ function overlayFor(option: RouteOption | undefined, from: LngLat | null, to: En
 
 export default function TransitApp() {
   const { routes, stops, error: networkError } = useNetwork();
-  const { buses, source, updatedAt, error: busError } = useBuses();
   const [settings, setSettings] = useStored<Settings>("settings", DEFAULT_SETTINGS);
+  const [replay, setReplay] = useStored<boolean>("replay", false);
+  const { buses, source, updatedAt, error: busError } = useBuses(replay);
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
   const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
   const location = useLocation();
@@ -76,7 +77,13 @@ export default function TransitApp() {
     : location.status === "locating" ? "Finding you…"
     : location.status === "denied" ? "Location blocked: tap to choose"
     : "My location";
-  const trip = useTrip(fromCoords, view === "results" ? request : null, settings.accessible);
+  const trip = useTrip(fromCoords, view === "results" ? request : null, settings.accessible, replay);
+
+  // ?replay=1 / ?replay=0 in the URL switches replay mode (handy on the judging laptop).
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get("replay");
+    if (p === "1" || p === "0") setReplay(p === "1");
+  }, [setReplay]);
   const options = trip.data?.options ?? [];
   const selected = options.find(o => o.id === selectedId) ?? options[0];
   const overlay = useMemo(
@@ -156,7 +163,10 @@ export default function TransitApp() {
 
   let body: React.ReactNode;
   if (view === "settings") {
-    body = <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setView(navOption ? "nav" : request ? "results" : "home")} />;
+    body = (
+      <SettingsPanel settings={settings} onChange={setSettings} replay={replay} onReplay={setReplay}
+        onClose={() => setView(navOption ? "nav" : request ? "results" : "home")} />
+    );
   } else if (view === "stop" && stop) {
     body = <StopPanel key={stop.id} stop={stop} routes={routes} onClose={() => setView("home")} />;
   } else if (view === "search-to") {

@@ -17,7 +17,7 @@ function parseTime(v: string | null) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// GET /api/route?from=lat,lng&to=lat,lng&time=ISO&arriveBy=ISO&accessible=0|1
+// GET /api/route?from=lat,lng&to=lat,lng&time=ISO&arriveBy=ISO&accessible=0|1&replay=0|1
 export async function GET(request: Request) {
   await connection();
   const limited = rateLimit(request, 60);
@@ -32,7 +32,10 @@ export async function GET(request: Request) {
   if (time === null || arriveBy === null) return json({ error: "time and arriveBy must be ISO dates" }, CACHE.none, 400);
 
   try {
-    const result = await planTrip({ from, to, time, arriveBy, accessible: q.get("accessible") === "1" });
+    const result = await planTrip(
+      { from, to, time, arriveBy, accessible: q.get("accessible") === "1" },
+      { replay: q.get("replay") === "1" },
+    );
     return json({ ...result, generatedAt: Date.now() }, CACHE.none);
   } catch (err) {
     if (err instanceof OutsideMapError) {

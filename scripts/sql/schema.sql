@@ -45,3 +45,54 @@ CREATE TABLE IF NOT EXISTS stop_arrivals (
 SELECT create_hypertable('stop_arrivals', by_range('time', INTERVAL '7 days'), if_not_exists => TRUE);
 CREATE UNIQUE INDEX IF NOT EXISTS stop_arrivals_unique ON stop_arrivals (vehicle_id, stop_id, time);
 CREATE INDEX IF NOT EXISTS stop_arrivals_route_stop ON stop_arrivals (route_id, stop_id, time DESC);
+
+-- Derived by the poller: travel time between consecutive stops a bus reached.
+CREATE TABLE IF NOT EXISTS segment_times (
+  time        timestamptz NOT NULL,  -- arrival at to_stop
+  vehicle_id  text        NOT NULL,
+  route_id    integer     NOT NULL,
+  from_stop   integer     NOT NULL,
+  to_stop     integer     NOT NULL,
+  seconds     real        NOT NULL
+);
+SELECT create_hypertable('segment_times', by_range('time', INTERVAL '7 days'), if_not_exists => TRUE);
+CREATE UNIQUE INDEX IF NOT EXISTS segment_times_unique ON segment_times (vehicle_id, to_stop, time);
+
+-- Derived by the poller at each arrival: how far off ETA Spot's prediction was,
+-- for the latest prediction made in each horizon bucket before the bus arrived.
+CREATE TABLE IF NOT EXISTS prediction_errors (
+  time               timestamptz NOT NULL,  -- actual arrival
+  route_id           integer     NOT NULL,
+  stop_id            integer     NOT NULL,
+  vehicle_id         text        NOT NULL,
+  horizon_min        smallint    NOT NULL,  -- 2, 5 or 10: lower bound of the bucket
+  predicted_at       timestamptz NOT NULL,
+  predicted_arrival  timestamptz NOT NULL,
+  error_sec          real        NOT NULL   -- actual - predicted (positive = bus was late)
+);
+SELECT create_hypertable('prediction_errors', by_range('time', INTERVAL '7 days'), if_not_exists => TRUE);
+CREATE UNIQUE INDEX IF NOT EXISTS prediction_errors_unique ON prediction_errors (vehicle_id, stop_id, horizon_min, time);
+
+-- Continuous aggregates (real-time: recent raw rows are included until materialized).
+CREATE MATERIALIZED VIEW IF NOT EXISTS segment_hourly
+WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
+SELECT time_bucket(INTERVAL '1 hour', time) AS bucket, route_id, from_stop, to_stop,
+       avg(seconds) AS avg_seconds, count(*) AS n
+FROM segment_times
+GROUP BY bucket, route_id, from_stop, to_stop
+WITH NO DATA;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS lateness_hourly
+WITH (timescaledb.continuous, timescaledb.materialized_only = false) AS
+SELECT time_bucket(INTERVAL '1 hour', time) AS bucket, route_id, horizon_min,
+       avg(error_sec) AS avg_error_sec, avg(abs(error_sec)) AS avg_abs_error_sec, count(*) AS n
+FROM prediction_errors
+GROUP BY bucket, route_id, horizon_min
+WITH NO DATA;
+
+SELECT add_continuous_aggregate_policy('segment_hourly',
+  start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 hour', schedule_interval => INTERVAL '10 minutes',
+  if_not_exists => TRUE);
+SELECT add_continuous_aggregate_policy('lateness_hourly',
+  start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 hour', schedule_interval => INTERVAL '10 minutes',
+  if_not_exists => TRUE);
