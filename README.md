@@ -29,13 +29,22 @@ LAN address in the phone's browser for everything except location.
 - **"Where to?" search**: type a building or nickname ("SAC", "jav", "javitz", "new cs") to pick a
   destination; it drops a pin on the map and remembers your last three destinations on this device.
   Places come from `data/place-catalog.json` (names and nicknames) plus OpenStreetMap coordinates.
+  Bus stops are searchable by name too ("Kelly", "Chapin").
+- **Trip planner and leave-in card**: after you pick a destination, Lupus starts from your location (or a
+  place you pick when you're off campus or location is off), checks every running bus, and shows when to
+  leave, with a relax / walk / run cue, the stop to board, ride time and arrival time. It compares against
+  walking the whole way and says when walking is faster. ETA Spot predicts each bus's next five stops;
+  anything further is estimated from hop times seen live and is marked "about".
+- **Routes and stops** (`/api/network`) come live from ETA Spot (cached 15 minutes, since weekday and weekend
+  routes differ), falling back to the copy saved by `npm run save:etaspot`. The map draws each route in its
+  ETA Spot color.
 
 ## Scripts
 
 | Script | What it does |
 | --- | --- |
 | `npm run dev` / `build` / `start` | Next.js |
-| `npm test` | Unit tests (Vitest) against two real ETA Spot snapshots in `data/samples/` |
+| `npm test` | Unit tests (Vitest) against real ETA Spot snapshots frozen in `data/samples/` (`*-1225`, `*-1235`, `*-1430*`) |
 | `npm run typecheck` / `lint` | Type and lint checks |
 | `npm run save:etaspot` | Save ETA Spot's routes, stops and a vehicle snapshot to `data/samples/` |
 | `npm run build:places` | Look up campus buildings in OpenStreetMap and write `data/places.json` (add `--refresh` to re-download) |

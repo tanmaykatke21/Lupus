@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { clockLabel, minutesUntil } from "./campusTime";
+import { buildNetwork, type Network, type RawRoute, type RawStop } from "./network";
 
 export const ETASPOT_BASE = "https://stonybrook.etaspot.net/service.php";
 // ETA Spot's public web tracker uses this token.
@@ -27,6 +28,8 @@ export interface RawVehicle {
   deadHead: number;
   wcSlots?: number | null;
   bkSlots?: number | null;
+  /** With includeETAData=1: the next few stops on this trip and ETA Spot's estimate for each. */
+  minutesToNextStops?: { stopID: number; minutes: number; time: string; status?: string }[];
   // These only appear once a trip is under way.
   seq?: number;
   nextStopPctProg?: number;
@@ -53,6 +56,14 @@ export interface Bus {
   wheelchairSpaces: number | null;
   /** Seconds since the bus's last GPS fix. */
   ageSeconds: number;
+  /** Next few stops in visiting order with minutes from now (ETA Spot lists about five). */
+  upcoming: UpcomingStop[];
+}
+
+export interface UpcomingStop {
+  stopId: number;
+  minutes: number;
+  at: string;
 }
 
 export interface BusFeed {
@@ -66,6 +77,32 @@ export interface BusFeed {
 
 /** A bus whose last GPS fix is older than this is treated as gone (parked, tracker off). */
 export const STALE_AFTER_MS = 3 * 60 * 1000;
+
+/** "02:31PM" → minutes since midnight, or null when ETA Spot sends something else. */
+export function parseClock(text: string): number | null {
+  const m = /^\s*(\d{1,2}):(\d{2})\s*([AP])M\s*$/i.exec(text ?? "");
+  if (!m) return null;
+  const h = Number(m[1]) % 12 + (m[3].toUpperCase() === "P" ? 12 : 0);
+  return h * 60 + Number(m[2]);
+}
+
+function upcomingFor(v: RawVehicle, nowMs: number): UpcomingStop[] {
+  const list: UpcomingStop[] = [];
+  for (const e of v.minutesToNextStops ?? []) {
+    const clock = parseClock(e.time);
+    // Prefer the clock time (independent of how old our copy is); fall back to ETA Spot's minute count.
+    const minutes = clock !== null ? minutesUntil(clock, nowMs) : Number.isFinite(e.minutes) ? e.minutes : null;
+    if (minutes === null || !(e.stopID > 0)) continue;
+    // Loops can list the same stop twice; keep the first visit only.
+    if (list.some((u) => u.stopId === e.stopID)) continue;
+    list.push({ stopId: e.stopID, minutes, at: clock !== null ? clockLabel(clock) : "" });
+  }
+  if (list.length === 0 && v.nextStopID > 0 && v.nextStopETA >= 0) {
+    const minutes = minutesUntil(v.nextStopETA, nowMs);
+    if (minutes !== null) list.push({ stopId: v.nextStopID, minutes, at: clockLabel(v.nextStopETA) });
+  }
+  return list;
+}
 
 export function crowdingFor(load: number, capacity: number): Crowding {
   if (!capacity || capacity <= 0) return "unknown";
@@ -101,6 +138,7 @@ export function normalizeVehicles(raw: RawVehicle[], nowMs: number): Bus[] {
         atStop: v.atStop === 1,
         wheelchairSpaces: v.wcSlots ?? null,
         ageSeconds: Math.max(0, Math.round((nowMs - v.receiveTime) / 1000)),
+        upcoming: upcomingFor(v, nowMs),
       } satisfies Bus;
     })
     .sort((a, b) => (a.minutesToNextStop ?? Infinity) - (b.minutesToNextStop ?? Infinity));
@@ -120,7 +158,7 @@ async function fetchLiveVehicles(): Promise<RawVehicle[]> {
  * Countdowns are computed against the snapshot's own time so they stay realistic.
  */
 async function loadSample(): Promise<{ raw: RawVehicle[]; asOf: number }> {
-  const file = path.join(process.cwd(), "data", "samples", "vehicles-1235.json");
+  const file = path.join(process.cwd(), "data", "samples", "vehicles-1430-eta.json");
   const body = JSON.parse(await readFile(file, "utf8")) as { get_vehicles: RawVehicle[] };
   const asOf = Math.max(...body.get_vehicles.filter((v) => v.inService === 1).map((v) => v.receiveTime));
   return { raw: body.get_vehicles, asOf };
@@ -163,4 +201,55 @@ export async function getBusFeed(nowMs = Date.now()): Promise<BusFeed> {
     }
   })();
   return inFlight;
+}
+
+// ---- Routes and stops ----------------------------------------------------------------------
+
+const NETWORK_TTL_MS = 15 * 60 * 1000;
+let networkCache: { at: number; network: Network } | null = null;
+let networkInFlight: Promise<Network> | null = null;
+
+async function fetchService<T>(service: string): Promise<T[]> {
+  const res = await fetch(`${ETASPOT_BASE}?service=${service}&token=${TOKEN}`, {
+    cache: "no-store",
+    signal: AbortSignal.timeout(8000),
+  });
+  if (!res.ok) throw new Error(`ETA Spot ${service} responded ${res.status}`);
+  const body = (await res.json()) as Record<string, T[]>;
+  const list = body[service];
+  if (!Array.isArray(list)) throw new Error(`ETA Spot ${service} response had no list`);
+  return list;
+}
+
+async function loadSavedNetwork(): Promise<Network> {
+  const dir = path.join(process.cwd(), "data", "samples");
+  const [routes, stops] = await Promise.all(
+    ["etaspot-routes.json", "etaspot-stops.json"].map(async (f) => JSON.parse(await readFile(path.join(dir, f), "utf8"))),
+  );
+  return buildNetwork(routes.get_routes as RawRoute[], stops.get_stops as RawStop[], "saved");
+}
+
+/** Routes and stops, live from ETA Spot when possible, otherwise the copy saved by `npm run save:etaspot`. */
+export async function getNetwork(nowMs = Date.now()): Promise<Network> {
+  if (process.env.ETASPOT_MODE === "sample") return loadSavedNetwork();
+  if (networkCache && nowMs - networkCache.at < NETWORK_TTL_MS) return networkCache.network;
+  if (networkInFlight) return networkInFlight;
+  networkInFlight = (async () => {
+    try {
+      const [routes, stops] = await Promise.all([
+        fetchService<RawRoute>("get_routes"),
+        fetchService<RawStop>("get_stops"),
+      ]);
+      const network = buildNetwork(routes, stops, "live");
+      networkCache = { at: Date.now(), network };
+      return network;
+    } catch (err) {
+      if (networkCache) return networkCache.network;
+      console.warn(`[etaspot] routes/stops unavailable (${err instanceof Error ? err.message : err}); using saved copy`);
+      return loadSavedNetwork();
+    } finally {
+      networkInFlight = null;
+    }
+  })();
+  return networkInFlight;
 }

@@ -1,0 +1,1024 @@
+{
+  "get_stops": [
+    {
+      "rid": 2,
+      "rsid": 131089,
+      "id": 17,
+      "name": "Gym Road East",
+      "lat": 40.917991638183594,
+      "lng": -73.12943267822266,
+      "extID": "17",
+      "shortName": "Gym E"
+    },
+    {
+      "rid": 2,
+      "rsid": 131090,
+      "id": 18,
+      "name": "Gym Road West",
+      "lat": 40.918426513671875,
+      "lng": -73.12932586669922,
+      "extID": "18",
+      "shortName": "Gym W"
+    },
+    {
+      "rid": 2,
+      "rsid": 131088,
+      "id": 16,
+      "name": "Hamilton",
+      "lat": 40.91366958618164,
+      "lng": -73.12982177734375,
+      "extID": "16",
+      "shortName": "Ham"
+    },
+    {
+      "rid": 2,
+      "rsid": 131081,
+      "id": 9,
+      "name": "Kelly",
+      "lat": 40.91342544555664,
+      "lng": -73.12919616699219,
+      "extID": "9",
+      "shortName": "Kelly"
+    },
+    {
+      "rid": 2,
+      "rsid": 131091,
+      "id": 19,
+      "name": "Long Island Rail Road",
+      "lat": 40.921390533447266,
+      "lng": -73.12749481201172,
+      "extID": "19",
+      "shortName": "LIRR "
+    },
+    {
+      "rid": 2,
+      "rsid": 131092,
+      "id": 20,
+      "name": "North P Lot ",
+      "lat": 40.92292022705078,
+      "lng": -73.12591552734375,
+      "extID": "20",
+      "shortName": "No. P"
+    },
+    {
+      "rid": 2,
+      "rsid": 131073,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 3,
+      "rsid": 196633,
+      "id": 25,
+      "name": "Administration",
+      "lat": 40.914154052734375,
+      "lng": -73.11922454833984,
+      "extID": "25",
+      "shortName": "Admin"
+    },
+    {
+      "rid": 3,
+      "rsid": 196631,
+      "id": 23,
+      "name": "East Side Dining",
+      "lat": 40.91668701171875,
+      "lng": -73.12123107910156,
+      "extID": "23",
+      "shortName": "ESide"
+    },
+    {
+      "rid": 3,
+      "rsid": 196612,
+      "id": 4,
+      "name": "Greeley",
+      "lat": 40.91111373901367,
+      "lng": -73.13130187988281,
+      "extID": "4",
+      "shortName": "GR"
+    },
+    {
+      "rid": 3,
+      "rsid": 196625,
+      "id": 17,
+      "name": "Gym Road East",
+      "lat": 40.917991638183594,
+      "lng": -73.12943267822266,
+      "extID": "17",
+      "shortName": "Gym E"
+    },
+    {
+      "rid": 3,
+      "rsid": 196617,
+      "id": 9,
+      "name": "Kelly",
+      "lat": 40.91342544555664,
+      "lng": -73.12919616699219,
+      "extID": "9",
+      "shortName": "Kelly"
+    },
+    {
+      "rid": 3,
+      "rsid": 196634,
+      "id": 26,
+      "name": "Life Science West",
+      "lat": 40.910945892333984,
+      "lng": -73.11915588378906,
+      "extID": "26",
+      "shortName": "LifeW"
+    },
+    {
+      "rid": 3,
+      "rsid": 196627,
+      "id": 19,
+      "name": "Long Island Rail Road",
+      "lat": 40.921390533447266,
+      "lng": -73.12749481201172,
+      "extID": "19",
+      "shortName": "LIRR "
+    },
+    {
+      "rid": 3,
+      "rsid": 196632,
+      "id": 24,
+      "name": "M&H Quad",
+      "lat": 40.91815185546875,
+      "lng": -73.11809539794922,
+      "extID": "24",
+      "shortName": "M&H"
+    },
+    {
+      "rid": 3,
+      "rsid": 196616,
+      "id": 8,
+      "name": "Nobel",
+      "lat": 40.91299819946289,
+      "lng": -73.12948608398438,
+      "extID": "8",
+      "shortName": "nobel"
+    },
+    {
+      "rid": 3,
+      "rsid": 196628,
+      "id": 20,
+      "name": "North P Lot ",
+      "lat": 40.92292022705078,
+      "lng": -73.12591552734375,
+      "extID": "20",
+      "shortName": "No. P"
+    },
+    {
+      "rid": 3,
+      "rsid": 196619,
+      "id": 11,
+      "name": "Roosevelt East",
+      "lat": 40.911930084228516,
+      "lng": -73.12763214111328,
+      "extID": "11",
+      "shortName": "RoosE"
+    },
+    {
+      "rid": 3,
+      "rsid": 196623,
+      "id": 15,
+      "name": "Roth/Tabler East",
+      "lat": 40.910377502441406,
+      "lng": -73.1241226196289,
+      "extID": "15",
+      "shortName": "RothE"
+    },
+    {
+      "rid": 3,
+      "rsid": 196609,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 3,
+      "rsid": 196621,
+      "id": 13,
+      "name": "Tabler Steps East",
+      "lat": 40.91102981567383,
+      "lng": -73.12593841552734,
+      "extID": "13",
+      "shortName": "Tab E"
+    },
+    {
+      "rid": 3,
+      "rsid": 196615,
+      "id": 7,
+      "name": "West C",
+      "lat": 40.91246795654297,
+      "lng": -73.13337707519531,
+      "extID": "7",
+      "shortName": "WestC"
+    },
+    {
+      "rid": 3,
+      "rsid": 196613,
+      "id": 5,
+      "name": "West E",
+      "lat": 40.911773681640625,
+      "lng": -73.13441467285156,
+      "extID": "5",
+      "shortName": "WestE"
+    },
+    {
+      "rid": 3,
+      "rsid": 196614,
+      "id": 6,
+      "name": "West G",
+      "lat": 40.91300964355469,
+      "lng": -73.13595581054688,
+      "extID": "6",
+      "shortName": "WestG"
+    },
+    {
+      "rid": 4,
+      "rsid": 262169,
+      "id": 25,
+      "name": "Administration",
+      "lat": 40.914154052734375,
+      "lng": -73.11922454833984,
+      "extID": "25",
+      "shortName": "Admin"
+    },
+    {
+      "rid": 4,
+      "rsid": 262176,
+      "id": 32,
+      "name": "Chapin Apartments",
+      "lat": 40.90840530395508,
+      "lng": -73.11160278320312,
+      "extID": "32",
+      "shortName": "Chpn"
+    },
+    {
+      "rid": 4,
+      "rsid": 262177,
+      "id": 33,
+      "name": "Child Care",
+      "lat": 40.898258209228516,
+      "lng": -73.12811279296875,
+      "extID": "33",
+      "shortName": "Child"
+    },
+    {
+      "rid": 4,
+      "rsid": 262154,
+      "id": 10,
+      "name": "Circle Road",
+      "lat": 40.91304016113281,
+      "lng": -73.12904357910156,
+      "extID": "10",
+      "shortName": "Circl"
+    },
+    {
+      "rid": 4,
+      "rsid": 262170,
+      "id": 26,
+      "name": "Life Science West",
+      "lat": 40.910945892333984,
+      "lng": -73.11915588378906,
+      "extID": "26",
+      "shortName": "LifeW"
+    },
+    {
+      "rid": 4,
+      "rsid": 262198,
+      "id": 54,
+      "name": "Lot 40, Hosp/Chapin, Hosp Exp",
+      "lat": 40.8968620300293,
+      "lng": -73.12660217285156,
+      "extID": "54",
+      "shortName": "HC HE"
+    },
+    {
+      "rid": 4,
+      "rsid": 262174,
+      "id": 30,
+      "name": "Point of Woods",
+      "lat": 40.91377639770508,
+      "lng": -73.11395263671875,
+      "extID": "30",
+      "shortName": "PtWds"
+    },
+    {
+      "rid": 4,
+      "rsid": 262155,
+      "id": 11,
+      "name": "Roosevelt East",
+      "lat": 40.911930084228516,
+      "lng": -73.12763214111328,
+      "extID": "11",
+      "shortName": "RoosE"
+    },
+    {
+      "rid": 4,
+      "rsid": 262147,
+      "id": 3,
+      "name": "Roosevelt West",
+      "lat": 40.91204071044922,
+      "lng": -73.1280746459961,
+      "extID": "3",
+      "shortName": "RW"
+    },
+    {
+      "rid": 4,
+      "rsid": 262159,
+      "id": 15,
+      "name": "Roth/Tabler East",
+      "lat": 40.910377502441406,
+      "lng": -73.1241226196289,
+      "extID": "15",
+      "shortName": "RothE"
+    },
+    {
+      "rid": 4,
+      "rsid": 262158,
+      "id": 14,
+      "name": "Roth/Tabler West",
+      "lat": 40.910423278808594,
+      "lng": -73.1246337890625,
+      "extID": "14",
+      "shortName": "RothW"
+    },
+    {
+      "rid": 4,
+      "rsid": 262145,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 4,
+      "rsid": 262172,
+      "id": 28,
+      "name": "South Campus West",
+      "lat": 40.90477752685547,
+      "lng": -73.12173461914062,
+      "extID": "28",
+      "shortName": "SCamW"
+    },
+    {
+      "rid": 4,
+      "rsid": 262157,
+      "id": 13,
+      "name": "Tabler Steps East",
+      "lat": 40.91102981567383,
+      "lng": -73.12593841552734,
+      "extID": "13",
+      "shortName": "Tab E"
+    },
+    {
+      "rid": 4,
+      "rsid": 262156,
+      "id": 12,
+      "name": "Tabler Steps West",
+      "lat": 40.911109924316406,
+      "lng": -73.12648010253906,
+      "extID": "12",
+      "shortName": "Tab W"
+    },
+    {
+      "rid": 5,
+      "rsid": 327703,
+      "id": 23,
+      "name": "East Side Dining",
+      "lat": 40.91668701171875,
+      "lng": -73.12123107910156,
+      "extID": "23",
+      "shortName": "ESide"
+    },
+    {
+      "rid": 5,
+      "rsid": 327707,
+      "id": 27,
+      "name": "Life Science East",
+      "lat": 40.91095733642578,
+      "lng": -73.11895751953125,
+      "extID": "27",
+      "shortName": "LifeE"
+    },
+    {
+      "rid": 5,
+      "rsid": 327706,
+      "id": 26,
+      "name": "Life Science West",
+      "lat": 40.910945892333984,
+      "lng": -73.11915588378906,
+      "extID": "26",
+      "shortName": "LifeW"
+    },
+    {
+      "rid": 5,
+      "rsid": 327716,
+      "id": 36,
+      "name": "Lot 40 Wolfie's Express East",
+      "lat": 40.89646911621094,
+      "lng": -73.12667846679688,
+      "extID": "36",
+      "shortName": "ExpE"
+    },
+    {
+      "rid": 5,
+      "rsid": 327709,
+      "id": 29,
+      "name": "South Campus East",
+      "lat": 40.90447998046875,
+      "lng": -73.12151336669922,
+      "extID": "29",
+      "shortName": "SCamE"
+    },
+    {
+      "rid": 5,
+      "rsid": 327708,
+      "id": 28,
+      "name": "South Campus West",
+      "lat": 40.90477752685547,
+      "lng": -73.12173461914062,
+      "extID": "28",
+      "shortName": "SCamW"
+    },
+    {
+      "rid": 8,
+      "rsid": 524320,
+      "id": 32,
+      "name": "Chapin Apartments",
+      "lat": 40.90840530395508,
+      "lng": -73.11160278320312,
+      "extID": "32",
+      "shortName": "Chpn"
+    },
+    {
+      "rid": 8,
+      "rsid": 524334,
+      "id": 46,
+      "name": "Port Jefferson Village",
+      "lat": 40.94874572753906,
+      "lng": -73.06755065917969,
+      "extID": "46",
+      "shortName": "PtJef"
+    },
+    {
+      "rid": 8,
+      "rsid": 524289,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 8,
+      "rsid": 524353,
+      "id": 65,
+      "name": "Stony Brook Village",
+      "lat": 40.91898727416992,
+      "lng": -73.14726257324219,
+      "extID": "65",
+      "shortName": "SB Vi"
+    },
+    {
+      "rid": 8,
+      "rsid": 524333,
+      "id": 45,
+      "name": "Stop & Shop East Setauket",
+      "lat": 40.9393310546875,
+      "lng": -73.10940551757812,
+      "extID": "45",
+      "shortName": "S&SES"
+    },
+    {
+      "rid": 9,
+      "rsid": 589855,
+      "id": 31,
+      "name": "Emergency Room",
+      "lat": 40.908958435058594,
+      "lng": -73.11421966552734,
+      "extID": "31",
+      "shortName": "Emerg"
+    },
+    {
+      "rid": 9,
+      "rsid": 589878,
+      "id": 54,
+      "name": "Lot 40, Hosp/Chapin, Hosp Exp",
+      "lat": 40.8968620300293,
+      "lng": -73.12660217285156,
+      "extID": "54",
+      "shortName": "HC HE"
+    },
+    {
+      "rid": 10,
+      "rsid": 655407,
+      "id": 47,
+      "name": "Lot A - Southampton",
+      "lat": 40.888179779052734,
+      "lng": -72.44229125976562,
+      "extID": "47",
+      "shortName": "Lot A"
+    },
+    {
+      "rid": 10,
+      "rsid": 655361,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 11,
+      "rsid": 720928,
+      "id": 32,
+      "name": "Chapin Apartments",
+      "lat": 40.90840530395508,
+      "lng": -73.11160278320312,
+      "extID": "32",
+      "shortName": "Chpn"
+    },
+    {
+      "rid": 11,
+      "rsid": 720900,
+      "id": 4,
+      "name": "Greeley",
+      "lat": 40.91111373901367,
+      "lng": -73.13130187988281,
+      "extID": "4",
+      "shortName": "GR"
+    },
+    {
+      "rid": 11,
+      "rsid": 720912,
+      "id": 16,
+      "name": "Hamilton",
+      "lat": 40.91366958618164,
+      "lng": -73.12982177734375,
+      "extID": "16",
+      "shortName": "Ham"
+    },
+    {
+      "rid": 11,
+      "rsid": 720915,
+      "id": 19,
+      "name": "Long Island Rail Road",
+      "lat": 40.921390533447266,
+      "lng": -73.12749481201172,
+      "extID": "19",
+      "shortName": "LIRR "
+    },
+    {
+      "rid": 11,
+      "rsid": 720950,
+      "id": 54,
+      "name": "Lot 40, Hosp/Chapin, Hosp Exp",
+      "lat": 40.8968620300293,
+      "lng": -73.12660217285156,
+      "extID": "54",
+      "shortName": "HC HE"
+    },
+    {
+      "rid": 11,
+      "rsid": 720920,
+      "id": 24,
+      "name": "M&H Quad",
+      "lat": 40.91815185546875,
+      "lng": -73.11809539794922,
+      "extID": "24",
+      "shortName": "M&H"
+    },
+    {
+      "rid": 11,
+      "rsid": 720904,
+      "id": 8,
+      "name": "Nobel",
+      "lat": 40.91299819946289,
+      "lng": -73.12948608398438,
+      "extID": "8",
+      "shortName": "nobel"
+    },
+    {
+      "rid": 11,
+      "rsid": 720926,
+      "id": 30,
+      "name": "Point of Woods",
+      "lat": 40.91377639770508,
+      "lng": -73.11395263671875,
+      "extID": "30",
+      "shortName": "PtWds"
+    },
+    {
+      "rid": 11,
+      "rsid": 720899,
+      "id": 3,
+      "name": "Roosevelt West",
+      "lat": 40.91204071044922,
+      "lng": -73.1280746459961,
+      "extID": "3",
+      "shortName": "RW"
+    },
+    {
+      "rid": 11,
+      "rsid": 720910,
+      "id": 14,
+      "name": "Roth/Tabler West",
+      "lat": 40.910423278808594,
+      "lng": -73.1246337890625,
+      "extID": "14",
+      "shortName": "RothW"
+    },
+    {
+      "rid": 11,
+      "rsid": 720897,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 11,
+      "rsid": 720908,
+      "id": 12,
+      "name": "Tabler Steps West",
+      "lat": 40.911109924316406,
+      "lng": -73.12648010253906,
+      "extID": "12",
+      "shortName": "Tab W"
+    },
+    {
+      "rid": 11,
+      "rsid": 720903,
+      "id": 7,
+      "name": "West C",
+      "lat": 40.91246795654297,
+      "lng": -73.13337707519531,
+      "extID": "7",
+      "shortName": "WestC"
+    },
+    {
+      "rid": 11,
+      "rsid": 720901,
+      "id": 5,
+      "name": "West E",
+      "lat": 40.911773681640625,
+      "lng": -73.13441467285156,
+      "extID": "5",
+      "shortName": "WestE"
+    },
+    {
+      "rid": 11,
+      "rsid": 720902,
+      "id": 6,
+      "name": "West G",
+      "lat": 40.91300964355469,
+      "lng": -73.13595581054688,
+      "extID": "6",
+      "shortName": "WestG"
+    },
+    {
+      "rid": 12,
+      "rsid": 786436,
+      "id": 4,
+      "name": "Greeley",
+      "lat": 40.91111373901367,
+      "lng": -73.13130187988281,
+      "extID": "4",
+      "shortName": "GR"
+    },
+    {
+      "rid": 12,
+      "rsid": 786440,
+      "id": 8,
+      "name": "Nobel",
+      "lat": 40.91299819946289,
+      "lng": -73.12948608398438,
+      "extID": "8",
+      "shortName": "nobel"
+    },
+    {
+      "rid": 12,
+      "rsid": 786443,
+      "id": 11,
+      "name": "Roosevelt East",
+      "lat": 40.911930084228516,
+      "lng": -73.12763214111328,
+      "extID": "11",
+      "shortName": "RoosE"
+    },
+    {
+      "rid": 12,
+      "rsid": 786447,
+      "id": 15,
+      "name": "Roth/Tabler East",
+      "lat": 40.910377502441406,
+      "lng": -73.1241226196289,
+      "extID": "15",
+      "shortName": "RothE"
+    },
+    {
+      "rid": 12,
+      "rsid": 786433,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 12,
+      "rsid": 786476,
+      "id": 44,
+      "name": "Stop & Shop  South Setauket",
+      "lat": 40.8826789855957,
+      "lng": -73.10401916503906,
+      "extID": "44",
+      "shortName": "S&S"
+    },
+    {
+      "rid": 12,
+      "rsid": 786445,
+      "id": 13,
+      "name": "Tabler Steps East",
+      "lat": 40.91102981567383,
+      "lng": -73.12593841552734,
+      "extID": "13",
+      "shortName": "Tab E"
+    },
+    {
+      "rid": 12,
+      "rsid": 786474,
+      "id": 42,
+      "name": "Target South Setauket",
+      "lat": 40.88578414916992,
+      "lng": -73.09984588623047,
+      "extID": "42",
+      "shortName": "Targe"
+    },
+    {
+      "rid": 12,
+      "rsid": 786475,
+      "id": 43,
+      "name": "Walmart Centereach",
+      "lat": 40.862571716308594,
+      "lng": -73.0822982788086,
+      "extID": "43",
+      "shortName": "WMart"
+    },
+    {
+      "rid": 12,
+      "rsid": 786439,
+      "id": 7,
+      "name": "West C",
+      "lat": 40.91246795654297,
+      "lng": -73.13337707519531,
+      "extID": "7",
+      "shortName": "WestC"
+    },
+    {
+      "rid": 12,
+      "rsid": 786437,
+      "id": 5,
+      "name": "West E",
+      "lat": 40.911773681640625,
+      "lng": -73.13441467285156,
+      "extID": "5",
+      "shortName": "WestE"
+    },
+    {
+      "rid": 12,
+      "rsid": 786438,
+      "id": 6,
+      "name": "West G",
+      "lat": 40.91300964355469,
+      "lng": -73.13595581054688,
+      "extID": "6",
+      "shortName": "WestG"
+    },
+    {
+      "rid": 13,
+      "rsid": 852000,
+      "id": 32,
+      "name": "Chapin Apartments",
+      "lat": 40.90840530395508,
+      "lng": -73.11160278320312,
+      "extID": "32",
+      "shortName": "Chpn"
+    },
+    {
+      "rid": 13,
+      "rsid": 851991,
+      "id": 23,
+      "name": "East Side Dining",
+      "lat": 40.91668701171875,
+      "lng": -73.12123107910156,
+      "extID": "23",
+      "shortName": "ESide"
+    },
+    {
+      "rid": 13,
+      "rsid": 851998,
+      "id": 30,
+      "name": "Point of Woods",
+      "lat": 40.91377639770508,
+      "lng": -73.11395263671875,
+      "extID": "30",
+      "shortName": "PtWds"
+    },
+    {
+      "rid": 13,
+      "rsid": 851969,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 13,
+      "rsid": 852012,
+      "id": 44,
+      "name": "Stop & Shop  South Setauket",
+      "lat": 40.8826789855957,
+      "lng": -73.10401916503906,
+      "extID": "44",
+      "shortName": "S&S"
+    },
+    {
+      "rid": 13,
+      "rsid": 852010,
+      "id": 42,
+      "name": "Target South Setauket",
+      "lat": 40.88578414916992,
+      "lng": -73.09984588623047,
+      "extID": "42",
+      "shortName": "Targe"
+    },
+    {
+      "rid": 13,
+      "rsid": 852011,
+      "id": 43,
+      "name": "Walmart Centereach",
+      "lat": 40.862571716308594,
+      "lng": -73.0822982788086,
+      "extID": "43",
+      "shortName": "WMart"
+    },
+    {
+      "rid": 25,
+      "rsid": 1638453,
+      "id": 53,
+      "name": "Lot 40, Fuel",
+      "lat": 40.89786911010742,
+      "lng": -73.12783813476562,
+      "extID": "53",
+      "shortName": "Fuel"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031620,
+      "id": 4,
+      "name": "Greeley",
+      "lat": 40.91111373901367,
+      "lng": -73.13130187988281,
+      "extID": "4",
+      "shortName": "GR"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031618,
+      "id": 2,
+      "name": "Lot 13",
+      "lat": 40.91368103027344,
+      "lng": -73.12836456298828,
+      "extID": "2",
+      "shortName": "Lot13"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031624,
+      "id": 8,
+      "name": "Nobel",
+      "lat": 40.91299819946289,
+      "lng": -73.12948608398438,
+      "extID": "8",
+      "shortName": "nobel"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031619,
+      "id": 3,
+      "name": "Roosevelt West",
+      "lat": 40.91204071044922,
+      "lng": -73.1280746459961,
+      "extID": "3",
+      "shortName": "RW"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031617,
+      "id": 1,
+      "name": "SAC",
+      "lat": 40.91435241699219,
+      "lng": -73.12484741210938,
+      "extID": "1",
+      "shortName": "SAC"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031623,
+      "id": 7,
+      "name": "West C",
+      "lat": 40.91246795654297,
+      "lng": -73.13337707519531,
+      "extID": "7",
+      "shortName": "WestC"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031621,
+      "id": 5,
+      "name": "West E",
+      "lat": 40.911773681640625,
+      "lng": -73.13441467285156,
+      "extID": "5",
+      "shortName": "WestE"
+    },
+    {
+      "rid": 31,
+      "rsid": 2031622,
+      "id": 6,
+      "name": "West G",
+      "lat": 40.91300964355469,
+      "lng": -73.13595581054688,
+      "extID": "6",
+      "shortName": "WestG"
+    },
+    {
+      "rid": 32,
+      "rsid": 2097185,
+      "id": 33,
+      "name": "Child Care",
+      "lat": 40.898258209228516,
+      "lng": -73.12811279296875,
+      "extID": "33",
+      "shortName": "Child"
+    },
+    {
+      "rid": 32,
+      "rsid": 2097193,
+      "id": 41,
+      "name": "Engineering",
+      "lat": 40.91343307495117,
+      "lng": -73.12419128417969,
+      "extID": "41",
+      "shortName": "Engin"
+    },
+    {
+      "rid": 32,
+      "rsid": 2097189,
+      "id": 37,
+      "name": "Lot 40 Wolfie's Express West",
+      "lat": 40.89677810668945,
+      "lng": -73.12662506103516,
+      "extID": "37",
+      "shortName": "ExpW"
+    },
+    {
+      "rid": 32,
+      "rsid": 2097181,
+      "id": 29,
+      "name": "South Campus East",
+      "lat": 40.90447998046875,
+      "lng": -73.12151336669922,
+      "extID": "29",
+      "shortName": "SCamE"
+    },
+    {
+      "rid": 32,
+      "rsid": 2097180,
+      "id": 28,
+      "name": "South Campus West",
+      "lat": 40.90477752685547,
+      "lng": -73.12173461914062,
+      "extID": "28",
+      "shortName": "SCamW"
+    }
+  ]
+}

@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Map as MlMap, Marker } from "maplibre-gl";
+import type { GeoJSONSource, Map as MlMap, Marker } from "maplibre-gl";
 import type { Bus } from "@/lib/etaspot";
+import type { LatLng } from "@/lib/geo";
+import type { Network } from "@/lib/network";
 import type { Place } from "@/lib/places";
-import { routeColor } from "@/lib/routes";
+import type { TripOption } from "@/lib/planner";
+import { decodePolyline } from "@/lib/polyline";
+import { routeColor, routeLabel, textOn } from "@/lib/routes";
 
 // Center of the main Stony Brook campus.
 const CAMPUS: [number, number] = [-73.1234, 40.9124];
@@ -19,12 +23,53 @@ const FALLBACK_STYLE = {
 
 interface Props {
   buses: Bus[];
+  network: Network | null;
   selectedId: string | null;
   onSelect: (id: string) => void;
   destination: Place | null;
+  origin: LatLng | null;
+  /** The trip option being shown: its boarding and alighting stops are highlighted. */
+  trip: TripOption | null;
 }
 
-export default function LiveMap({ buses, selectedId, onSelect, destination }: Props) {
+type FC = GeoJSON.FeatureCollection;
+const EMPTY: FC = { type: "FeatureCollection", features: [] };
+
+function routesGeo(network: Network | null): FC {
+  if (!network) return EMPTY;
+  return {
+    type: "FeatureCollection",
+    features: network.routes
+      .filter((r) => r.encLine)
+      .map((r) => ({
+        type: "Feature",
+        properties: { color: r.color, id: r.id },
+        geometry: { type: "LineString", coordinates: decodePolyline(r.encLine!) },
+      })),
+  };
+}
+
+function stopsGeo(network: Network | null): FC {
+  if (!network) return EMPTY;
+  return {
+    type: "FeatureCollection",
+    features: network.stops
+      .filter((s) => s.routeIds.length > 0)
+      .map((s) => ({ type: "Feature", properties: { name: s.name }, geometry: { type: "Point", coordinates: [s.lng, s.lat] } })),
+  };
+}
+
+function tripGeo(trip: TripOption | null): FC {
+  if (!trip) return EMPTY;
+  const pt = (kind: string, s: { lat: number; lng: number; name: string }) => ({
+    type: "Feature" as const,
+    properties: { kind, name: s.name },
+    geometry: { type: "Point" as const, coordinates: [s.lng, s.lat] },
+  });
+  return { type: "FeatureCollection", features: [pt("board", trip.board.stop), pt("alight", trip.alight.stop)] };
+}
+
+export default function LiveMap({ buses, network, selectedId, onSelect, destination, origin, trip }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
@@ -32,6 +77,9 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
   const [ready, setReady] = useState(false);
   const fitted = useRef(false);
   const destMarker = useRef<Marker | null>(null);
+  const originMarker = useRef<Marker | null>(null);
+  // Latest overlay data, re-applied whenever the map style (re)loads.
+  const overlay = useRef({ routes: EMPTY, stops: EMPTY, trip: EMPTY });
   const onSelectRef = useRef(onSelect);
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -52,6 +100,44 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
         center: CAMPUS,
         zoom: 14,
         attributionControl: { compact: true },
+      });
+      // Route lines, stop dots and trip highlights are map layers; a style change wipes them, so add them on every load.
+      map.current.on("style.load", () => {
+        const m = map.current;
+        if (!m) return;
+        const data = overlay.current;
+        m.addSource("routes", { type: "geojson", data: data.routes });
+        m.addSource("stops", { type: "geojson", data: data.stops });
+        m.addSource("trip", { type: "geojson", data: data.trip });
+        m.addLayer({
+          id: "route-lines",
+          type: "line",
+          source: "routes",
+          layout: { "line-join": "round", "line-cap": "round" },
+          paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.5 },
+        });
+        m.addLayer({
+          id: "stop-dots",
+          type: "circle",
+          source: "stops",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2.5, 16, 5],
+            "circle-color": "#FFFFFF",
+            "circle-stroke-color": "#262840",
+            "circle-stroke-width": 1.5,
+          },
+        });
+        m.addLayer({
+          id: "trip-stops",
+          type: "circle",
+          source: "trip",
+          paint: {
+            "circle-radius": 9,
+            "circle-color": ["match", ["get", "kind"], "board", "#262840", "#E8264F"],
+            "circle-stroke-color": "#FFFFFF",
+            "circle-stroke-width": 3,
+          },
+        });
       });
       let fellBack = false;
       map.current.on("error", (e) => {
@@ -108,11 +194,13 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
       }
       marker.setLngLat([bus.lng, bus.lat]);
       const el = marker.getElement().firstElementChild as HTMLElement;
-      el.style.background = routeColor(bus.routeId);
+      const color = routeColor(bus.routeId, network);
+      el.style.background = color;
+      el.style.color = textOn(color);
       el.dataset.soon = String(bus.minutesToNextStop !== null && bus.minutesToNextStop < 2);
       el.dataset.selected = String(bus.id === selectedId);
       el.setAttribute("aria-label", `Bus ${bus.id} on route ${bus.routeId}`);
-      (el.querySelector(".label") as HTMLElement).textContent = String(bus.routeId);
+      (el.querySelector(".label") as HTMLElement).textContent = routeLabel(bus.routeId, network);
       (el.querySelector(".heading") as HTMLElement).style.transform = `rotate(${bus.heading}deg)`;
     }
 
@@ -133,7 +221,7 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
         markers.current.delete(id);
       }
     }
-  }, [ready, buses, selectedId]);
+  }, [ready, buses, selectedId, network]);
 
   // Fly to a bus when it is picked from the list.
   useEffect(() => {
@@ -142,6 +230,35 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
     // Only when the selection changes, not on every position update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
+
+  // Keep the overlay layers in sync with the network and the trip being shown.
+  useEffect(() => {
+    overlay.current = { routes: routesGeo(network), stops: stopsGeo(network), trip: tripGeo(trip) };
+    const m = map.current;
+    if (!ready || !m) return;
+    for (const [id, data] of Object.entries(overlay.current)) {
+      (m.getSource(id) as GeoJSONSource | undefined)?.setData(data);
+    }
+  }, [ready, network, trip]);
+
+  // Where the trip starts: a navy dot with a white ring.
+  useEffect(() => {
+    const m = map.current;
+    const maplibre = lib.current;
+    if (!ready || !m || !maplibre) return;
+    if (!origin) {
+      originMarker.current?.remove();
+      originMarker.current = null;
+      return;
+    }
+    if (!originMarker.current) {
+      const el = document.createElement("div");
+      el.innerHTML = `<div class="origin-dot" role="img" aria-label="Trip start"></div>`;
+      originMarker.current = new maplibre.Marker({ element: el }).setLngLat([origin.lng, origin.lat]).addTo(m);
+    } else {
+      originMarker.current.setLngLat([origin.lng, origin.lat]);
+    }
+  }, [ready, origin]);
 
   // Pin the chosen destination and bring it into view.
   useEffect(() => {
@@ -158,6 +275,19 @@ export default function LiveMap({ buses, selectedId, onSelect, destination }: Pr
       .addTo(m);
     m.easeTo({ center: [destination.lng, destination.lat], zoom: Math.max(m.getZoom(), 15.5), duration: 700 });
   }, [ready, destination]);
+
+  // Frame the whole trip once both ends are known.
+  const originKey = origin ? `${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}` : "";
+  useEffect(() => {
+    const m = map.current;
+    const maplibre = lib.current;
+    if (!ready || !m || !maplibre || !origin || !destination) return;
+    const bounds = new maplibre.LngLatBounds([origin.lng, origin.lat], [origin.lng, origin.lat]);
+    bounds.extend([destination.lng, destination.lat]);
+    m.fitBounds(bounds, { padding: 70, maxZoom: 16, duration: 700 });
+    // Only when an end of the trip moves noticeably, not on every GPS update.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, originKey, destination]);
 
   // MapLibre sets position: relative on its container, so the container fills a positioned wrapper.
   return (

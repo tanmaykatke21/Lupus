@@ -1,16 +1,16 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { PLACES, placeById, type Place } from "@/lib/places";
+import type { Place } from "@/lib/places";
 import { searchPlaces, type SearchHit } from "@/lib/search";
 
 const RECENT_KEY = "lupus.recentDestinations";
 const RECENT_MAX = 3;
 
-function readRecent(): Place[] {
+function readRecent(places: Place[]): Place[] {
   try {
     const ids = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
-    return ids.map(placeById).filter((p): p is Place => Boolean(p));
+    return ids.map((id) => places.find((p) => p.id === id)).filter((p): p is Place => Boolean(p));
   } catch {
     return [];
   }
@@ -18,7 +18,8 @@ function readRecent(): Place[] {
 
 function saveRecent(place: Place) {
   try {
-    const ids = [place.id, ...readRecent().map((p) => p.id).filter((id) => id !== place.id)].slice(0, RECENT_MAX);
+    const previous = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]") as string[];
+    const ids = [place.id, ...previous.filter((id) => id !== place.id)].slice(0, RECENT_MAX);
     localStorage.setItem(RECENT_KEY, JSON.stringify(ids));
   } catch {
     // Private browsing or storage disabled: recents are a convenience, so skip them.
@@ -26,13 +27,33 @@ function saveRecent(place: Place) {
 }
 
 interface Props {
-  destination: Place | null;
+  /** Places and bus stops to search. */
+  places: Place[];
+  value: Place | null;
   onChoose: (place: Place | null) => void;
   /** Called when the list of suggestions opens or closes, so the sheet can make room. */
   onOpenChange?: (open: boolean) => void;
+  /** Shown above the chosen place, e.g. "Going to" or "Starting from". */
+  chosenLabel?: string;
+  /** Accessible name of the search box. */
+  searchLabel?: string;
+  placeholder?: string;
+  autoFocus?: boolean;
+  /** Icon for the chosen place: the destination pin or the trip-start ring. */
+  variant?: "destination" | "start";
 }
 
-export default function PlaceSearch({ destination, onChoose, onOpenChange }: Props) {
+export default function PlaceSearch({
+  places,
+  value,
+  onChoose,
+  onOpenChange,
+  chosenLabel = "Going to",
+  searchLabel = "Where to?",
+  placeholder = "Where to? Try Javits or SAC",
+  autoFocus = false,
+  variant = "destination",
+}: Props) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [active, setActive] = useState(0);
@@ -40,7 +61,7 @@ export default function PlaceSearch({ destination, onChoose, onOpenChange }: Pro
   const input = useRef<HTMLInputElement>(null);
   const listId = useId();
 
-  const hits: SearchHit[] = useMemo(() => searchPlaces(PLACES, query), [query]);
+  const hits: SearchHit[] = useMemo(() => searchPlaces(places, query), [places, query]);
   const options: { place: Place; note?: string }[] = query.trim()
     ? hits.map((h) => ({
         place: h.place,
@@ -75,15 +96,21 @@ export default function PlaceSearch({ destination, onChoose, onOpenChange }: Pro
     }
   };
 
-  if (destination) {
+  if (value) {
     return (
       <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-navy" aria-hidden="true">
-          <span className="size-2.5 rounded-full bg-red" />
-        </span>
+        {variant === "start" ? (
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-concrete" aria-hidden="true">
+            <span className="size-3 rounded-full border-2 border-white bg-navy shadow-[0_0_0_2px_var(--navy)]" />
+          </span>
+        ) : (
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-navy" aria-hidden="true">
+            <span className="size-2.5 rounded-full bg-red" />
+          </span>
+        )}
         <div className="min-w-0 flex-1">
-          <p className="text-sm text-fur-dark">Going to</p>
-          <p className="truncate text-lg font-semibold leading-tight">{destination.name}</p>
+          <p className="text-sm text-fur-dark">{chosenLabel}</p>
+          <p className="truncate text-lg font-semibold leading-tight">{value.name}</p>
         </div>
         <button
           type="button"
@@ -102,7 +129,7 @@ export default function PlaceSearch({ destination, onChoose, onOpenChange }: Pro
   return (
     <div className="relative">
       <label htmlFor={`${listId}-input`} className="sr-only">
-        Where to?
+        {searchLabel}
       </label>
       <input
         ref={input}
@@ -115,14 +142,15 @@ export default function PlaceSearch({ destination, onChoose, onOpenChange }: Pro
         aria-activedescendant={open && options[active] ? `${listId}-opt-${active}` : undefined}
         autoComplete="off"
         enterKeyHint="go"
-        placeholder="Where to? Try Javits or SAC"
+        placeholder={placeholder}
+        autoFocus={autoFocus}
         value={query}
         onChange={(e) => {
           setQuery(e.target.value);
           setActive(0);
         }}
         onFocus={() => {
-          setRecent(readRecent());
+          setRecent(readRecent(places));
           setFocused(true);
         }}
         // Delay so a tap on a suggestion lands before the list closes.
@@ -153,7 +181,7 @@ export default function PlaceSearch({ destination, onChoose, onOpenChange }: Pro
           ))}
           {query.trim() && options.length === 0 && (
             <li className="px-4 py-3 text-sm text-fur-dark">
-              {PLACES.length === 0
+              {places.length === 0
                 ? "Campus places haven't been loaded. Run npm run build:places, then restart the app."
                 : `No campus place matches "${query.trim()}". Try a building name or nickname, like Javits or SAC.`}
             </li>

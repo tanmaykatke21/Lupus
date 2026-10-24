@@ -1,5 +1,6 @@
 import type { Bus } from "@/lib/etaspot";
-import { routeColor, routeName } from "@/lib/routes";
+import type { Network } from "@/lib/network";
+import { routeColor, routeLabel, routeName, stopName, textOn } from "@/lib/routes";
 
 // The lane shows how soon the bus reaches its next stop: the dot travels toward the stop as time runs out.
 const LANE_HORIZON_MIN = 15;
@@ -19,12 +20,14 @@ function countdown(min: number | null): { big: string; unit: string } {
 
 interface Props {
   bus: Bus;
+  network: Network | null;
   selected: boolean;
   onSelect: (id: string) => void;
 }
 
-export default function BusRow({ bus, selected, onSelect }: Props) {
-  const color = routeColor(bus.routeId);
+export default function BusRow({ bus, network, selected, onSelect }: Props) {
+  const color = routeColor(bus.routeId, network);
+  const next = stopName(bus.nextStopId, network);
   const { big, unit } = countdown(bus.minutesToNextStop);
   const soon = bus.minutesToNextStop !== null && bus.minutesToNextStop < 2;
   const progress =
@@ -42,18 +45,18 @@ export default function BusRow({ bus, selected, onSelect }: Props) {
       >
         <div className="flex items-center gap-3">
           <span
-            className="grid h-8 min-w-8 place-items-center rounded-lg px-1.5 text-sm font-semibold text-white"
-            style={{ background: color }}
+            className="grid h-8 min-w-8 place-items-center rounded-lg px-1.5 text-sm font-semibold"
+            style={{ background: color, color: textOn(color) }}
           >
-            {bus.routeId}
+            {routeLabel(bus.routeId, network)}
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{routeName(bus.routeId)}</p>
+            <p className="truncate font-medium">{routeName(bus.routeId, network)}</p>
             <p className="truncate text-sm text-fur-dark">
-              {bus.atStop
-                ? `At a stop now, next is stop ${bus.nextStopId}`
-                : bus.nextStopId
-                  ? `Next: stop ${bus.nextStopId}${bus.nextStopAt ? ` at ${bus.nextStopAt}` : ""}`
+              {bus.atStop && next
+                ? `At a stop now, next is ${next}`
+                : next
+                  ? `Next: ${next}${bus.nextStopAt ? ` at ${bus.nextStopAt}` : ""}`
                   : "Next stop not reported"}
             </p>
           </div>

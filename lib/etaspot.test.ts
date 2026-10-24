@@ -69,3 +69,28 @@ describe("crowdingFor", () => {
     expect(crowdingFor(0, 0)).toBe("unknown");
   });
 });
+
+describe("upcoming stops (includeETAData)", () => {
+  const latest = load("vehicles-1430-eta.json");
+  // Bus 61's GPS fix in this snapshot: Sat Oct 24 2026, 2:30:54 PM EDT.
+  const T3 = 1792866654000;
+
+  it("parses ETA Spot clock strings", async () => {
+    const { parseClock } = await import("./etaspot");
+    expect(parseClock("02:31PM")).toBe(14 * 60 + 31);
+    expect(parseClock("12:05AM")).toBe(5);
+    expect(parseClock("On Time")).toBeNull();
+  });
+
+  it("lists each bus's next stops with minutes from now", () => {
+    const bus = normalizeVehicles(latest, T3).find((b) => b.id === "61")!;
+    expect(bus.upcoming.map((u) => u.stopId)).toEqual([9, 17, 20, 19, 24]);
+    expect(bus.upcoming[3].at).toBe("2:35 PM");
+    expect(bus.upcoming[3].minutes).toBeCloseTo(4.1, 1);
+  });
+
+  it("keeps only the first visit when a loop lists a stop twice", () => {
+    const charter = normalizeVehicles(latest, T3).find((b) => b.routeId === 25);
+    if (charter) expect(charter.upcoming.filter((u) => u.stopId === 53)).toHaveLength(1);
+  });
+});

@@ -1,1 +1,503 @@
-[]
+[
+  {
+    "id": "sac",
+    "name": "Student Activities Center",
+    "aliases": [
+      "SAC"
+    ],
+    "category": "student life",
+    "lat": 40.914319,
+    "lng": -73.123782,
+    "source": "osm: Student Activities Center"
+  },
+  {
+    "id": "union",
+    "name": "Stony Brook Union",
+    "aliases": [
+      "Union",
+      "SB Union"
+    ],
+    "category": "student life",
+    "lat": 40.917159,
+    "lng": -73.122448,
+    "source": "osm: Stony Brook Union"
+  },
+  {
+    "id": "library",
+    "name": "Melville Library",
+    "aliases": [
+      "Library",
+      "Main Library",
+      "Frank Melville Library"
+    ],
+    "category": "academic",
+    "lat": 40.915477,
+    "lng": -73.122725,
+    "source": "osm: Frank Melville Jr. Memorial Library"
+  },
+  {
+    "id": "wang",
+    "name": "Charles B. Wang Center",
+    "aliases": [
+      "Wang",
+      "Wang Center"
+    ],
+    "category": "student life",
+    "lat": 40.915983,
+    "lng": -73.119736,
+    "source": "osm: Charles B. Wang Center"
+  },
+  {
+    "id": "javits",
+    "name": "Javits Lecture Center",
+    "aliases": [
+      "Javits",
+      "Lecture Center"
+    ],
+    "category": "academic",
+    "lat": 40.912961,
+    "lng": -73.122085,
+    "source": "osm: Jacob K. Javits Lecture Center"
+  },
+  {
+    "id": "humanities",
+    "name": "Humanities Building",
+    "aliases": [
+      "Humanities"
+    ],
+    "category": "academic",
+    "lat": 40.913937,
+    "lng": -73.12091,
+    "source": "osm: Humanities"
+  },
+  {
+    "id": "psych-a",
+    "name": "Psychology A",
+    "aliases": [
+      "Psych A"
+    ],
+    "category": "academic",
+    "lat": 40.914274,
+    "lng": -73.122289,
+    "source": "osm: Psychology A"
+  },
+  {
+    "id": "psych-b",
+    "name": "Psychology B",
+    "aliases": [
+      "Psych B"
+    ],
+    "category": "academic",
+    "lat": 40.913904,
+    "lng": -73.122097,
+    "source": "osm: Psychology B"
+  },
+  {
+    "id": "sbs",
+    "name": "Social and Behavioral Sciences",
+    "aliases": [
+      "SBS",
+      "Social Behavioral Sciences"
+    ],
+    "category": "academic",
+    "lat": 40.913063,
+    "lng": -73.120077,
+    "source": "osm: Social and Behavioral Sciences"
+  },
+  {
+    "id": "ess",
+    "name": "Earth and Space Sciences",
+    "aliases": [
+      "ESS",
+      "Earth Space"
+    ],
+    "category": "academic",
+    "lat": 40.91499,
+    "lng": -73.125478,
+    "source": "osm: Earth & Space Sciences"
+  },
+  {
+    "id": "physics",
+    "name": "Physics Building",
+    "aliases": [
+      "Physics"
+    ],
+    "category": "academic",
+    "lat": 40.91625,
+    "lng": -73.125966,
+    "source": "osm: Physics"
+  },
+  {
+    "id": "math-tower",
+    "name": "Math Tower",
+    "aliases": [
+      "Math",
+      "Mathematics Tower"
+    ],
+    "category": "academic",
+    "lat": 40.915846,
+    "lng": -73.12633,
+    "source": "osm: Math Tower"
+  },
+  {
+    "id": "chemistry",
+    "name": "Chemistry Building",
+    "aliases": [
+      "Chemistry",
+      "Chem"
+    ],
+    "category": "academic",
+    "lat": 40.916396,
+    "lng": -73.123712,
+    "source": "osm: Chemistry"
+  },
+  {
+    "id": "life-sciences",
+    "name": "Life Sciences",
+    "aliases": [
+      "Life Sci",
+      "Biology"
+    ],
+    "category": "academic",
+    "lat": 40.911712,
+    "lng": -73.120137,
+    "source": "osm: Life Sciences"
+  },
+  {
+    "id": "cmm",
+    "name": "Centers for Molecular Medicine",
+    "aliases": [
+      "CMM",
+      "Molecular Medicine"
+    ],
+    "category": "academic",
+    "lat": 40.911817,
+    "lng": -73.119319,
+    "source": "osm: Centers for Molecular Medicine"
+  },
+  {
+    "id": "new-cs",
+    "name": "New Computer Science Building",
+    "aliases": [
+      "New CS",
+      "CS Building",
+      "Computer Science"
+    ],
+    "category": "academic",
+    "lat": 40.912948,
+    "lng": -73.123559,
+    "source": "osm: New Computer Science"
+  },
+  {
+    "id": "old-cs",
+    "name": "Old Computer Science Building",
+    "aliases": [
+      "Old CS"
+    ],
+    "category": "academic",
+    "lat": 40.912595,
+    "lng": -73.122292,
+    "source": "osm: Computer Science"
+  },
+  {
+    "id": "engineering",
+    "name": "Engineering Building",
+    "aliases": [
+      "Old Engineering",
+      "Engineering"
+    ],
+    "category": "academic",
+    "lat": 40.913331,
+    "lng": -73.12447,
+    "source": "osm: Engineering"
+  },
+  {
+    "id": "light-eng",
+    "name": "Light Engineering",
+    "aliases": [
+      "Light Eng"
+    ],
+    "category": "academic",
+    "lat": 40.913527,
+    "lng": -73.125412,
+    "source": "osm: Light Engineering"
+  },
+  {
+    "id": "heavy-eng",
+    "name": "Heavy Engineering",
+    "aliases": [
+      "Heavy Eng"
+    ],
+    "category": "academic",
+    "lat": 40.912466,
+    "lng": -73.125566,
+    "source": "osm: Heavy Engineering"
+  },
+  {
+    "id": "simons",
+    "name": "Simons Center for Geometry and Physics",
+    "aliases": [
+      "Simons Center",
+      "Simons"
+    ],
+    "category": "academic",
+    "lat": 40.915795,
+    "lng": -73.126974,
+    "source": "osm: Simons Center for Geometry and Physics"
+  },
+  {
+    "id": "staller",
+    "name": "Staller Center for the Arts",
+    "aliases": [
+      "Staller"
+    ],
+    "category": "arts",
+    "lat": 40.915719,
+    "lng": -73.12145,
+    "source": "osm: Staller Center for the Arts"
+  },
+  {
+    "id": "frey",
+    "name": "Frey Hall",
+    "aliases": [
+      "Frey"
+    ],
+    "category": "academic",
+    "lat": 40.915674,
+    "lng": -73.123875,
+    "source": "osm: Frey Hall"
+  },
+  {
+    "id": "harriman",
+    "name": "Harriman Hall",
+    "aliases": [
+      "Harriman"
+    ],
+    "category": "academic",
+    "lat": 40.915748,
+    "lng": -73.125073,
+    "source": "osm: Harriman Hall"
+  },
+  {
+    "id": "admin",
+    "name": "Administration Building",
+    "aliases": [
+      "Admin"
+    ],
+    "category": "services",
+    "lat": 40.914687,
+    "lng": -73.120349,
+    "source": "osm: Administration"
+  },
+  {
+    "id": "rec-center",
+    "name": "Campus Recreation Center",
+    "aliases": [
+      "Rec Center",
+      "Gym",
+      "Walter J. Hawrys"
+    ],
+    "category": "athletics",
+    "lat": 40.917243,
+    "lng": -73.123433,
+    "source": "osm: Walter J. Hawrys Campus Recreation Center"
+  },
+  {
+    "id": "arena",
+    "name": "Island Federal Arena",
+    "aliases": [
+      "Arena",
+      "Island Federal"
+    ],
+    "category": "athletics",
+    "lat": 40.917413,
+    "lng": -73.125979,
+    "source": "osm: Island Federal Credit Union Arena"
+  },
+  {
+    "id": "stadium",
+    "name": "LaValle Stadium",
+    "aliases": [
+      "Stadium",
+      "Kenneth P. LaValle Stadium"
+    ],
+    "category": "athletics",
+    "lat": 40.9188,
+    "lng": -73.124211,
+    "source": "osm: Kenneth P. LaValle Athletic Stadium"
+  },
+  {
+    "id": "west-dining",
+    "name": "West Side Dining",
+    "aliases": [
+      "West Side",
+      "West Dining"
+    ],
+    "category": "dining",
+    "lat": 40.913241,
+    "lng": -73.130321,
+    "source": "osm: West Side Dining"
+  },
+  {
+    "id": "east-dining",
+    "name": "East Side Dining",
+    "aliases": [
+      "East Side",
+      "East Dining"
+    ],
+    "category": "dining",
+    "lat": 40.916856,
+    "lng": -73.120708,
+    "source": "osm: East Side Dining / Chávez Hall"
+  },
+  {
+    "id": "roosevelt",
+    "name": "Roosevelt Quad",
+    "aliases": [
+      "Roosevelt"
+    ],
+    "category": "residence",
+    "lat": 40.91203,
+    "lng": -73.128053,
+    "source": "osm: Roosevelt"
+  },
+  {
+    "id": "tabler",
+    "name": "Tabler Quad",
+    "aliases": [
+      "Tabler"
+    ],
+    "category": "residence",
+    "lat": 40.909369,
+    "lng": -73.126982,
+    "source": "osm: Tabler Quad"
+  },
+  {
+    "id": "kelly",
+    "name": "Kelly Quad",
+    "aliases": [
+      "Kelly"
+    ],
+    "category": "residence",
+    "lat": 40.913814,
+    "lng": -73.130828,
+    "source": "osm: Kelly Quad"
+  },
+  {
+    "id": "h-quad",
+    "name": "H Quad",
+    "aliases": [
+      "H"
+    ],
+    "category": "residence",
+    "lat": 40.919838,
+    "lng": -73.119454,
+    "source": "osm: H Quad"
+  },
+  {
+    "id": "mendelsohn",
+    "name": "Mendelsohn Quad",
+    "aliases": [
+      "Mendelsohn"
+    ],
+    "category": "residence",
+    "lat": 40.917694,
+    "lng": -73.120064,
+    "source": "osm: Mendelsohn Quad"
+  },
+  {
+    "id": "roth",
+    "name": "Roth Quad",
+    "aliases": [
+      "Roth"
+    ],
+    "category": "residence",
+    "lat": 40.9113,
+    "lng": -73.123788,
+    "source": "osm: Roth Quad"
+  },
+  {
+    "id": "west-apts",
+    "name": "West Apartments",
+    "aliases": [
+      "West Apts",
+      "West Campus Apartments"
+    ],
+    "category": "residence",
+    "lat": 40.912515,
+    "lng": -73.134656,
+    "source": "osm: West Apartments"
+  },
+  {
+    "id": "chapin",
+    "name": "Chapin Apartments",
+    "aliases": [
+      "Chapin"
+    ],
+    "category": "residence",
+    "lat": 40.907323,
+    "lng": -73.109459,
+    "source": "osm: Chapin Apartments"
+  },
+  {
+    "id": "schomburg",
+    "name": "Schomburg Apartments",
+    "aliases": [
+      "Schomburg"
+    ],
+    "category": "residence",
+    "lat": 40.913222,
+    "lng": -73.132282,
+    "source": "osm: Schomburg Apartments"
+  },
+  {
+    "id": "hsc",
+    "name": "Health Sciences Center",
+    "aliases": [
+      "HSC",
+      "Health Sciences"
+    ],
+    "category": "medical",
+    "lat": 40.909711,
+    "lng": -73.116173,
+    "source": "osm: Health Sciences Tower"
+  },
+  {
+    "id": "hospital",
+    "name": "Stony Brook University Hospital",
+    "aliases": [
+      "Hospital",
+      "SBUH",
+      "University Hospital"
+    ],
+    "category": "medical",
+    "lat": 40.908538,
+    "lng": -73.114711,
+    "source": "osm: Stony Brook University Hospital"
+  },
+  {
+    "id": "lirr",
+    "name": "Stony Brook LIRR Station",
+    "aliases": [
+      "LIRR",
+      "Train Station",
+      "Station"
+    ],
+    "category": "transit",
+    "lat": 40.921539,
+    "lng": -73.127974,
+    "source": "osm: Stony Brook"
+  },
+  {
+    "id": "south-p",
+    "name": "South P Lot",
+    "aliases": [
+      "South P",
+      "SPL"
+    ],
+    "category": "parking",
+    "lat": 40.896895,
+    "lng": -73.126661,
+    "source": "osm: South P Lot"
+  }
+]
