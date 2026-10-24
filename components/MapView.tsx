@@ -195,7 +195,8 @@ export default function MapView({ routes, stops, buses, overlay, userLocation, o
     const pts = [...overlay.walk.flat(), ...overlay.bus.flatMap(b => b.coords)];
     if (pts.length < 2) return;
     const bounds = pts.reduce((b, p) => b.extend(p), new libRef.current.LngLatBounds(pts[0], pts[0]));
-    map.fitBounds(bounds, { padding: { top: 70, left: 40, right: 40, bottom: bottomPadding + 40 }, maxZoom: 17.5, duration: 700 });
+    // The sheet is already accounted for by the map's own padding (set below via easeTo).
+    map.fitBounds(bounds, { padding: { top: 70, left: 40, right: 40, bottom: 40 }, maxZoom: 17.5, duration: 700 });
   }, [overlay, styleReady, bottomPadding]);
 
   // Live bus markers, keyed by vehicle id so they glide instead of blinking.
