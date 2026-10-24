@@ -78,6 +78,18 @@ describe("plan", () => {
     expect(options[0]).toBe(bus); // latest leave-by ranks first in arrive-by mode
   });
 
+  it("stays on the bus to the stop nearest the destination instead of walking from an earlier one", async () => {
+    // From Greeley Hall, board at Kelly (9) for the railroad. Getting off at Gym Road East (17) or at
+    // the LIRR stop (19) has the same leave-by time; riding on to 19 arrives sooner with less walking.
+    const greeley: LngLat = [-73.13102, 40.91175];
+    for (const arriveBy of [undefined, at(152)]) { // at(152): too tight to walk, the bus still makes it
+      const options = await plan({ from: greeley, to: LIRR_STATION, time: at(138), arriveBy }, deps());
+      const ride = options.flatMap(o => o.legs).find((l): l is BusLeg => l.type === "bus")!;
+      expect(ride.boardStopId).toBe(9);
+      expect(ride.alightStopId).toBe(19);
+    }
+  });
+
   it("falls back to walking when ETA Spot is down", async () => {
     const options = await plan({ from: SAC, to: CHAPIN, time: at(140) }, deps({ etas: async () => { throw new Error("down"); } }));
     expect(options.map(o => o.kind)).toEqual(["walk"]);

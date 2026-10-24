@@ -124,6 +124,18 @@ function departures(route: BusRoute, stopEtas: StopEta[], timing: RouteTimingEnt
 
 const minutes = (ms: number) => ms / 60_000;
 
+/**
+ * Ordering for options (negative = a is better). Leave-now: earliest arrival. Arrive-by: latest
+ * leave-by. Ties (e.g. the same bus with different alighting stops) go to the earlier arrival,
+ * then the shorter walk, so we never walk from a stop when the bus continues closer.
+ */
+export function compareOptions(a: RouteOption, b: RouteOption, arriveBy: boolean) {
+  const SEC = 1000;
+  if (arriveBy && Math.abs(a.leaveBy - b.leaveBy) >= SEC) return b.leaveBy - a.leaveBy;
+  if (Math.abs(a.arriveAt - b.arriveAt) >= SEC) return a.arriveAt - b.arriveAt;
+  return a.breakdown.walk - b.breakdown.walk;
+}
+
 export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOption[]> {
   const now = (req.time ?? new Date()).getTime();
   const arriveBy = req.arriveBy?.getTime();
@@ -243,7 +255,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
             estimated: dep.estimated,
             legs,
           };
-          const better = !best || (arriveBy ? option.leaveBy > best.leaveBy : option.arriveAt < best.arriveAt);
+          const better = !best || compareOptions(option, best, !!arriveBy) < 0;
           if (better) best = option;
           break; // first acceptable departure in order is the best for this board/alight pair
         }
@@ -255,7 +267,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   // A bus option only earns a slot if it beats walking.
   const walk = options[0];
   const useful = candidates.filter(c => !walk || (arriveBy ? c.leaveBy > walk.leaveBy : c.arriveAt < walk.arriveAt));
-  const rank = (a: RouteOption, b: RouteOption) => (arriveBy ? b.leaveBy - a.leaveBy : a.arriveAt - b.arriveAt);
+  const rank = (a: RouteOption, b: RouteOption) => compareOptions(a, b, !!arriveBy);
   // Walking is always offered, so buses get the remaining slots.
   const buses = useful.sort(rank).slice(0, MAX_OPTIONS - options.length);
   return [...options, ...buses].sort(rank);
