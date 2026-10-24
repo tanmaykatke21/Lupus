@@ -8,6 +8,7 @@ import ResultsPanel from "./ResultsPanel";
 import SearchPanel from "./SearchPanel";
 import SettingsPanel from "./SettingsPanel";
 import StopPanel from "./StopPanel";
+import TrainsPanel from "./TrainsPanel";
 import type { TripOverlay } from "./MapView";
 import { lngLat, PLACES, type Place } from "@/lib/places";
 import type { RouteOption } from "@/lib/router";
@@ -15,6 +16,7 @@ import { DEFAULT_SETTINGS, NO_SAVED, useStored, type SavedPlace, type Settings }
 import { useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
 import type { BusStop, LngLat } from "@/lib/types";
 import { useBuses, useNetwork } from "@/lib/useLiveData";
+import { useLeaveAlert } from "@/lib/useLeaveAlert";
 import { useLocation } from "@/lib/useLocation";
 import { useNow } from "@/lib/useNow";
 
@@ -54,14 +56,17 @@ export default function TransitApp() {
   const [origin, setOrigin] = useState<Origin>({ kind: "me" });
   const [request, setRequest] = useState<TripRequest | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [homeTab, setHomeTab] = useState<"go" | "trains">("go");
   const onHeight = useCallback((px: number) => setSheetPx(px), []);
 
-  const fromCoords: LngLat | null = origin.kind === "place" ? lngLat(origin.place) : location.coords;
-  const originName = origin.kind === "place" ? origin.place.name
+  const fromCoords: LngLat | null = request?.from ? lngLat(request.from)
+    : origin.kind === "place" ? lngLat(origin.place) : location.coords;
+  const originName = request?.from ? request.from.name
+    : origin.kind === "place" ? origin.place.name
     : location.status === "locating" ? "Finding you…"
     : location.status === "denied" ? "Location blocked: tap to choose"
     : "My location";
-  const trip = useTrip(view === "results" ? fromCoords : null, request, settings.accessible);
+  const trip = useTrip(fromCoords, view === "results" ? request : null, settings.accessible);
   const options = trip.data?.options ?? [];
   const selected = options.find(o => o.id === selectedId) ?? options[0];
   const overlay = useMemo(
@@ -74,8 +79,10 @@ export default function TransitApp() {
     setSelectedId(null);
     setView("results");
     setSnap("half");
-    if (origin.kind === "me") location.start();
+    if (!req.from && origin.kind === "me") location.start();
   }, [origin.kind, location]);
+
+  useLeaveAlert(view === "results" ? selected : undefined, request, now, settings.voice, settings.language);
 
   const pickDestination = (p: Place) => goTo({ to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id } });
 
@@ -136,7 +143,7 @@ export default function TransitApp() {
         now={now}
         selectedId={selected?.id ?? null}
         onSelect={setSelectedId}
-        onChangeOrigin={() => { setView("search-from"); setSnap("full"); }}
+        onChangeOrigin={() => { setRequest(r => (r ? { ...r, from: undefined, departAt: undefined } : r)); setView("search-from"); setSnap("full"); }}
         onChangeDestination={() => { setView("search-to"); setSnap("full"); }}
         onClose={() => { setRequest(null); setView("home"); }}
         isSaved={savedHere}
@@ -144,6 +151,8 @@ export default function TransitApp() {
         onUnsave={() => setSaved(s => s.filter(x => x.placeId !== request.to.placeId))}
       />
     );
+  } else if (homeTab === "trains") {
+    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} />;
   } else {
     body = (
       <>
@@ -197,6 +206,16 @@ export default function TransitApp() {
         userLocation={origin.kind === "me" ? location.coords : null}
         onStopClick={onStopClick} bottomPadding={sheetPx} />
       <BottomSheet snap={snap} onSnapChange={setSnap} onHeightChange={onHeight} header={header}>
+        {view === "home" && (
+          <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Sections">
+            {(["go", "trains"] as const).map(t => (
+              <button key={t} role="tab" aria-selected={homeTab === t} onClick={() => setHomeTab(t)}
+                className={`min-h-11 rounded-lg text-sm font-semibold ${homeTab === t ? "plate" : "text-muted"}`}>
+                {t === "go" ? "🧭 Go" : "🚂 Trains"}
+              </button>
+            ))}
+          </div>
+        )}
         {body}
       </BottomSheet>
     </main>

@@ -13,8 +13,11 @@ export interface Endpoint {
 
 export interface TripRequest {
   to: Endpoint;
+  from?: Endpoint; // overrides the chosen origin (e.g. "from the train I'm arriving on")
+  departAt?: number; // ms; plan as if leaving then (default now)
   arriveBy?: number; // ms
   context?: string; // e.g. "the 6:12 PM to Penn Station"
+  purpose?: string; // spoken goal, e.g. "to catch the 6:12 PM to Penn Station"
 }
 
 export interface TripResult {
@@ -30,19 +33,23 @@ export function useTrip(from: LngLat | null, req: TripRequest | null, accessible
   const [data, setData] = useState<TripResult | null>(null);
   const [error, setError] = useState<{ message: string; offMap: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
-  const key = from && req ? JSON.stringify([from.map(n => n.toFixed(4)), req.to.lng, req.to.lat, req.arriveBy, accessible, replay]) : null;
+  const origin: LngLat | null = req?.from ? [req.from.lng, req.from.lat] : from;
+  const key = origin && req
+    ? JSON.stringify([origin.map(n => n.toFixed(4)), req.to.lng, req.to.lat, req.arriveBy, req.departAt, accessible, replay])
+    : null;
 
   useEffect(() => {
-    if (!key || !from || !req) return;
+    if (!key || !origin || !req) return;
     let stopped = false;
     const load = async () => {
       setLoading(true);
       const q = new URLSearchParams({
-        from: `${from[1]},${from[0]}`,
+        from: `${origin[1]},${origin[0]}`,
         to: `${req.to.lat},${req.to.lng}`,
         accessible: accessible ? "1" : "0",
       });
       if (req.arriveBy) q.set("arriveBy", new Date(req.arriveBy).toISOString());
+      if (req.departAt) q.set("time", new Date(req.departAt).toISOString());
       if (replay) q.set("replay", "1");
       try {
         const res = await fetch(`/api/route?${q}`);
