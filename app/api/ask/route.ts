@@ -23,6 +23,10 @@ export async function POST(request: Request) {
     const rt = await cachedLirrRealtime().catch(() => null);
     return json({ action: await ask(q, classes, Date.now(), rt) }, CACHE.none);
   } catch (err) {
+    // Gemini overloaded on every model: answer politely so the app can suggest search instead.
+    if (/UNAVAILABLE|DEADLINE_EXCEEDED|RESOURCE_EXHAUSTED|"code":\s*(429|503|504)|abort/i.test(String((err as Error)?.message))) {
+      return json({ action: { type: "none", reply: "The conductor is swamped right now. Try searching for a place instead." } }, CACHE.none);
+    }
     return errorJson(err);
   }
 }
