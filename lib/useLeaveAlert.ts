@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { announce } from "./voice";
+import { announce, playWhistle } from "./voice";
 import type { RouteOption } from "./router";
 import type { TripRequest } from "./trip";
 import { formatClock } from "./time";
@@ -18,9 +18,11 @@ export function useLeaveAlert(option: RouteOption | undefined, req: TripRequest 
     const id = `${req.to.name}|${req.arriveBy}`;
     if (left <= WARN_MIN * 60_000 && left > 60_000 && !fired.current.has(`${id}|warn`)) {
       fired.current.add(`${id}|warn`);
+      playWhistle();
       announce(`Leave in ${Math.round(left / 60_000)} minutes ${what}.`, { lang });
     } else if (left <= 60_000 && left > -120_000 && !fired.current.has(`${id}|go`)) {
       fired.current.add(`${id}|go`);
+      playWhistle();
       announce(`Time to leave now ${what}.`, { lang });
     }
   }, [option, req, now, enabled, lang]);

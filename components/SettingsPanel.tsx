@@ -1,5 +1,6 @@
 "use client";
 
+import { LANGUAGES } from "@/lib/languages";
 import type { Settings } from "@/lib/storage";
 
 interface Props {
@@ -16,6 +17,24 @@ export default function SettingsPanel({ settings, onChange, onClose }: Props) {
         <button onClick={onClose} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">Done</button>
       </div>
       <div className="space-y-3">
+        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+          <span>
+            <span className="block font-medium">Directions language</span>
+            <span className="block text-xs text-muted">Steps are translated with Gemini and spoken aloud</span>
+          </span>
+          <select className="h-11 rounded-lg border border-line bg-surface-2 px-2" value={settings.language}
+            onChange={e => onChange({ ...settings, language: e.target.value })}>
+            {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+          </select>
+        </label>
+        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+          <span>
+            <span className="block font-medium">Conductor voice</span>
+            <span className="block text-xs text-muted">Speak steps and leave-by alerts</span>
+          </span>
+          <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={settings.voice}
+            onChange={e => onChange({ ...settings, voice: e.target.checked })} />
+        </label>
         <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
           <span>
             <span className="block font-medium">Accessible routes</span>

@@ -13,7 +13,8 @@ export function json(data: unknown, cache: string = CACHE.none, status = 200) {
 }
 
 export function errorJson(err: unknown) {
-  const upstream = err instanceof UpstreamError;
+  // Errors crossing a `use cache` boundary lose their class, so also match the message.
+  const upstream = err instanceof UpstreamError || (err instanceof Error && /^ETA Spot|^LIRR/.test(err.message));
   console.error("[api]", err);
   return json(
     { error: upstream ? (err as Error).message : "Internal error", upstream },

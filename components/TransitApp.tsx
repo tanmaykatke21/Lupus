@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCallback, useMemo, useState } from "react";
 import BottomSheet, { type Snap } from "./BottomSheet";
+import NavMode from "./NavMode";
 import ResultsPanel from "./ResultsPanel";
 import SearchPanel from "./SearchPanel";
 import SettingsPanel from "./SettingsPanel";
@@ -19,10 +20,11 @@ import { useBuses, useNetwork } from "@/lib/useLiveData";
 import { useLeaveAlert } from "@/lib/useLeaveAlert";
 import { useLocation } from "@/lib/useLocation";
 import { useNow } from "@/lib/useNow";
+import { unlockAudio } from "@/lib/voice";
 
 const MapView = dynamic(() => import("./MapView"), { ssr: false });
 
-type View = "home" | "search-to" | "search-from" | "results" | "stop" | "settings";
+type View = "home" | "search-to" | "search-from" | "results" | "nav" | "stop" | "settings";
 type Origin = { kind: "me" } | { kind: "place"; place: Place };
 
 function ago(ts: number | null, now: number) {
@@ -57,6 +59,7 @@ export default function TransitApp() {
   const [request, setRequest] = useState<TripRequest | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [homeTab, setHomeTab] = useState<"go" | "trains">("go");
+  const [navOption, setNavOption] = useState<RouteOption | null>(null);
   const onHeight = useCallback((px: number) => setSheetPx(px), []);
 
   const fromCoords: LngLat | null = request?.from ? lngLat(request.from)
@@ -70,8 +73,9 @@ export default function TransitApp() {
   const options = trip.data?.options ?? [];
   const selected = options.find(o => o.id === selectedId) ?? options[0];
   const overlay = useMemo(
-    () => (view === "results" ? overlayFor(selected, fromCoords, request?.to ?? null) : null),
-    [view, selected, fromCoords, request],
+    () => (view === "results" ? overlayFor(selected, fromCoords, request?.to ?? null)
+      : view === "nav" && navOption ? overlayFor(navOption, fromCoords, request?.to ?? null) : null),
+    [view, selected, navOption, fromCoords, request],
   );
 
   const goTo = useCallback((req: TripRequest) => {
@@ -82,7 +86,7 @@ export default function TransitApp() {
     if (!req.from && origin.kind === "me") location.start();
   }, [origin.kind, location]);
 
-  useLeaveAlert(view === "results" ? selected : undefined, request, now, settings.voice, settings.language);
+  useLeaveAlert(view === "results" ? selected : view === "nav" ? navOption ?? undefined : undefined, request, now, settings.voice, settings.language);
 
   const pickDestination = (p: Place) => goTo({ to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id } });
 
@@ -115,7 +119,7 @@ export default function TransitApp() {
 
   let body: React.ReactNode;
   if (view === "settings") {
-    body = <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setView(request ? "results" : "home")} />;
+    body = <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setView(navOption ? "nav" : request ? "results" : "home")} />;
   } else if (view === "stop" && stop) {
     body = <StopPanel key={stop.id} stop={stop} routes={routes} onClose={() => setView("home")} />;
   } else if (view === "search-to") {
@@ -130,6 +134,11 @@ export default function TransitApp() {
         onMyLocation={() => { setOrigin({ kind: "me" }); location.start(); setView(request ? "results" : "home"); }}
         onPick={p => { setOrigin({ kind: "place", place: p }); setView(request ? "results" : "home"); }}
         onCancel={() => setView(request ? "results" : "home")} />
+    );
+  } else if (view === "nav" && navOption && request) {
+    body = (
+      <NavMode option={navOption} destination={request.to.name} lang={settings.language} voice={settings.voice}
+        now={now} location={location.coords} onExit={() => { setNavOption(null); setView("results"); }} />
     );
   } else if (view === "results" && request) {
     body = (
@@ -149,6 +158,13 @@ export default function TransitApp() {
         isSaved={savedHere}
         onSave={label => request.to.placeId && setSaved(s => [...s.filter(x => x.placeId !== request.to.placeId), { placeId: request.to.placeId!, label }])}
         onUnsave={() => setSaved(s => s.filter(x => x.placeId !== request.to.placeId))}
+        onStart={option => {
+          unlockAudio(); // must run inside the tap for iOS
+          if (!request.from && origin.kind === "me") location.start();
+          setNavOption(option);
+          setView("nav");
+          setSnap("half");
+        }}
       />
     );
   } else if (homeTab === "trains") {
