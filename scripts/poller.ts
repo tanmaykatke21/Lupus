@@ -35,6 +35,7 @@ let stops: BusStop[] = [];
 let detector: ArrivalDetector;
 const stats = { snapshots: 0, predictions: 0, arrivals: 0, segments: 0, predictionErrors: 0, errors: 0 };
 const lastArrival = new Map<string, Arrival>(); // per vehicle
+let busesInService = 0;
 
 async function writeSnapshots(buses: Bus[]) {
   if (!buses.length) return;
@@ -103,6 +104,7 @@ async function writeArrivals(arrivals: Arrival[]) {
 
 async function pollVehicles() {
   const { raw, buses } = await getVehicles();
+  busesInService = buses.filter(b => b.inService).length;
   await writeSnapshots(buses);
   await writeArrivals(buses.flatMap(b => detector.observe(b)));
 
@@ -127,6 +129,9 @@ async function pollVehicles() {
 }
 
 async function pollStopEtas() {
+  // Predictions only matter while buses run (accuracy needs a tracked bus); skip overnight sweeps
+  // so the free tier isn't filled with schedule-only rows.
+  if (busesInService === 0 && !once) return 0;
   const at = new Date();
   const queue = stops.map(s => s.id);
   const all: StopEta[] = [];

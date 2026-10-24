@@ -81,6 +81,11 @@ uses them for ride times when ETA Spot can't pair a trip, and route cards show r
 
 Try it without a database: `npm run poller -- --dry-run --once`.
 
+**Storage (free tier):** every table is compressed once its data is 6 hours old (TimescaleDB
+compression, typically 90%+ smaller), and the per-stop prediction sweep is skipped while no buses are in
+service. A full service day is roughly 30 MB before compression. If a free service ever hits its storage
+limit it turns read-only: the app keeps working, new rows just stop being recorded.
+
 ## Demo tools
 
 - **Replay mode** plays recorded buses (and their ETAs) from Tiger Data on a loop as if live, our safety

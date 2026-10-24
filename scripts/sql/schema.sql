@@ -96,3 +96,22 @@ SELECT add_continuous_aggregate_policy('segment_hourly',
 SELECT add_continuous_aggregate_policy('lateness_hourly',
   start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 hour', schedule_interval => INTERVAL '10 minutes',
   if_not_exists => TRUE);
+
+-- Compression keeps a weekend of data far below free-tier storage (typically 90%+ smaller).
+-- Chunks are compressed once they're 6 hours old; queries and inserts still work on them.
+-- Wrapped so re-running the schema never fails on already-configured tables.
+DO $$
+DECLARE t record;
+BEGIN
+  FOR t IN SELECT * FROM (VALUES
+    ('vehicle_snapshots', 'vehicle_id'), ('eta_predictions', 'stop_id'), ('stop_arrivals', 'vehicle_id'),
+    ('segment_times', 'route_id'), ('prediction_errors', 'route_id')) AS v(tbl, seg)
+  LOOP
+    BEGIN
+      EXECUTE format('ALTER TABLE %I SET (timescaledb.compress, timescaledb.compress_segmentby = %L, timescaledb.compress_orderby = %L)',
+        t.tbl, t.seg, 'time DESC');
+    EXCEPTION WHEN others THEN RAISE NOTICE 'compression settings for % unchanged: %', t.tbl, SQLERRM;
+    END;
+    PERFORM add_compression_policy(t.tbl::regclass, INTERVAL '6 hours', if_not_exists => TRUE);
+  END LOOP;
+END $$;
