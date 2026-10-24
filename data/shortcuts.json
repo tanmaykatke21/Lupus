@@ -1,0 +1,44 @@
+{
+  "_readme": "Hand-entered cut-throughs that students know. Coordinates are [lng, lat]. Hours are per day in campus time; null = closed all day, \"24:00\" = midnight. accessible=false means stairs (skipped in accessible mode). Entries with placeholder=true are rough guesses: replace entry/exit/hours with real values.",
+  "shortcuts": [
+    {
+      "id": "melville-library",
+      "name": "Through Melville Library",
+      "placeholder": true,
+      "note": "PLACEHOLDER: main-floor corridor, north doors to south doors",
+      "accessible": true,
+      "entry": [-73.12272, 40.91618],
+      "exit": [-73.12275, 40.91472],
+      "hours": {
+        "mon": ["08:30", "24:00"], "tue": ["08:30", "24:00"], "wed": ["08:30", "24:00"], "thu": ["08:30", "24:00"],
+        "fri": ["08:30", "21:00"], "sat": ["10:00", "18:00"], "sun": ["12:00", "24:00"]
+      }
+    },
+    {
+      "id": "sac-cut",
+      "name": "Through the SAC",
+      "placeholder": true,
+      "note": "PLACEHOLDER: west entrance to the bus loop side",
+      "accessible": true,
+      "entry": [-73.12575, 40.91448],
+      "exit": [-73.12455, 40.91432],
+      "hours": {
+        "mon": ["07:00", "24:00"], "tue": ["07:00", "24:00"], "wed": ["07:00", "24:00"], "thu": ["07:00", "24:00"],
+        "fri": ["07:00", "24:00"], "sat": ["09:00", "24:00"], "sun": ["09:00", "24:00"]
+      }
+    },
+    {
+      "id": "javits-cs",
+      "name": "Javits to Computer Science stairwell",
+      "placeholder": true,
+      "note": "PLACEHOLDER: lower-level link, has stairs",
+      "accessible": false,
+      "entry": [-73.12209, 40.91338],
+      "exit": [-73.12229, 40.91222],
+      "hours": {
+        "mon": ["07:00", "23:00"], "tue": ["07:00", "23:00"], "wed": ["07:00", "23:00"], "thu": ["07:00", "23:00"],
+        "fri": ["07:00", "23:00"], "sat": null, "sun": null
+      }
+    }
+  ]
+}
