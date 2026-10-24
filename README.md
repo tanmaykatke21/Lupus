@@ -24,8 +24,13 @@ listed below, and every feature has a fallback when its key or upstream is missi
 | `GEMINI_API_KEY` | Ask bar, translated directions, SOLAR screenshot import | Place search, English, manual class entry |
 | `GEMINI_MODEL` (optional) | Default `gemini-flash-latest` | |
 | `DATABASE_URL` | Tiger Data: history fallback, reliability badges, `/stats`, replay mode | Schedule fallback, no badges |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Google Maps base map (Maps JavaScript API) | MapLibre + OpenFreeMap |
+| `NEXT_PUBLIC_GOOGLE_MAP_ID` (optional) | Your Cloud map style; default `DEMO_MAP_ID` | |
 
 Keys live in `.env.local` locally and in Vercel project settings in production. Never commit them.
+The Google Maps key is public by design (it runs in the browser), so restrict it to your domains
+(HTTP referrers) and to the Maps JavaScript API in Cloud Console. If Google fails to load (bad key,
+billing, quota), the app switches to the free MapLibre map automatically.
 
 ## Scripts
 
@@ -111,5 +116,6 @@ and the committed data files mean nothing heavy is parsed at runtime.
 
 ## Credits
 
-Map data © OpenStreetMap contributors (ODbL). Tiles by OpenFreeMap. Transit data from ETA Spot (Stony
+Base map by Google Maps (fallback: OpenFreeMap tiles). Walking network and building data
+© OpenStreetMap contributors (ODbL). Transit data from ETA Spot (Stony
 Brook University) and MTA. Built with Next.js, MapLibre, ElevenLabs, Gemini and Tiger Data.

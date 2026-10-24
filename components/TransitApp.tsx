@@ -12,7 +12,7 @@ import SearchPanel from "./SearchPanel";
 import SettingsPanel from "./SettingsPanel";
 import StopPanel from "./StopPanel";
 import TrainsPanel from "./TrainsPanel";
-import type { TripOverlay } from "./MapView";
+import type { TripOverlay } from "@/lib/mapShared";
 import { lngLat, PLACES, type Place } from "@/lib/places";
 import type { AskAction } from "@/lib/ask";
 import { NO_CLASSES, nextClass, type ClassEntry } from "@/lib/classes";
