@@ -8,6 +8,8 @@ import { useNetwork } from "@/hooks/useNetwork";
 import { meters, type LatLng } from "@/lib/geo";
 import { searchablePlaces, type Place } from "@/lib/places";
 import type { TripOption } from "@/lib/planner";
+import type { AnswerCard } from "@/lib/agent/run";
+import AskLupus, { VERDICT, type AskState } from "./AskLupus";
 import BusRow from "./BusRow";
 import LiveMap from "./LiveMap";
 import PlaceSearch from "./PlaceSearch";
@@ -31,9 +33,20 @@ export default function TransitApp() {
   // The start-point box only makes the sheet taller; it must not hide the trip section it lives in.
   const [startSearching, setStartSearching] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
+  // The last Ask Lupus exchange, kept here so it survives closing the panel.
+  const [askState, setAskState] = useState<AskState | null>(null);
+  // Gemini's answer for the trip being shown, kept above the live trip after "Show on map".
+  const [agentNote, setAgentNote] = useState<{
+    toPlaceId: string;
+    verdict: keyof typeof VERDICT;
+    message: string;
+    deadline: { label: string; atMs: number } | null;
+  } | null>(null);
   const buses = useMemo(() => feed?.buses ?? [], [feed]);
 
-  const location = useLocation(Boolean(destination) && !startPlace);
+  // Location is only requested once it's needed: for a trip, or when asking Lupus.
+  const location = useLocation(Boolean(destination || askOpen) && !startPlace);
   const gpsOrigin = location.status === "found" ? location.position : null;
   const nearestStopM = useMemo(() => {
     if (!gpsOrigin || !network?.stops.length) return null;
@@ -58,8 +71,35 @@ export default function TransitApp() {
   }, []);
   const chooseDestination = (p: Place | null) => {
     setDestination(p);
+    setAgentNote(null); // a destination picked by hand isn't the trip Lupus answered about
     if (!p) setShown(null);
   };
+
+  // What the agent knows about where the rider is: a start they picked, or GPS when it's on campus.
+  const agentCurrent = startPlace
+    ? { lat: startPlace.lat, lng: startPlace.lng, label: startPlace.name }
+    : gpsOnCampus && gpsOrigin
+      ? { ...gpsOrigin, label: "Your location" }
+      : null;
+  const showAgentTrip = (card: AnswerCard) => {
+    const to = places.find((p) => p.id === card.toPlaceId) ?? null;
+    const from = card.fromPlaceId ? (places.find((p) => p.id === card.fromPlaceId) ?? null) : null;
+    setDestination(to);
+    setStartPlace(from);
+    setPickingStart(false);
+    setAskOpen(false);
+    const answer = askState?.answer;
+    // The deadline as an absolute time, so the live trip card can keep counting the buffer.
+    const deadlineInMin = card.bufferMin !== null ? card.bufferMin + card.arriveInMin : null;
+    setAgentNote({
+      toPlaceId: card.toPlaceId,
+      verdict: answer?.verdict ?? "info",
+      message: answer?.message ?? "",
+      deadline: card.deadline && deadlineInMin !== null ? { label: card.deadline, atMs: Date.now() + deadlineInMin * 60_000 } : null,
+    });
+  };
+  const note = agentNote && destination?.id === agentNote.toPlaceId ? agentNote : null;
+  const noteBadge = note ? VERDICT[note.verdict] : null;
 
   let heading = "Finding buses";
   if (feed) heading = buses.length === 1 ? "1 bus running" : `${buses.length} buses running`;
@@ -101,8 +141,8 @@ export default function TransitApp() {
             ? "max-h-[9.5rem]"
             : searching || startSearching
               ? "max-md:h-[88dvh] max-md:max-h-[88dvh]"
-              : destination
-                ? "max-h-[70dvh]"
+              : destination || askOpen
+                ? "max-h-[75dvh]"
                 : "max-h-[55dvh]"
         }`}
       >
@@ -119,12 +159,69 @@ export default function TransitApp() {
           <div className="mb-3 hidden px-1 md:block">
             <Image src="/logo.png" alt="Lupus" width={96} height={38} priority />
           </div>
-          <PlaceSearch places={places} value={destination} onChoose={chooseDestination} onOpenChange={onSearchOpen} />
+          {!askOpen && (
+            <PlaceSearch places={places} value={destination} onChoose={chooseDestination} onOpenChange={onSearchOpen} />
+          )}
+          {!askOpen && !searching && !destination && (
+            <button
+              type="button"
+              onClick={() => {
+                setAskOpen(true);
+                setCollapsed(false);
+              }}
+              className="mt-2 flex w-full items-center gap-3 rounded-2xl bg-navy px-4 py-3 text-left text-white"
+            >
+              <span className="lane h-2 w-8 shrink-0 rounded-full" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold">Ask Lupus</span>
+                <span className="block truncate text-sm text-white/75">&quot;Lab in Life Sciences at 2. Will I make it?&quot;</span>
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex flex-col gap-2 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-          {destination && !searching && (
+          {askOpen && (
+            <AskLupus
+              saved={askState}
+              onSaved={setAskState}
+              network={network}
+              current={agentCurrent}
+              onClose={() => setAskOpen(false)}
+              onShowTrip={showAgentTrip}
+            />
+          )}
+
+          {!askOpen && destination && !searching && (
             <>
+              {/* What Lupus said about this trip, kept after "Show on map" */}
+              {note && (
+                <article className="rounded-2xl border-2 border-navy bg-white px-4 py-3" aria-label="Ask Lupus answer">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-semibold text-fur-dark">Lupus says</span>
+                    {noteBadge && (
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${noteBadge.cls}`}>{noteBadge.label}</span>
+                    )}
+                  </div>
+                  <p className="mt-1 font-medium leading-snug">{note.message}</p>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setAskOpen(true)}
+                      className="rounded-full bg-concrete px-3 py-1.5 text-sm font-medium hover:bg-fur/20"
+                    >
+                      Back to answer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAgentNote(null)}
+                      className="rounded-full px-3 py-1.5 text-sm font-medium text-fur-dark hover:bg-concrete"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </article>
+              )}
               {/* Where the trip starts */}
               {needStart ? (
                 <div className="flex flex-col gap-1.5">
@@ -190,6 +287,8 @@ export default function TransitApp() {
                   buses={buses}
                   receivedAt={receivedAt}
                   onShow={setShown}
+                  deadline={note?.deadline ?? null}
+                  clockShiftMs={feed?.source === "sample" ? feed.asOf - receivedAt : 0}
                 />
               ) : (
                 !needStart && (
@@ -201,7 +300,7 @@ export default function TransitApp() {
             </>
           )}
 
-          {!destination && !searching && (
+          {!askOpen && !destination && !searching && (
             <>
               <h2 className="px-1 pb-1 pt-2 text-xl font-semibold">{heading}</h2>
               {feed?.notice && <p className="rounded-xl bg-white px-3 py-2 text-sm text-fur-dark">{feed.notice}</p>}

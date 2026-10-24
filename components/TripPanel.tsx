@@ -17,6 +17,13 @@ interface Props {
   receivedAt: number;
   /** Lets the map highlight the stops of the option being shown. */
   onShow: (option: TripOption | null) => void;
+  /** A deadline the rider gave Ask Lupus ("lab at 3"), kept live as buses move. */
+  deadline?: { label: string; atMs: number } | null;
+  /**
+   * Shift for the clock times shown. With saved sample data, times follow the sample's own clock
+   * (as the bus list and Ask Lupus do) so a demo never mixes 2:30 PM data with the real time.
+   */
+  clockShiftMs?: number;
 }
 
 /** Age every bus's predictions by the time since the feed arrived, dropping stops it has already passed. */
@@ -74,7 +81,15 @@ function StatusScale({ status }: { status: LeaveStatus }) {
   );
 }
 
-export default function TripPanel({ origin, destination, network, buses, receivedAt, onShow }: Props) {
+/** "12 min to spare before 3:00 PM" / "About 4 min late for 3:00 PM", from minutes left after arriving. */
+function bufferText(spare: number, label: string): string {
+  const m = Math.round(Math.abs(spare));
+  if (spare >= 0.5) return `${m} min to spare before ${label}`;
+  if (spare > -0.5) return `Right on time for ${label}`;
+  return `About ${m} min late for ${label}`;
+}
+
+export default function TripPanel({ origin, destination, network, buses, receivedAt, onShow, deadline, clockShiftMs = 0 }: Props) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -87,6 +102,7 @@ export default function TripPanel({ origin, destination, network, buses, receive
   }, []);
 
   const base = now ?? receivedAt;
+  const clock = base + clockShiftMs;
   // Recompute once per second from the latest bus data; the planner is cheap.
   const plan: TripPlan = useMemo(
     () => planTrip(origin, destination, network, ageBuses(buses, (base - receivedAt) / 60_000)),
@@ -107,6 +123,11 @@ export default function TripPanel({ origin, destination, network, buses, receive
       : null;
 
   const others = plan.options.filter((o) => o !== top).slice(0, 3);
+  const spare = deadline ? (deadline.atMs - base) / 60_000 - (top ? top.arriveInMin : plan.walkMin) : null;
+  const deadlineLine =
+    deadline && spare !== null ? (
+      <p className={`mt-2 text-sm font-semibold ${spare < 0 ? "text-red-deep" : ""}`}>{bufferText(spare, deadline.label)}</p>
+    ) : null;
   const about = (o: TripOption) => (o.estimated ? "about " : "");
 
   return (
@@ -126,16 +147,17 @@ export default function TripPanel({ origin, destination, network, buses, receive
             </p>
           </div>
           <p className="mt-1 text-sm text-fur-dark">
-            Bus arrives {clockAfter(base, top.boardInMin)}. Walk {minLabel(top.board.walkMin)} to the stop, ride{" "}
+            Bus arrives {clockAfter(clock, top.boardInMin)}. Walk {minLabel(top.board.walkMin)} to the stop, ride{" "}
             {about(top)}
             {minLabel(top.rideMin)} to {top.alight.stop.name}, then walk {minLabel(top.alight.walkMin)}.
           </p>
           <div className="lane mt-3 h-2 rounded-full" aria-hidden="true" />
           <p className="mt-3 text-sm">
             Arrive {about(top)}
-            <span className="font-semibold">{clockAfter(base, top.arriveInMin)}</span>
+            <span className="font-semibold">{clockAfter(clock, top.arriveInMin)}</span>
             <span className="text-fur-dark">, {minLabel(plan.walkMin - top.arriveInMin)} faster than walking</span>
           </p>
+          {deadlineLine}
           {top.estimated && (
             <p className="mt-1 text-xs text-fur-dark">
               Part of this ride is estimated: ETA Spot only predicts each bus&apos;s next few stops.
@@ -150,8 +172,9 @@ export default function TripPanel({ origin, destination, network, buses, receive
             {plan.options.length
               ? "Walking beats every bus that's running right now."
               : "No running bus gets you there from here right now."}{" "}
-            Arrive {clockAfter(base, plan.walkMin)}.
+            Arrive {clockAfter(clock, plan.walkMin)}.
           </p>
+          {deadlineLine}
         </article>
       )}
 
@@ -169,7 +192,7 @@ export default function TripPanel({ origin, destination, network, buses, receive
               <p className="tabular text-right text-sm">
                 <span className="text-fur-dark">arrive </span>
                 {about(o)}
-                {clockAfter(base, o.arriveInMin)}
+                {clockAfter(clock, o.arriveInMin)}
               </p>
             </li>
           ))}
@@ -181,7 +204,7 @@ export default function TripPanel({ origin, destination, network, buses, receive
               <p className="min-w-0 flex-1 text-sm font-medium">Walk all the way, {minLabel(plan.walkMin)}</p>
               <p className="tabular text-right text-sm">
                 <span className="text-fur-dark">arrive </span>
-                {clockAfter(base, plan.walkMin)}
+                {clockAfter(clock, plan.walkMin)}
               </p>
             </li>
           )}

@@ -35,6 +35,12 @@ LAN address in the phone's browser for everything except location.
   leave, with a relax / walk / run cue, the stop to board, ride time and arrival time. It compares against
   walking the whole way and says when walking is faster. ETA Spot predicts each bus's next five stops;
   anything further is estimated from hop times seen live and is marked "about".
+- **Ask Lupus** (`/api/agent`): ask in plain words ("I'm at West Apartments, lab in Life Sciences at 2. Will I
+  make it?"), typed or spoken. Gemini answers only by calling our tools (`find_place`, `plan_trip`,
+  `bus_status`, `stop_departures`) and finishes with `show_answer`; the answer card's times, stops and the
+  yes / tight / no verdict are computed by our planner, never by the model. "Show on map" opens the trip in
+  the live planner. With `AGENT_MODE=mock` a labeled offline stand-in answers simple from/to/time questions
+  without Gemini (for demos without quota, and tests).
 - **Routes and stops** (`/api/network`) come live from ETA Spot (cached 15 minutes, since weekday and weekend
   routes differ), falling back to the copy saved by `npm run save:etaspot`. The map draws each route in its
   ETA Spot color.
@@ -53,7 +59,9 @@ LAN address in the phone's browser for everything except location.
 
 | Name | Purpose |
 | --- | --- |
-| `GEMINI_API_KEY` | Trip agent and schedule import (coming next). Keep it in `.env.local`, never commit it. |
+| `GEMINI_API_KEY` | Ask Lupus (and schedule import, coming next). Keep it in `.env` or `.env.local`, never commit it. |
+| `GEMINI_MODEL` | Optional, default `gemini-3.8-flash`. |
+| `AGENT_MODE` | Optional. `mock` answers Ask Lupus offline without Gemini (clearly labeled in the app). |
 | `ETASPOT_MODE` | `live` (default) or `sample` to always serve the saved snapshot. |
 
 ## Credits
