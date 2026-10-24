@@ -1,7 +1,7 @@
 import placesFile from "@/data/places.json";
 import type { LngLat } from "./types";
 
-export type PlaceCategory = "academic" | "dorm" | "dining" | "medical" | "transit" | "athletics" | "services" | "parking";
+export type PlaceCategory = "academic" | "dorm" | "dining" | "medical" | "transit" | "athletics" | "services" | "parking" | "shopping" | "town";
 
 export interface Place {
   id: string;
@@ -10,6 +10,7 @@ export interface Place {
   aliases: string[];
   lng: number;
   lat: number;
+  service?: string; // when the shuttle there runs, e.g. "Shopping shuttle, Sundays"
 }
 
 export const PLACES = placesFile.places as Place[];
@@ -18,6 +19,7 @@ export const lngLat = (p: { lng: number; lat: number }): LngLat => [p.lng, p.lat
 
 export const CATEGORY_ICON: Record<PlaceCategory, string> = {
   academic: "🏛️", dorm: "🛏️", dining: "🍽️", medical: "🏥", transit: "🚂", athletics: "🏟️", services: "🛎️", parking: "🅿️",
+  shopping: "🛒", town: "⚓",
 };
 
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\w\s]/g, "").trim();

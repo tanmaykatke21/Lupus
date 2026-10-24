@@ -43,5 +43,6 @@ export async function planTrip(req: PlanRequest, opts: { replay?: boolean } = {}
     if (bus?.type === "bus") o.reliability = reliabilityNote(lateness, bus.routeId, campusClock(new Date(bus.departAt)).minutes / 60 | 0);
   }
   if (etaFailures) warnings.push("Some bus arrival times couldn't be loaded.");
+  if (!options.length) warnings.push("No bus is running there right now, and it's too far to walk.");
   return { options, warnings, liveBuses: buses.length, source: replay ? "replay" as const : "live" as const, now };
 }

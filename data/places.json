@@ -1,5 +1,5 @@
 {
- "_readme": "Seeded from OpenStreetMap building centers (© OpenStreetMap contributors) and ETA Spot stops. Coordinates are building centers; correct them to entrances if routing ends at the wrong side. Categories: academic, dorm, dining, medical, transit, athletics, services, parking.",
+ "_readme": "Seeded from OpenStreetMap building centers (© OpenStreetMap contributors) and ETA Spot stops. Coordinates are building centers; correct them to entrances if routing ends at the wrong side. Categories: academic, dorm, dining, medical, transit, athletics, services, parking. Off-campus places sit at their ETA Spot stop; `service` notes when a shuttle runs (from riders, not from ETA Spot).",
  "places": [
   {
    "id": "sac",
@@ -680,6 +680,83 @@
    ],
    "lng": -73.13439,
    "lat": 40.90233
+  },
+  {
+   "id": "walmart",
+   "name": "Walmart Centereach",
+   "category": "shopping",
+   "aliases": [
+    "Walmart",
+    "Centereach"
+   ],
+   "lng": -73.0823,
+   "lat": 40.86257,
+   "service": "Shopping shuttle, Sundays"
+  },
+  {
+   "id": "target",
+   "name": "Target South Setauket",
+   "category": "shopping",
+   "aliases": [
+    "Target",
+    "South Setauket"
+   ],
+   "lng": -73.09985,
+   "lat": 40.88578,
+   "service": "Shopping shuttle, Sundays"
+  },
+  {
+   "id": "stop-shop-south",
+   "name": "Stop & Shop South Setauket",
+   "category": "shopping",
+   "aliases": [
+    "Stop and Shop",
+    "Stop & Shop",
+    "groceries",
+    "South Setauket"
+   ],
+   "lng": -73.10402,
+   "lat": 40.88268,
+   "service": "Shopping shuttle, Sundays"
+  },
+  {
+   "id": "stop-shop-east",
+   "name": "Stop & Shop East Setauket",
+   "category": "shopping",
+   "aliases": [
+    "Stop and Shop East",
+    "East Setauket",
+    "groceries"
+   ],
+   "lng": -73.10941,
+   "lat": 40.93933,
+   "service": "Port Jefferson Shuttle, Fridays and Saturdays"
+  },
+  {
+   "id": "port-jeff",
+   "name": "Port Jefferson Village",
+   "category": "town",
+   "aliases": [
+    "Port Jeff",
+    "Port Jefferson",
+    "PJ",
+    "ferry"
+   ],
+   "lng": -73.06755,
+   "lat": 40.94875,
+   "service": "Port Jefferson Shuttle, Fridays and Saturdays"
+  },
+  {
+   "id": "sb-village",
+   "name": "Stony Brook Village",
+   "category": "town",
+   "aliases": [
+    "Stony Brook Village Center",
+    "the village"
+   ],
+   "lng": -73.14726,
+   "lat": 40.91899,
+   "service": "Port Jefferson Shuttle, Fridays and Saturdays"
   }
  ]
 }

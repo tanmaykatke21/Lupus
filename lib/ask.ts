@@ -25,7 +25,7 @@ interface RawAnswer {
   reply: string;
 }
 
-const CATEGORIES: PlaceCategory[] = ["academic", "dorm", "dining", "medical", "transit", "athletics", "services", "parking"];
+const CATEGORIES: PlaceCategory[] = ["academic", "dorm", "dining", "medical", "transit", "athletics", "services", "parking", "shopping", "town"];
 
 export function askSchema(classes: AskClass[]) {
   return {
@@ -48,7 +48,7 @@ export function askPrompt(classes: AskClass[], nowLabel: string) {
   return [
     "You route requests for a Stony Brook University campus transit app. Pick exactly one action.",
     "- place: the user named or described a specific campus place. Use placeId from the list.",
-    "- category: the user wants the nearest of a kind (coffee/food → dining, sleep/dorm → dorm, doctor/ER → medical).",
+    "- category: the user wants the nearest of a kind (coffee/food → dining, sleep/dorm → dorm, doctor/ER → medical, groceries/shopping → shopping).",
     "- train: the user wants to catch an LIRR train from Stony Brook. 'the city', 'NYC', 'Penn', 'Manhattan' → west; 'Port Jeff' → east.",
     "  Put the earliest acceptable departure time in trainAfter (e.g. '6pm train' → '18:00'); null means the next one.",
     "- class: the user refers to one of their classes. Use classId from the list.",

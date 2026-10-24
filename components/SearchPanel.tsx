@@ -13,7 +13,7 @@ interface Props {
   onCancel: () => void;
 }
 
-const QUICK = ["dining", "dorm", "medical", "transit"] as const;
+const QUICK = ["dining", "dorm", "medical", "transit", "shopping", "town"] as const;
 
 export default function SearchPanel({ title, saved, allowMyLocation, onPick, onMyLocation, onCancel }: Props) {
   const [q, setQ] = useState("");
@@ -62,7 +62,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
           {QUICK.map(c => (
             <button key={c} onClick={() => setCategory(category === c ? null : c)} aria-pressed={category === c}
               className={`min-h-11 shrink-0 rounded-full border px-3 text-sm font-medium capitalize ${category === c ? "border-brass bg-brass/20" : "border-line bg-surface"}`}>
-              {CATEGORY_ICON[c]} {c === "medical" ? "Hospital" : c === "transit" ? "LIRR" : c}
+              {CATEGORY_ICON[c]} {c === "medical" ? "Hospital" : c === "transit" ? "LIRR" : c === "town" ? "Towns" : c}
             </button>
           ))}
         </div>
@@ -75,7 +75,8 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
               <span aria-hidden>{CATEGORY_ICON[p.category]}</span>
               <span className="flex-1">
                 <span className="block font-medium">{p.name}</span>
-                {p.aliases[0] && <span className="block text-xs text-muted">{p.aliases.slice(0, 3).join(" · ")}</span>}
+                {p.service ? <span className="block text-xs text-copper">🚌 {p.service}</span>
+                  : p.aliases[0] && <span className="block text-xs text-muted">{p.aliases.slice(0, 3).join(" · ")}</span>}
               </span>
             </button>
           </li>

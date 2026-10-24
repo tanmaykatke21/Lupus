@@ -10,7 +10,7 @@ import timingFile from "@/data/route-timing.json";
 import { normalizeEtas, normalizeRoutes, normalizeStops, type RawEtaEntry, type RawRoute, type RawStop } from "./etaspot";
 import { plan, shapeBetween, type BusLeg, type RouterDeps } from "./router";
 import { getWalkGraph } from "./walkGraph";
-import type { LngLat, StopEta } from "./types";
+import type { BusRoute, LngLat, StopEta } from "./types";
 
 // Samples were captured at ~04:40 ET; their `minutes` count from that moment (T0).
 const T0 = new Date("2026-10-24T08:40:00Z").getTime();
@@ -112,3 +112,46 @@ describe("shapeBetween", () => {
     expect(line.length).toBeGreaterThan(5);
   });
 });
+
+describe("off-campus shuttles", () => {
+  // Shaped like the Sunday shopping shuttle: SAC → Target → Walmart → Stop & Shop → SAC.
+  // Only stops (from ETA Spot) are real; the route/ETAs are synthetic since it doesn't run on the sample day.
+  const shopping: BusRoute = {
+    id: 12, name: "Shopping Shuttle", abbr: "Shop", color: "#0a7", stopIds: [1, 42, 43, 44],
+    shape: [pt(1), pt(42), pt(43), pt(44), pt(1)],
+  };
+  const etas = (id: number, min: number, trip = "t1", busId: string | null = "51"): StopEta =>
+    ({ stopId: id, routeId: 12, tripKey: trip, busId, minutes: min, arrivesAt: T0 + min * 60_000, scheduled: "", direction: "" });
+  const shopDeps = (byStop: Record<number, StopEta[]>, live = 1) =>
+    deps({ routes: [shopping], timing: {}, etas: async id => byStop[id] ?? [], liveBusCount: () => live });
+  const WALMART = pt(43);
+
+  it("routes from campus to Walmart, walking the last bit off the campus map", async () => {
+    const options = await plan({ from: SAC, to: WALMART, time: at(0) }, shopDeps({ 1: [etas(1, 5)], 43: [etas(43, 30)] }));
+    const bus = options.find(o => o.kind === "bus")!;
+    const ride = bus.legs.find((l): l is BusLeg => l.type === "bus")!;
+    expect(ride).toMatchObject({ boardStopId: 1, alightStopId: 43, rideSource: "eta" });
+    expect(options.some(o => o.kind === "walk")).toBe(false); // ~6 km: no walk-only option
+  });
+
+  it("plans the trip back from Walmart (origin off the walking map)", async () => {
+    const options = await plan({ from: WALMART, to: SAC, time: at(0) }, shopDeps({ 43: [etas(43, 10, "t2")], 1: [etas(1, 40, "t2")] }));
+    const ride = options.flatMap(o => o.legs).find((l): l is BusLeg => l.type === "bus")!;
+    expect(ride).toMatchObject({ boardStopId: 43, alightStopId: 1, rideSource: "eta" });
+  });
+
+  it("estimates ride time from the route shape when there's no timetable or paired ETA", async () => {
+    const options = await plan({ from: SAC, to: WALMART, time: at(0) }, shopDeps({ 1: [etas(1, 5)] }));
+    const ride = options.flatMap(o => o.legs).find((l): l is BusLeg => l.type === "bus")!;
+    expect(ride.rideSource).toBe("estimate");
+    expect((ride.arriveAt - ride.departAt) / 60_000).toBeGreaterThan(5);
+  });
+
+  it("never invents trips for a route with no buses running", async () => {
+    const options = await plan({ from: SAC, to: WALMART, time: at(10) }, // the only listed trip has left
+      deps({ routes: [shopping], timing: { 12: { offsets: { 1: 0, 43: 20 }, cycleMinutes: 60 } },
+        etas: async id => (id === 1 ? [etas(1, 5, "t1", null)] : []), liveBusCount: () => 0 }));
+    expect(options).toEqual([]);
+  });
+});
+

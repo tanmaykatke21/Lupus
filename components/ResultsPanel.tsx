@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import RouteCard from "./RouteCard";
+import { placeById } from "@/lib/places";
 import type { RouteOption } from "@/lib/router";
 import { stepsFor, type Step } from "@/lib/steps";
 import { SAVED_LABELS, type SavedLabel } from "@/lib/storage";
@@ -52,6 +53,11 @@ export default function ResultsPanel(p: Props) {
         <button onClick={p.onClose} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">Close</button>
       </div>
 
+      {p.request.to.placeId && placeById(p.request.to.placeId)?.service && !options.some(o => o.kind === "bus") && p.result && (
+        <p role="status" className="mb-2 rounded-xl bg-brass/15 px-3 py-2 text-sm">
+          🚌 {placeById(p.request.to.placeId)!.service}. Check back when it&apos;s running.
+        </p>
+      )}
       {p.result?.warnings.map(w => (
         <p key={w} role="status" className="mb-2 rounded-xl bg-warn/15 px-3 py-2 text-sm">{w}</p>
       ))}

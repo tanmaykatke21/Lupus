@@ -1,12 +1,18 @@
 // Trip planner: walk-only, or walk → wait → ride one bus → walk.
 import { meters } from "./geo";
-import type { WalkGraph, WalkOptions, WalkResult } from "./walk";
+import { ACCESSIBLE_WALK_MPS, WALK_MPS, type WalkGraph, type WalkOptions, type WalkResult } from "./walk";
 import type { BusRoute, BusStop, LngLat, StopEta } from "./types";
 
 export const MAX_STOP_WALK_M = 600;
 export const BOARD_BUFFER_MS = 60_000; // be at the stop a minute early
 const MAX_OPTIONS = 3;
-const HORIZON_MS = 3 * 60 * 60_000; // project estimated trips up to 3 h ahead
+const HORIZON_MS = 2 * 60 * 60_000; // project estimated trips up to 2 h ahead
+// Off the campus walking map (e.g. Walmart, Port Jefferson) we fall back to straight-line walks.
+const OFF_MAP_DETOUR = 1.3;
+const MAX_OFF_MAP_WALK_M = 2000;
+// Ride estimate from the route shape when ETA Spot can't pair a trip and there's no timetable.
+const BUS_MPS = 8;
+const STOP_DWELL_S = 30;
 
 export interface RouteTimingEntry {
   offsets: Record<string, number>; // minutes from first stop
@@ -54,7 +60,7 @@ export interface BusLeg {
   stopCount: number;
   coords: LngLat[];
   live: boolean; // departure time comes from a bus ETA Spot is tracking
-  rideSource: "eta" | "history" | "schedule";
+  rideSource: "eta" | "history" | "schedule" | "estimate";
 }
 export type Leg = WalkLeg | WaitLeg | BusLeg;
 
@@ -107,13 +113,14 @@ export function shapeBetween(route: BusRoute, a: BusStop, b: BusStop): LngLat[] 
   return out;
 }
 
-// Upcoming departures of `route` at `stop`: listed ETAs, then projected by headway.
+// Upcoming departures of `route` at `stop`: listed ETAs, then projected by headway — but only while
+// buses are actually running, so we never invent trips for a shuttle that runs on other days.
 function departures(route: BusRoute, stopEtas: StopEta[], timing: RouteTimingEntry | undefined, liveBuses: number, until: number): Departure[] {
   const listed = stopEtas
     .filter(e => e.routeId === route.id)
     .sort((a, b) => a.arrivesAt - b.arrivesAt)
     .map((e): Departure => ({ at: e.arrivesAt, tripKey: e.tripKey, busId: e.busId, estimated: false }));
-  if (!listed.length || !timing) return listed;
+  if (!listed.length || !timing || liveBuses === 0) return listed;
   const headwayMs = (timing.cycleMinutes / Math.max(1, liveBuses)) * 60_000;
   const out = [...listed];
   for (let t = listed[listed.length - 1].at + headwayMs; t <= until; t += headwayMs) {
@@ -123,6 +130,19 @@ function departures(route: BusRoute, stopEtas: StopEta[], timing: RouteTimingEnt
 }
 
 const minutes = (ms: number) => ms / 60_000;
+
+/** Ride minutes from distance along the route shape, for routes with no timetable yet. */
+export function estimateRideMinutes(route: BusRoute, a: BusStop, b: BusStop, stopCount: number) {
+  const line = shapeBetween(route, a, b);
+  let m = 0;
+  for (let k = 1; k < line.length; k++) m += meters(line[k - 1], line[k]);
+  return (m / BUS_MPS + stopCount * STOP_DWELL_S) / 60;
+}
+
+function straightWalk(a: LngLat, b: LngLat, accessible?: boolean): WalkResult {
+  const m = meters(a, b) * OFF_MAP_DETOUR;
+  return { meters: m, seconds: m / (accessible ? ACCESSIBLE_WALK_MPS : WALK_MPS), coords: [a, b], shortcuts: [], stairs: false };
+}
 
 /**
  * Ordering for options (negative = a is better). Leave-now: earliest arrival. Arrive-by: latest
@@ -142,8 +162,16 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   const walkOpts: WalkOptions = { accessible: req.accessible, at: new Date(now) };
   const { graph } = deps;
 
-  const fromTree = graph.from(req.from, walkOpts);
-  const direct = fromTree.to(req.to);
+  // Either end may be off the campus walking map (shopping, Port Jefferson): walk straight there.
+  const tree = (p: LngLat, max?: number) => (graph.nearestNode(p) ? graph.from(p, walkOpts, max) : null);
+  const walkTo = (t: ReturnType<typeof tree>, a: LngLat, b: LngLat, max: number) => {
+    const w = t?.to(b);
+    if (w) return w.meters <= max ? w : null;
+    return meters(a, b) * OFF_MAP_DETOUR <= max ? straightWalk(a, b, req.accessible) : null;
+  };
+
+  const fromTree = tree(req.from);
+  const direct = walkTo(fromTree, req.from, req.to, fromTree && graph.nearestNode(req.to) ? Infinity : MAX_OFF_MAP_WALK_M);
   const options: RouteOption[] = [];
 
   if (direct) {
@@ -164,17 +192,16 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   }
 
   // Candidate stops near each end, by walking distance.
-  const nearFrom = graph.from(req.from, walkOpts, MAX_STOP_WALK_M);
-  const nearTo = graph.from(req.to, walkOpts, MAX_STOP_WALK_M); // paths are symmetric
+  const nearFrom = tree(req.from, MAX_STOP_WALK_M);
+  const nearTo = tree(req.to, MAX_STOP_WALK_M); // paths are symmetric
   const boardWalk = new Map<number, WalkResult>();
   const alightWalk = new Map<number, WalkResult>();
   for (const s of deps.stops) {
-    const w1 = nearFrom.to([s.lng, s.lat]);
-    if (w1 && w1.meters <= MAX_STOP_WALK_M) boardWalk.set(s.id, w1);
-    const w2 = nearTo.to([s.lng, s.lat]);
-    if (w2 && w2.meters <= MAX_STOP_WALK_M) {
-      alightWalk.set(s.id, { ...w2, coords: w2.coords.slice().reverse(), shortcuts: w2.shortcuts.slice().reverse() });
-    }
+    const p: LngLat = [s.lng, s.lat];
+    const w1 = walkTo(nearFrom, req.from, p, MAX_STOP_WALK_M);
+    if (w1) boardWalk.set(s.id, w1);
+    const w2 = walkTo(nearTo, req.to, p, MAX_STOP_WALK_M);
+    if (w2) alightWalk.set(s.id, { ...w2, coords: w2.coords.slice().reverse(), shortcuts: w2.shortcuts.slice().reverse() });
   }
 
   const stopById = new Map(deps.stops.map(s => [s.id, s]));
@@ -225,7 +252,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
           if (paired) { rideMs = paired.arrivesAt - dep.at; rideSource = "eta"; }
           else if (historyRide !== null) { rideMs = historyRide * 60_000; rideSource = "history"; }
           else if (scheduleRide !== null) { rideMs = scheduleRide * 60_000; rideSource = "schedule"; }
-          else break;
+          else { rideMs = estimateRideMinutes(route, board, alight, stopsBetween(route, i, j)) * 60_000; rideSource = "estimate"; }
 
           const arriveAt = dep.at + rideMs + walkFromStopMs;
           if (arriveBy && arriveAt > arriveBy) continue;

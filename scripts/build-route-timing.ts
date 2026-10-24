@@ -2,7 +2,9 @@
 // taken from ETA Spot's own per-stop ETAs. Each stop lists the next trip per route keyed by
 // scheduleNumber, so stops that report the same scheduleNumber give consistent offsets for one trip.
 // Best run when service is idle (early morning), when every stop lists the day's first trip.
-import { writeFileSync } from "node:fs";
+// ETA Spot only lists routes running that day, so results merge into the existing file: run it on
+// a weekday, a Friday/Saturday and a Sunday to cover the shuttles that only run some days.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { getRoutes, getStopEtas } from "../lib/etaspot";
 import type { StopEta } from "../lib/types";
 
@@ -19,7 +21,9 @@ async function main() {
     etas.push(...await getStopEtas(id)); // sequential: be gentle with SBU's server
   }
 
-  const out: RouteTiming = { builtAt: new Date().toISOString(), routes: {} };
+  const previous: RouteTiming | null = existsSync("data/route-timing.json")
+    ? JSON.parse(readFileSync("data/route-timing.json", "utf8")) : null;
+  const out: RouteTiming = { builtAt: new Date().toISOString(), routes: { ...previous?.routes } };
   for (const r of routes) {
     const mine = etas.filter(e => e.routeId === r.id);
     // The trip seen at the most stops is the one we can measure end to end.
