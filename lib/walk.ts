@@ -7,6 +7,10 @@ export const WALK_MPS = 1.3;
 export const ACCESSIBLE_WALK_MPS = 1.0;
 const FLAG_STAIRS = 1;
 
+export class OutsideMapError extends Error {
+  constructor() { super("Point is outside the walking map"); }
+}
+
 export interface WalkGraphFile {
   source: string;
   builtAt: string;
@@ -129,12 +133,12 @@ export class WalkGraph {
         }
       }
     }
-    if (best === -1) throw new Error("Point is outside the walking map");
-    return { node: best, meters: bestD };
+    return best === -1 ? null : { node: best, meters: bestD };
   }
 
   private addShortcut(sc: Shortcut) {
     const a = this.nearestNode(sc.entry), b = this.nearestNode(sc.exit);
+    if (!a || !b) return; // shortcut outside the mapped area
     const pts = [this.nodes[a.node], sc.entry, ...(sc.path ?? []), sc.exit, this.nodes[b.node]];
     let len = 0;
     for (let i = 1; i < pts.length; i++) len += meters(pts[i - 1], pts[i]);
@@ -147,6 +151,7 @@ export class WalkGraph {
   from(origin: LngLat, opts: WalkOptions = {}, maxMeters = Infinity) {
     const at = opts.at ?? new Date();
     const start = this.nearestNode(origin);
+    if (!start) throw new OutsideMapError();
     const dist = new Float64Array(this.nodes.length).fill(Infinity);
     const prev = new Int32Array(this.nodes.length).fill(-1);
     const prevArc: (Arc | null)[] = new Array(this.nodes.length).fill(null);
@@ -183,7 +188,7 @@ export class WalkGraph {
       /** Walk from the origin to `dest`, or null if unreachable within the search bound. */
       to(dest: LngLat): WalkResult | null {
         const end = nearest(dest);
-        if (!Number.isFinite(dist[end.node])) return null;
+        if (!end || !Number.isFinite(dist[end.node])) return null;
         const total = dist[end.node] + end.meters;
         const coords: LngLat[] = [dest, nodes[end.node]];
         const shortcuts: WalkResult["shortcuts"] = [];

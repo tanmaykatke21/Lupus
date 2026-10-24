@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { getStopEtas } from "@/lib/etaspot";
+import { cachedStopEtas } from "@/lib/network";
 import { CACHE, errorJson, json, rateLimit } from "@/lib/http";
 
 // GET /api/etas?stop=19
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
   const stop = Number(new URL(request.url).searchParams.get("stop"));
   if (!Number.isInteger(stop) || stop <= 0) return json({ error: "stop must be a stop id" }, "no-store", 400);
   try {
-    return json({ etas: await getStopEtas(stop) }, CACHE.live);
+    return json({ etas: await cachedStopEtas(stop) }, CACHE.live);
   } catch (err) {
     return errorJson(err);
   }
