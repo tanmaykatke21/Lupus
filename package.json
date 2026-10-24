@@ -1,0 +1,45 @@
+{
+  "name": "lupus",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "node scripts/copy-maplibre-worker.mjs",
+    "test": "vitest run",
+    "typecheck": "next typegen && tsc --noEmit",
+    "poller": "tsx scripts/poller.ts",
+    "build:lirr": "tsx scripts/build-lirr.ts",
+    "build:walk": "tsx scripts/build-walk-graph.ts",
+    "build:timing": "tsx scripts/build-route-timing.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "@mapbox/polyline": "^1.2.1",
+    "gtfs-realtime-bindings": "^2.2.0",
+    "maplibre-gl": "^6.15.0",
+    "next": "16.4.3",
+    "postgres": "^3.4.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/adm-zip": "^0.5.8",
+    "@types/mapbox__polyline": "^1.0.5",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "adm-zip": "^0.6.1",
+    "csv-parse": "^7.0.3",
+    "dotenv": "^18.0.9",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^5.0.5"
+  }
+}

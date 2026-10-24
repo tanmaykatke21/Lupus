@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* Steel and Steam palette: brass and copper on parchment (light), on iron (dark). */
+:root {
+  --bg: #f3ead8;
+  --surface: #fbf6ea;
+  --surface-2: #efe3c9;
+  --ink: #2a2118;
+  --muted: #6e5f4b;
+  --line: #d9c7a3;
+  --brass: #a8781f;
+  --brass-hi: #d4a64a;
+  --copper: #a4532c;
+  --iron: #3a3631;
+  --signal: #c8283e;
+  --steam: #ffffff;
+  --ok: #2f6b3a;
+  --warn: #b7791f;
+  --danger: #b4282e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14110e;
+    --surface: #201b16;
+    --surface-2: #2b241d;
+    --ink: #f1e6d0;
+    --muted: #b3a385;
+    --line: #3d342a;
+    --brass: #d4a64a;
+    --brass-hi: #f0c46a;
+    --copper: #d07a4a;
+    --iron: #0c0a08;
+    --signal: #ff5a6e;
+    --ok: #6fbf73;
+    --warn: #f0b34a;
+    --danger: #ff6b6b;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brass: var(--brass);
+  --color-brass-hi: var(--brass-hi);
+  --color-copper: var(--copper);
+  --color-iron: var(--iron);
+  --color-signal: var(--signal);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-cinzel);
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Riveted brass plate used for headings and primary surfaces. */
+.plate {
+  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
+  border: 1px solid var(--line);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.btn-brass {
+  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+  color: #1d150b;
+  border: 1px solid color-mix(in srgb, var(--brass) 70%, black);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 2px rgb(0 0 0 / 0.2);
+}
+.btn-brass:active { transform: translateY(1px); }
+.rivets {
+  background-image:
+    radial-gradient(circle at 10px 10px, var(--brass) 2px, transparent 2.5px),
+    radial-gradient(circle at calc(100% - 10px) 10px, var(--brass) 2px, transparent 2.5px);
+  background-repeat: no-repeat;
+}
+
+/* Warm the base map so it sits inside the theme. */
+.map-warm .maplibregl-canvas { filter: sepia(0.22) saturate(0.95); }
+@media (prefers-color-scheme: dark) {
+  .map-warm .maplibregl-canvas { filter: sepia(0.35) brightness(0.95); }
+}
+
+.bus-marker { width: 34px; height: 34px; pointer-events: auto; }
+.bus-marker svg { transition: transform 0.6s ease; }
+
+:focus-visible { outline: 3px solid var(--brass-hi); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
