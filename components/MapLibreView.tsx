@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
-import { laneUnitPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
+import { drawLane, laneUnitPx, metersPerPixel } from "@/lib/laneOffset";
 import { directionalLanes, type LaneLine } from "@/lib/directionalLanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
@@ -15,16 +15,16 @@ const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 type FC = GeoJSON.FeatureCollection;
 const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", features });
 
-// Where routes share a road they're drawn side by side in lanes (lib/lanes.ts, from Tanmay's branch).
-// Each route is one continuous line offset point by point, so loops close and lanes never break;
-// the offsets are in meters for the current zoom, recomputed when the zoom settles.
+// Routes are drawn in keep-right lanes by direction (lib/directionalLanes.ts). Each route is one
+// continuous line, offset point by point in meters for the current zoom (recomputed when the zoom
+// settles) and untangled where a tight curve would fold it.
 function routesData(routes: BusRoute[], lines: LaneLine[], zoom: number): FC {
   const color = new Map(routes.map(r => [r.id, r.color]));
   const m = laneUnitPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
   return fc(lines.map(l => ({
     type: "Feature",
     properties: { id: l.id, color: color.get(l.id) },
-    geometry: { type: "LineString", coordinates: offsetLineVar(l.coords, l.lanes.map(x => x * m)) },
+    geometry: { type: "LineString", coordinates: drawLane(l.coords, l.lanes, m) },
   })));
 }
 

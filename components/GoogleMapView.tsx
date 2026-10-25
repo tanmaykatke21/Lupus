@@ -2,7 +2,7 @@
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { laneUnitPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
+import { drawLane, laneUnitPx, metersPerPixel } from "@/lib/laneOffset";
 import { directionalLanes } from "@/lib/directionalLanes";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
@@ -119,7 +119,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     const place = () => {
       const zoom = map.getZoom() ?? 15;
       const m = laneUnitPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
-      lines.forEach((l, i) => routeLines.current[i]?.setPath(offsetLineVar(l.coords, l.lanes.map(x => x * m)).map(toLatLng)));
+      lines.forEach((l, i) => routeLines.current[i]?.setPath(drawLane(l.coords, l.lanes, m).map(toLatLng)));
     };
     place();
     const listener = map.addListener("zoom_changed", place);
