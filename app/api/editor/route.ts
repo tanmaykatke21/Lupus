@@ -10,6 +10,18 @@ const FILES = {
   shortcuts: "data/shortcuts.json",
 } as const;
 const KEYS = { places: "places", paths: "paths", shortcuts: "shortcuts" } as const;
+
+// Literal paths (not FILES[k]) so the bundler traces only these three files, not the whole project.
+function read(k: keyof typeof FILES) {
+  if (k === "places") return readFile("data/places.json", "utf8");
+  if (k === "paths") return readFile("data/custom-paths.json", "utf8");
+  return readFile("data/shortcuts.json", "utf8");
+}
+function write(k: keyof typeof FILES, text: string) {
+  if (k === "places") return writeFile("data/places.json", text);
+  if (k === "paths") return writeFile("data/custom-paths.json", text);
+  return writeFile("data/shortcuts.json", text);
+}
 const CATEGORIES = ["academic", "dorm", "dining", "medical", "transit", "athletics", "services", "parking", "shopping", "town"];
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -42,7 +54,7 @@ export async function GET() {
   const blocked = devOnly();
   if (blocked) return blocked;
   const out: Record<string, unknown> = {};
-  for (const [k, f] of Object.entries(FILES)) out[k] = JSON.parse(await readFile(f, "utf8"))[KEYS[k as keyof typeof KEYS]];
+  for (const k of Object.keys(FILES) as (keyof typeof FILES)[]) out[k] = JSON.parse(await read(k))[KEYS[k]];
   return json(out, CACHE.none);
 }
 
@@ -63,12 +75,12 @@ export async function POST(request: Request) {
     if (bad !== -1) return json({ error: `${k}[${bad}] is invalid: ${JSON.stringify(list[bad]).slice(0, 160)}` }, CACHE.none, 400);
     const ids = new Set(list.map(i => i.id));
     if (ids.size !== list.length) return json({ error: `${k} has duplicate ids` }, CACHE.none, 400);
-    const text = await readFile(FILES[k], "utf8");
+    const text = await read(k);
     const file = JSON.parse(text);
     file[KEYS[k]] = list;
     // Keep the file's indentation, and short arrays like [lng, lat] on one line, so diffs stay small.
     const indent = /\n( +)"/.exec(text)?.[1].length ?? 2;
-    await writeFile(FILES[k], formatJson(file, indent));
+    await write(k, formatJson(file, indent));
     written.push(FILES[k]);
   }
   return json({ written }, CACHE.none);
