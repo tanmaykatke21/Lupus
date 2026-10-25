@@ -50,15 +50,23 @@ export function useNavigation(plan: NavPlan | null, demo: boolean) {
         clearInterval(timer);
       });
     } else if ("geolocation" in navigator) {
+      if (thePlan.startFix) {
+        const fix = thePlan.startFix;
+        const first = setTimeout(() => nav.update(fix), 0);
+        stops.push(() => clearTimeout(first));
+      }
       const id = navigator.geolocation.watchPosition(
         (p) => nav.update({ lat: p.coords.latitude, lng: p.coords.longitude, accuracyM: p.coords.accuracy }),
-        (err) =>
+        (err) => {
+          // A pause in updates (standing still, a weak signal) isn't worth a warning once navigation has a fix.
+          if (err.code !== err.PERMISSION_DENIED && nav.snapshot().me) return;
           tell(
             err.code === err.PERMISSION_DENIED
               ? "Location is off for this site. Turn it on to navigate, or try the demo walk."
               : "Can't get your location right now. Keep the app open outdoors.",
-          ),
-        { enableHighAccuracy: true, maximumAge: 1000, timeout: 20_000 },
+          );
+        },
+        { enableHighAccuracy: true, maximumAge: 0 },
       );
       stops.push(() => navigator.geolocation.clearWatch(id));
     } else {

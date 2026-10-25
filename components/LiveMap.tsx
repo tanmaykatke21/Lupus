@@ -41,6 +41,14 @@ interface Props {
   nav: NavSnapshot | null;
   /** Changes with each navigation session, so following the walker restarts with it. */
   navId: string | null;
+  /** Where the rider is right now (GPS), drawn as a live dot; null when unknown. */
+  live: { position: LatLng; heading: number | null } | null;
+  /** Draw the trip-start dot: only when the trip starts from a picked place rather than the rider's location. */
+  showStart: boolean;
+  /** Each position the map's locate button finds. */
+  onLocate?: (fix: { position: LatLng; accuracyM: number; heading: number | null; at: number }) => void;
+  /** The rider tapped the locate button: they want to start from where they are. */
+  onLocateTap?: () => void;
   /** When planning a trip, only these routes (and their buses and stops) are drawn. Null shows everything. */
   focusRouteIds: number[] | null;
 }
@@ -114,6 +122,10 @@ export default function LiveMap({
   walkLines,
   nav,
   navId,
+  live,
+  showStart,
+  onLocate,
+  onLocateTap,
   focusRouteIds,
 }: Props) {
   const focusKey = focusRouteIds ? focusRouteIds.join(",") : "all";
@@ -150,9 +162,13 @@ export default function LiveMap({
     navIdRef.current = navId;
   }, [navId]);
   const onSelectRef = useRef(onSelect);
+  const onLocateRef = useRef(onLocate);
+  const onLocateTapRef = useRef(onLocateTap);
   useEffect(() => {
     onSelectRef.current = onSelect;
-  }, [onSelect]);
+    onLocateRef.current = onLocate;
+    onLocateTapRef.current = onLocateTap;
+  }, [onSelect, onLocate, onLocateTap]);
 
   // Create the map once, in the browser only.
   useEffect(() => {
@@ -274,10 +290,24 @@ export default function LiveMap({
         }
       });
       map.current.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
-      map.current.addControl(
-        new maplibre.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }),
-        "top-right",
+      // The locate button asks for location and centers the map; Lupus draws the dot itself (one dot for the
+      // map, the trip and navigation), so the control's own dot is off.
+      const locate = new maplibre.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true, maximumAge: 0, timeout: 30_000 },
+        trackUserLocation: true,
+        showUserLocation: false,
+        showAccuracyCircle: false,
+      });
+      locate.on("geolocate", (e) =>
+        onLocateRef.current?.({
+          position: { lat: e.coords.latitude, lng: e.coords.longitude },
+          accuracyM: e.coords.accuracy,
+          heading: Number.isFinite(e.coords.heading) && (e.coords.speed ?? 0) > 0.3 ? e.coords.heading : null,
+          at: e.timestamp || Date.now(),
+        }),
       );
+      locate.on("trackuserlocationstart", () => onLocateTapRef.current?.());
+      map.current.addControl(locate, "top-right");
       // Keep the campus centered in the part of the map not covered by the bus list.
       const pad = () => {
         const wide = window.innerWidth >= 768;
@@ -442,10 +472,11 @@ export default function LiveMap({
     (m.getSource("navAhead") as GeoJSONSource | undefined)?.setData(overlay.current.navAhead);
   }, [ready, navWalked, navAhead]);
 
-  // The walker: a navy dot with an arrow pointing the way they're going, and the map following them.
-  const me = nav?.me ?? null;
-  const meKey = me ? `${me[0].toFixed(6)},${me[1].toFixed(6)}` : "";
-  const bearing = nav?.bearing ?? null;
+  // You are here: a navy dot with an arrow for the way you're going. While navigating it sits on the path and
+  // the map follows it; otherwise it's the live GPS position.
+  const me: [number, number] | null = nav?.me ?? (live ? [live.position.lng, live.position.lat] : null);
+  const meKey = me ? `${me[0].toFixed(7)},${me[1].toFixed(7)}` : "";
+  const bearing = nav ? nav.bearing : (live?.heading ?? null);
   useEffect(() => {
     const m = map.current;
     const maplibre = lib.current;
@@ -475,7 +506,7 @@ export default function LiveMap({
     const m = map.current;
     const maplibre = lib.current;
     if (!ready || !m || !maplibre) return;
-    if (!origin) {
+    if (!origin || !showStart) {
       originMarker.current?.remove();
       originMarker.current = null;
       return;
@@ -487,7 +518,7 @@ export default function LiveMap({
     } else {
       originMarker.current.setLngLat([origin.lng, origin.lat]);
     }
-  }, [ready, origin]);
+  }, [ready, origin, showStart]);
 
   // Pin the chosen destination and bring it into view.
   useEffect(() => {
@@ -505,16 +536,21 @@ export default function LiveMap({
     m.easeTo({ center: [destination.lng, destination.lat], zoom: Math.max(m.getZoom(), 15.5), duration: 700 });
   }, [ready, destination]);
 
-  // Frame the whole trip once both ends are known.
+  // Frame the whole trip once both ends are known, and again only if the start jumps somewhere else (a new
+  // start picked), not while the rider walks: re-framing on every step would make their dot look stuck.
+  const framed = useRef<{ dest: string; lat: number; lng: number } | null>(null);
   const originKey = origin ? `${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}` : "";
   useEffect(() => {
     const m = map.current;
     const maplibre = lib.current;
-    if (!ready || !m || !maplibre || !origin || !destination) return;
+    if (!ready || !m || !maplibre || !origin || !destination || nav) return;
+    const last = framed.current;
+    const moved = last ? Math.hypot((origin.lat - last.lat) * 110_540, (origin.lng - last.lng) * 84_000) : Infinity;
+    if (last && last.dest === destination.id && moved < 300) return;
+    framed.current = { dest: destination.id, lat: origin.lat, lng: origin.lng };
     const bounds = new maplibre.LngLatBounds([origin.lng, origin.lat], [origin.lng, origin.lat]);
     bounds.extend([destination.lng, destination.lat]);
     m.fitBounds(bounds, { padding: 70, maxZoom: 16, duration: 700 });
-    // Only when an end of the trip moves noticeably, not on every GPS update.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, originKey, destination]);
 

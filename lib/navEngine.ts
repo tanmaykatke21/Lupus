@@ -23,6 +23,8 @@ export interface NavPlace extends LatLng {
 export interface NavPlan {
   /** Where the trip was planned from: the demo walk starts here. */
   origin: LatLng;
+  /** The rider's latest GPS fix when they tapped Start, so directions can begin before the next one. */
+  startFix?: Position;
   destination: NavPlace;
   /** Present for a bus trip: walk to `board`, ride, then walk from `alight`. */
   bus: {

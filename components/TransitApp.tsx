@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useBusFeed } from "@/hooks/useBusFeed";
 import { useLocation } from "@/hooks/useLocation";
 import { useNavigation } from "@/hooks/useNavigation";
@@ -25,6 +25,44 @@ import TripPanel from "./TripPanel";
 /** Beyond this distance from every stop, GPS can't be the starting point (you're not on campus). */
 const ON_CAMPUS_M = 1500;
 
+/** A GPS fix from either Lupus's own location watch or the map's locate button. */
+interface Fix {
+  position: LatLng;
+  accuracyM: number;
+  heading: number | null;
+  at: number;
+  count: number;
+  source: "app" | "map";
+}
+
+/** With ?debug=1 in the address: what GPS is doing, for testing on a phone outdoors. */
+function GpsDebug({ fix, status, app, map }: { fix: Fix | null; status: string; app: number; map: number }) {
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <div className="pointer-events-none absolute left-3 top-20 z-10 rounded-xl bg-navy/90 px-3 py-2 font-mono text-[11px] leading-snug text-white md:left-[25rem]">
+      <p>gps: {status}</p>
+      <p>
+        fixes: app {app} · map {map}
+      </p>
+      {fix && (
+        <>
+          <p>
+            using: {fix.source} · {now ? Math.max(0, Math.round((now - fix.at) / 1000)) : "?"} s ago · ±{Math.round(fix.accuracyM)} m
+          </p>
+          <p>
+            {fix.position.lat.toFixed(6)}, {fix.position.lng.toFixed(6)}
+            {fix.heading !== null && ` · ${Math.round(fix.heading)}°`}
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const MODES: { id: TravelMode; label: string }[] = [
   { id: "best", label: "Best" },
   { id: "bus", label: "Bus" },
@@ -46,6 +84,11 @@ export default function TransitApp() {
   const [navPlan, setNavPlan] = useState<NavPlan | null>(null);
   const [navDemo, setNavDemo] = useState(false);
   const navigation = useNavigation(navPlan, navDemo);
+  const [debug, setDebug] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setDebug(new URLSearchParams(window.location.search).has("debug")), 0);
+    return () => clearTimeout(t);
+  }, []);
   const [searching, setSearching] = useState(false);
   // The start-point box only makes the sheet taller; it must not hide the trip section it lives in.
   const [startSearching, setStartSearching] = useState(false);
@@ -62,9 +105,25 @@ export default function TransitApp() {
   } | null>(null);
   const buses = useMemo(() => feed?.buses ?? [], [feed]);
 
-  // Location is only requested once it's needed: for a trip, or when asking Lupus.
-  const location = useLocation(Boolean(destination || askOpen) && !startPlace);
-  const gpsOrigin = location.status === "found" ? location.position : null;
+  // Location is only requested once it's needed: for a trip, or when asking Lupus. It stays on while a start
+  // place is picked, so "Use my location" can switch back at any time.
+  // Tapping the map's locate button turns it on too, so the live dot shows without planning a trip.
+  const [locateOn, setLocateOn] = useState(false);
+  const location = useLocation(Boolean(destination || askOpen || locateOn || navPlan));
+  // The map's locate button gets fixes of its own. Whichever of the two is newest is where you are.
+  const [mapFix, setMapFix] = useState<Fix | null>(null);
+  const onMapLocate = useCallback(
+    (f: Omit<Fix, "count" | "source">) => setMapFix((prev) => ({ ...f, count: (prev?.count ?? 0) + 1, source: "map" })),
+    [],
+  );
+  const appFix: Fix | null = location.status === "found" ? { ...location, source: "app" } : null;
+  const fix = appFix && mapFix ? (mapFix.at > appFix.at ? mapFix : appFix) : (appFix ?? mapFix);
+  const gpsOrigin = fix?.position ?? null;
+  const locStatus = fix ? "found" : location.status;
+  const startFromMyLocation = useCallback(() => {
+    setStartPlace(null);
+    setPickingStart(false);
+  }, []);
   const nearestStopM = useMemo(() => {
     if (!gpsOrigin || !network?.stops.length) return null;
     return Math.min(...network.stops.map((s) => meters(gpsOrigin, s)));
@@ -99,7 +158,10 @@ export default function TransitApp() {
     const o = busOption;
     setNavDemo(demo);
     setCollapsed(false);
+    // Navigation follows live GPS; hand it the latest fix so it can start right away instead of waiting.
+    const recent = fix && Date.now() - fix.at < 60_000 ? fix : null;
     setNavPlan({
+      startFix: recent ? { ...recent.position, accuracyM: recent.accuracyM } : undefined,
       origin: { lat: origin.lat, lng: origin.lng },
       destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
       bus:
@@ -121,7 +183,7 @@ export default function TransitApp() {
   const needStart =
     Boolean(destination) &&
     !startPlace &&
-    (pickingStart || location.status === "denied" || location.status === "unavailable" || (gpsOrigin !== null && !gpsOnCampus));
+    (pickingStart || locStatus === "denied" || locStatus === "unavailable" || (gpsOrigin !== null && !gpsOnCampus));
 
   const toggleSelect = (id: string) => setSelectedId((cur) => (cur === id ? null : id));
   const onSearchOpen = useCallback((open: boolean) => {
@@ -169,8 +231,8 @@ export default function TransitApp() {
   if (feed) heading = buses.length === 1 ? "1 bus running" : `${buses.length} buses running`;
 
   let startNote = "";
-  if (location.status === "denied") startNote = "Location is off for this site. Choose where you're starting.";
-  else if (location.status === "unavailable") startNote = "Your location isn't available. Choose where you're starting.";
+  if (locStatus === "denied") startNote = "Location is off for this site. Choose where you're starting.";
+  else if (locStatus === "unavailable") startNote = "Your location isn't available. Choose where you're starting.";
   else if (gpsOrigin && !gpsOnCampus && nearestStopM !== null)
     startNote = `You're ${(nearestStopM / 1000).toFixed(nearestStopM < 10_000 ? 1 : 0)} km from the nearest stop. Choose where you're starting.`;
 
@@ -183,12 +245,28 @@ export default function TransitApp() {
         onSelect={toggleSelect}
         destination={destination}
         origin={destination && !navigating ? origin : null}
+        showStart={Boolean(startPlace)}
+        live={fix ? { position: fix.position, heading: fix.heading } : null}
         view={destination ? shown : null}
         walkLines={destination && !navigating ? walkLines : []}
         nav={navigating ? navigation.snapshot : null}
+        onLocate={onMapLocate}
+        onLocateTap={() => {
+          setLocateOn(true);
+          if (destination) startFromMyLocation();
+        }}
         navId={navPlan ? `${navPlan.destination.name}|${navDemo}|${navPlan.bus?.busId ?? "walk"}` : null}
         focusRouteIds={focusRouteIds}
       />
+
+      {debug && (
+        <GpsDebug
+          fix={fix}
+          status={locStatus}
+          app={location.status === "found" ? location.count : 0}
+          map={mapFix?.count ?? 0}
+        />
+      )}
 
       {/* Top bar floats over the map */}
       <header className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-3 p-4 pt-[max(1rem,env(safe-area-inset-top))] md:left-[25rem] md:right-14">
@@ -321,10 +399,10 @@ export default function TransitApp() {
                     searchLabel="Starting from"
                     placeholder="Starting from? Try SAC or Kelly"
                   />
-                  {pickingStart && location.status === "found" && gpsOnCampus && (
+                  {pickingStart && locStatus === "found" && gpsOnCampus && (
                     <button
                       type="button"
-                      onClick={() => setPickingStart(false)}
+                      onClick={startFromMyLocation}
                       className="self-start rounded-full px-3 py-1.5 text-sm font-medium hover:bg-white"
                     >
                       Use my location instead
@@ -332,16 +410,28 @@ export default function TransitApp() {
                   )}
                 </div>
               ) : startPlace ? (
-                <PlaceSearch
-                  places={places}
-                  value={startPlace}
-                  onChoose={(p) => {
-                    setStartPlace(p);
-                    if (!p) setPickingStart(true);
-                  }}
-                  chosenLabel="Starting from"
-                  variant="start"
-                />
+                <div className="flex flex-col gap-1.5">
+                  <PlaceSearch
+                    places={places}
+                    value={startPlace}
+                    onChoose={(p) => {
+                      setStartPlace(p);
+                      if (!p) setPickingStart(true);
+                    }}
+                    chosenLabel="Starting from"
+                    variant="start"
+                  />
+                  {gpsOnCampus && (
+                    <button
+                      type="button"
+                      onClick={startFromMyLocation}
+                      className="flex items-center gap-2 self-start rounded-full px-3 py-1.5 text-sm font-medium hover:bg-white"
+                    >
+                      <span className="size-2.5 rounded-full border-2 border-white bg-navy shadow-[0_0_0_2px_var(--navy)]" aria-hidden="true" />
+                      Use my location instead
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="flex items-center gap-3 rounded-2xl bg-white px-4 py-3">
                   <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-concrete" aria-hidden="true">
@@ -350,7 +440,7 @@ export default function TransitApp() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm text-fur-dark">Starting from</p>
                     <p className="truncate font-semibold">
-                      {location.status === "found" ? "Your location" : "Finding your location"}
+                      {locStatus === "found" ? "Your location" : "Finding your location"}
                     </p>
                   </div>
                   <button
