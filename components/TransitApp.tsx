@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import AskBar from "./AskBar";
+import AskLupus from "./AskLupus";
 import BottomSheet, { type Snap } from "./BottomSheet";
 import ClassesPanel from "./ClassesPanel";
 import CompassHome from "./CompassHome";
@@ -14,14 +14,13 @@ import SettingsPanel from "./SettingsPanel";
 import StopPanel from "./StopPanel";
 import TrainsPanel from "./TrainsPanel";
 import type { TripOverlay } from "@/lib/mapShared";
-import { lngLat, PLACES, type Place } from "@/lib/places";
-import type { AskAction } from "@/lib/ask";
+import { lngLat, placeById, PLACES, type Place } from "@/lib/places";
+import type { AnswerCard } from "@/lib/agent/run";
 import { classStartsAt, NO_CLASSES, nextClass, type ClassEntry } from "@/lib/classes";
-import { meters } from "@/lib/geo";
 import type { RouteOption } from "@/lib/router";
 import { campusClock, formatClock } from "@/lib/time";
 import { DEFAULT_SETTINGS, NO_SAVED, useStored, type SavedPlace, type Settings } from "@/lib/storage";
-import { catchTrainRequest, useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
+import { useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
 import type { BusStop, LngLat } from "@/lib/types";
 import { useHeading } from "@/lib/useHeading";
 import { useBuses, useNetwork } from "@/lib/useLiveData";
@@ -146,23 +145,40 @@ export default function TransitApp() {
     if (req) goTo(req);
   };
 
-  const onAsk = (a: AskAction) => {
-    if (a.type === "place") {
-      const p = PLACES.find(x => x.id === a.placeId);
-      if (p) pickDestination(p);
-    } else if (a.type === "category") {
-      const here = fromCoords ?? lngLat(PLACES.find(p => p.id === "sac")!);
-      const nearest = PLACES.filter(p => p.category === a.category)
-        .sort((x, y) => meters(here, lngLat(x)) - meters(here, lngLat(y)))[0];
-      if (nearest) pickDestination(nearest);
-    } else if (a.type === "train") {
-      goTo(catchTrainRequest(a.train, settings.trainBufferMin));
-    } else if (a.type === "class") {
-      const cls = classes.find(c => c.id === a.classId);
-      const next = cls && nextClass([cls], new Date(), campusClock);
-      if (cls && next) goToClass(cls, classStartsAt(Date.now(), next.inMinutes));
-    }
+  // Ask Lupus answers become ordinary trips, for the compass or the map.
+  const requestFromCard = (card: AnswerCard): TripRequest | null => {
+    const to = placeById(card.toPlaceId);
+    if (!to) return null;
+    const from = card.from.placeId ? placeById(card.from.placeId) : undefined;
+    return {
+      to: { name: to.name, lng: to.lng, lat: to.lat, placeId: to.id },
+      from: from ? { name: from.name, lng: from.lng, lat: from.lat, placeId: from.id } : undefined,
+      arriveBy: card.deadlineMs ?? undefined,
+      context: card.context ?? undefined,
+      purpose: card.context ? `to catch ${card.context}` : undefined,
+    };
   };
+  const agentCurrent = location.coords ? { lng: location.coords[0], lat: location.coords[1], label: "Your location" }
+    : origin.kind === "place" ? { lng: origin.place.lng, lat: origin.place.lat, label: origin.place.name } : null;
+  const askLupus = (
+    <AskLupus current={agentCurrent} accessible={settings.accessible} voice={settings.voice} lang={settings.language}
+      onGuide={card => {
+        const req = requestFromCard(card);
+        if (!req) return;
+        unlockAudio(); // inside the tap, for iOS
+        heading.start();
+        if (!req.from) location.start();
+        setRequest(req);
+        setMode("compass");
+        setGuiding(true);
+      }}
+      onShowMap={card => {
+        const req = requestFromCard(card);
+        if (!req) return;
+        setMode("map");
+        goTo(req);
+      }} />
+  );
 
   const onStopClick = useCallback((s: BusStop) => {
     setStop(s);
@@ -257,7 +273,7 @@ export default function TransitApp() {
   } else {
     body = (
       <>
-        <AskBar classes={classes} onAction={onAsk} />
+        <div className="mb-3">{askLupus}</div>
         <button
           onClick={() => { setView("search-to"); setSnap("full"); }}
           className="mb-3 flex h-12 w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 text-left text-base text-muted"
@@ -335,6 +351,7 @@ export default function TransitApp() {
           onAddSchedule={() => { setMode("map"); setView("home"); setHomeTab("classes"); setSnap("full"); }}
           onPickDestination={() => { setGuiding(false); setMode("map"); setView("search-to"); setSnap("full"); }}
           onSettings={() => { setMode("map"); setView("settings"); setSnap("full"); }}
+          ask={askLupus}
         />
       </main>
     );

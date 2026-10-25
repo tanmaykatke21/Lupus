@@ -25,10 +25,10 @@ export const CATEGORY_ICON: Record<PlaceCategory, string> = {
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\w\s]/g, "").trim();
 
 // Exact alias > prefix > word prefix > substring. Ties keep file order.
-export function searchPlaces(query: string, limit = 8): Place[] {
+export function scorePlaces(query: string, limit = 8): { place: Place; score: number }[] {
   const q = norm(query);
   if (!q) return [];
-  const scored: [number, Place][] = [];
+  const scored: { place: Place; score: number }[] = [];
   for (const p of PLACES) {
     let best = 0;
     for (const name of [p.name, ...p.aliases].map(norm)) {
@@ -39,7 +39,11 @@ export function searchPlaces(query: string, limit = 8): Place[] {
       else if (name.includes(q)) s = 40;
       best = Math.max(best, s);
     }
-    if (best) scored.push([best, p]);
+    if (best) scored.push({ place: p, score: best });
   }
-  return scored.sort((a, b) => b[0] - a[0]).slice(0, limit).map(([, p]) => p);
+  return scored.sort((a, b) => b.score - a.score).slice(0, limit);
+}
+
+export function searchPlaces(query: string, limit = 8): Place[] {
+  return scorePlaces(query, limit).map(x => x.place);
 }

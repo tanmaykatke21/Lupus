@@ -41,8 +41,11 @@ const CHAPIN = pt(32);
 
 describe("plan", () => {
   it("always includes a walk-only option", async () => {
-    const options = await plan({ from: SAC, to: LIRR_STATION, time: at(0) }, deps());
+    const all = await plan({ from: SAC, to: LIRR_STATION, time: at(0) }, deps());
+    const options = all.filter(o => !o.slowerThanWalk);
     expect(options.map(o => o.kind)).toEqual(["walk"]); // first bus is 2+ hours away
+    // …but the "Bus" filter still gets the fastest bus, flagged and ranked after walking.
+    expect(all.at(-1)).toMatchObject({ kind: "bus", slowerThanWalk: true });
     expect(options[0].slackMinutes).toBeNull();
   });
 
@@ -92,7 +95,7 @@ describe("plan", () => {
 
   it("falls back to walking when ETA Spot is down", async () => {
     const options = await plan({ from: SAC, to: CHAPIN, time: at(140) }, deps({ etas: async () => { throw new Error("down"); } }));
-    expect(options.map(o => o.kind)).toEqual(["walk"]);
+    expect(options.map(o => o.kind)).toEqual(["walk"]); // no bus data at all: nothing to flag either
   });
 
   it("prefers historical ride times over the schedule when it can't pair a trip", async () => {

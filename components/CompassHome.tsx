@@ -30,6 +30,7 @@ interface Props {
   onAddSchedule: () => void;
   onPickDestination: () => void;
   onSettings: () => void;
+  ask?: React.ReactNode;
 }
 
 function legSummary(o: RouteOption) {
@@ -128,6 +129,7 @@ export default function CompassHome(p: Props) {
             </div>
           </section>
         )}
+        {p.ask}
         <p className="text-center text-xs text-muted">The compass points along your route, bus included. The map is one tap away.</p>
       </div>
     </div>

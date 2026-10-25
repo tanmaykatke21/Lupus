@@ -30,6 +30,8 @@ export interface Bus {
   inService: boolean;
   load: number | null; // 0..1
   receivedAt: number; // epoch ms
+  /** ETA Spot's predictions for this bus's next stops (live buses only). */
+  upcoming?: { stopId: number; minutes: number }[];
 }
 
 export interface StopEta {

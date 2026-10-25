@@ -48,7 +48,7 @@ export interface RawVehicle {
   vehicleType: string;
   receiveTime: number;
   deadHead: number;
-  // Empty in every sample captured so far (no buses in service); typed loosely until verified.
+  // Same fields as per-stop ETAs (verified in data/samples/etaspot-vehicles-live-1430.json).
   minutesToNextStops: Array<Partial<RawEtaEntry>>;
 }
 
@@ -122,6 +122,9 @@ export function normalizeVehicles(raw: RawVehicle[]): Bus[] {
     inService: v.inService === 1,
     load: v.capacity ? v.load / v.capacity : null,
     receivedAt: v.receiveTime,
+    upcoming: (v.minutesToNextStops ?? [])
+      .filter(e => typeof e.stopID === "number" && typeof e.minutes === "number")
+      .map(e => ({ stopId: e.stopID!, minutes: e.minutes! })),
   }));
 }
 

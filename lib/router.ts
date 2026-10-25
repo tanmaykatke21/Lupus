@@ -74,6 +74,8 @@ export interface RouteOption {
   breakdown: { walk: number; wait: number; ride: number }; // minutes
   estimated: boolean; // departure projected from headway rather than a listed ETA
   reliability?: string | null; // from Tiger Data history, e.g. "Usually 2 min later than shown"
+  /** A bus that loses to walking; only offered for the "Bus" filter, never as a best option. */
+  slowerThanWalk?: boolean;
   legs: Leg[];
 }
 
@@ -297,5 +299,8 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   const rank = (a: RouteOption, b: RouteOption) => compareOptions(a, b, !!arriveBy);
   // Walking is always offered, so buses get the remaining slots.
   const buses = useful.sort(rank).slice(0, MAX_OPTIONS - options.length);
-  return [...options, ...buses].sort(rank);
+  // For the "Bus" filter, also keep the fastest bus that loses to walking, flagged and ranked last.
+  const slower = candidates.filter(c => !useful.includes(c)).sort(rank)[0];
+  const extra = !buses.length && slower ? [{ ...slower, slowerThanWalk: true }] : [];
+  return [...[...options, ...buses].sort(rank), ...extra];
 }
