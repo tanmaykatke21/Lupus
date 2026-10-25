@@ -120,7 +120,7 @@ export default function MapEditor() {
       pin.textContent = p.name;
       pin.style.cssText = `font:600 11px system-ui;padding:2px 6px;border-radius:8px;white-space:nowrap;transform:translateY(-4px);` +
         `background:${sel ? "#ffeb3b" : "#fbf6ea"};color:#1d150b;border:2px solid ${sel ? "#000" : "#a8781f"}`;
-      const mk = new L.marker.AdvancedMarkerElement({ map: m, position: { lat: p.lat, lng: p.lng }, content: pin, gmpDraggable: true, zIndex: 10, title: p.name });
+      const mk = new L.marker.AdvancedMarkerElement({ map: m, position: { lat: p.lat, lng: p.lng }, content: pin, gmpDraggable: true, gmpClickable: true, zIndex: 10, title: p.name });
       mk.addEventListener("gmp-click", () => setSelected({ kind: "place", id: p.id }));
       mk.addListener("dragend", () => {
         const pos = mk.position as google.maps.LatLngLiteral;
