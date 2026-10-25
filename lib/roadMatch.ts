@@ -1,6 +1,7 @@
 // Snaps ETA Spot's coarse route lines onto real roads (OpenStreetMap), so they follow the street
 // instead of cutting chords across loops and intersections. Parts outside the mapped area stay as-is.
 import { meters } from "./geo";
+import { untangle } from "./laneOffset";
 import type { LngLat } from "./types";
 
 export interface RoadGraphFile {
@@ -40,6 +41,9 @@ export function densify(line: LngLat[], step = DENSIFY_M): LngLat[] {
   }
   return out;
 }
+
+/** Self-crossings in ETA Spot's own line shorter than this are glitches, not turnarounds. */
+const GLITCH_LOOP_M = 40;
 
 /** A path that returns to a junction within this distance was a mis-snap, not a real move. */
 const DETOUR_MAX_M = 120;
@@ -184,7 +188,9 @@ export class RoadGraph {
    * street at an intersection, not a real move. Points with no road within 30 m are kept as-is.
    */
   match(line: LngLat[]): LngLat[] {
-    const trace = densify(line);
+    // ETA Spot lines sometimes have tiny glitch loops (a bus pulling in at a stop). Snapped to
+    // one-way streets they'd become a lap around the block, so cut them out first.
+    const trace = untangle(densify(line), GLITCH_LOOP_M);
     const seq: (number | LngLat)[] = []; // road node ids, or raw points off the mapped roads
     const pushNode = (n: number) => { if (seq[seq.length - 1] !== n) seq.push(n); };
     let prev: { s: Seg; pt: LngLat } | null = null;

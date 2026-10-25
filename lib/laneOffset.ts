@@ -2,9 +2,7 @@
 // on zoom so lanes keep a constant spacing on screen.
 import type { LngLat } from "./types";
 
-/** Pixels between adjacent lanes at a zoom level (same curve as the MapLibre line-offset). */
-export function laneSpacingPx(zoom: number) {
-  const stops: [number, number][] = [[12, 3.2], [15, 5.6], [18, 9.5]];
+function interpolate(stops: [number, number][], zoom: number) {
   if (zoom <= stops[0][0]) return stops[0][1];
   for (let i = 1; i < stops.length; i++) {
     const [z0, v0] = stops[i - 1], [z1, v1] = stops[i];
@@ -13,8 +11,12 @@ export function laneSpacingPx(zoom: number) {
   return stops[stops.length - 1][1];
 }
 
-/** Pixels per lane unit: never less than a line width plus a hair, so adjacent lanes never touch. */
-export const laneUnitPx = (zoom: number) => Math.max(5.5, laneSpacingPx(zoom));
+/** Route line width in pixels: thin when zoomed out, so lanes stay tight around small turnarounds. */
+export const LINE_WIDTH_STOPS: [number, number][] = [[14, 2], [16, 3], [18, 4]];
+export const lineWidthPx = (zoom: number) => interpolate(LINE_WIDTH_STOPS, zoom);
+
+/** Pixels per lane unit: a line width plus half a pixel, so adjacent lanes sit close but never overlap. */
+export const laneUnitPx = (zoom: number) => lineWidthPx(zoom) + 0.5;
 
 /** Web Mercator ground resolution (meters per CSS pixel) at a latitude and zoom. */
 export const metersPerPixel = (lat: number, zoom: number) => (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;

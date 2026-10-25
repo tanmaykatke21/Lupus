@@ -9,7 +9,7 @@ export interface LaneRoute { id: number; coords: [number, number][] }
 export interface LaneLine { id: number; coords: [number, number][]; lanes: number[] }
 
 /** Distance (lane units) from the road's center to the nearest lane when both directions are present. */
-export const BASE = 1.5;
+export const BASE = 1;
 const SHARE_M = 18; // closer than this and parallel = the same road
 const PARALLEL = 0.85; // |cos| of the angle between directions
 const STEP_M = 15;

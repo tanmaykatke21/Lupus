@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
-import { drawLane, laneUnitPx, metersPerPixel } from "@/lib/laneOffset";
+import { drawLane, laneUnitPx, LINE_WIDTH_STOPS, metersPerPixel } from "@/lib/laneOffset";
 import { directionalLanes, type LaneLine } from "@/lib/directionalLanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
@@ -18,6 +18,10 @@ const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", fe
 // Routes are drawn in keep-right lanes by direction (lib/directionalLanes.ts). Each route is one
 // continuous line, offset point by point in meters for the current zoom (recomputed when the zoom
 // settles) and untangled where a tight curve would fold it.
+/** Route line width by zoom (same curve as lineWidthPx), plus `extra` pixels for the casing. */
+const widthByZoom = (extra: number) =>
+  ["interpolate", ["linear"], ["zoom"], ...LINE_WIDTH_STOPS.flatMap(([z, w]) => [z, w + extra])] as unknown as number;
+
 function routesData(routes: BusRoute[], lines: LaneLine[], zoom: number): FC {
   const color = new Map(routes.map(r => [r.id, r.color]));
   const m = laneUnitPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
@@ -139,10 +143,10 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
       map.addSource("alts", { type: "geojson", data: altData(overlay) });
       map.addLayer({ id: "routes-casing", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25 } });
+        paint: { "line-color": "#1d150b", "line-width": widthByZoom(1), "line-opacity": 0.25 } });
       map.addLayer({ id: "routes", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8 } });
+        paint: { "line-color": ["get", "color"], "line-width": widthByZoom(0), "line-opacity": overlay ? 0.25 : 0.8 } });
       // Other possible routes, faded, under the chosen one.
       map.addLayer({ id: "alt-bus", type: "line", source: "alts", filter: ["==", ["get", "kind"], "bus"],
         layout: { "line-join": "round", "line-cap": "round" },
