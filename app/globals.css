@@ -216,6 +216,11 @@ button.plate:active { transform: scale(0.985); }
 }
 
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--brass) 60%, transparent); outline-offset: 2px; }
+/* Text fields draw the ring inside their edge, so it never spills into the header above them. */
+input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brass) 70%, transparent);
+  outline-offset: -2px;
+}
 
 /* Without backdrop blur, fall back to near-opaque panels so text stays readable. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

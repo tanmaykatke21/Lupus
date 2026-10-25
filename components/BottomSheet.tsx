@@ -71,7 +71,7 @@ export default function BottomSheet({ snap, onSnapChange, onHeightChange, header
     return (
       <aside className="glass absolute left-4 top-4 bottom-4 z-10 flex w-[400px] flex-col overflow-hidden rounded-[28px]">
         {header}
-        <div className="flex-1 overflow-y-auto px-4 pb-6">{children}</div>
+        <div className="flex-1 overflow-y-auto px-4 pb-6 pt-1">{children}</div>
       </aside>
     );
   }
@@ -96,7 +96,7 @@ export default function BottomSheet({ snap, onSnapChange, onHeightChange, header
         <span className="h-1.5 w-10 rounded-full bg-muted/40" />
       </button>
       {header}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6">{children}</div>
+      <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6 pt-1">{children}</div>
     </section>
   );
 }
