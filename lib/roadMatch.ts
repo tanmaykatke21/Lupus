@@ -41,30 +41,8 @@ export function densify(line: LngLat[], step = DENSIFY_M): LngLat[] {
   return out;
 }
 
-const SPUR_RETURN_M = 6;
-const SPUR_MAX_LEN_M = 100;
-
-/**
- * Removes short detours that come straight back (snapping briefly onto a cross street at a junction):
- * if the line returns within a few meters of a point after a short excursion, cut the excursion.
- * Real loops are longer (the SAC turnaround alone is ~160 m around) and are kept.
- */
-export function removeSpurs(line: LngLat[]): LngLat[] {
-  const out: LngLat[] = [];
-  for (let i = 0; i < line.length; i++) {
-    out.push(line[i]);
-    let walked = 0;
-    for (let j = i + 1; j < line.length; j++) {
-      walked += meters(line[j - 1], line[j]);
-      if (walked > SPUR_MAX_LEN_M) break;
-      if (j - i >= 2 && walked > 3 * SPUR_RETURN_M && meters(line[i], line[j]) < SPUR_RETURN_M) {
-        i = j; // skip the excursion; line[j] is next to line[i] anyway
-        break;
-      }
-    }
-  }
-  return out;
-}
+/** A path that returns to a junction within this distance was a mis-snap, not a real move. */
+const DETOUR_MAX_M = 120;
 
 /** Douglas-Peucker in meters. */
 export function simplify(line: LngLat[], tol: number): LngLat[] {
@@ -134,22 +112,45 @@ class Heap {
   }
 }
 
+/** Long road segments are split into pieces at most this long, so a mis-snap is a short detour. */
+const PIECE_M = 25;
+
 export class RoadGraph {
+  private nodes: LngLat[];
   private segs: Seg[] = [];
   private out = new Map<number, Seg[]>();
   private grid = new Map<string, Seg[]>();
 
-  constructor(private file: RoadGraphFile) {
+  constructor(file: RoadGraphFile) {
+    this.nodes = [...file.nodes];
+    // Both directions of a road share the same intermediate nodes, keyed by the undirected edge.
+    const chains = new Map<string, number[]>();
+    const chain = (a: number, b: number) => {
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      const key = `${lo}-${hi}`;
+      let c = chains.get(key);
+      if (!c) {
+        const [p, q] = [this.nodes[lo], this.nodes[hi]];
+        const n = Math.max(1, Math.ceil(meters(p, q) / PIECE_M));
+        c = [lo];
+        for (let k = 1; k < n; k++) { c.push(this.nodes.length); this.nodes.push([p[0] + ((q[0] - p[0]) * k) / n, p[1] + ((q[1] - p[1]) * k) / n]); }
+        c.push(hi);
+        chains.set(key, c);
+      }
+      return a < b ? c : c.slice().reverse();
+    };
     for (let i = 0; i < file.segs.length; i += 2) {
-      const a = file.segs[i], b = file.segs[i + 1];
-      const s: Seg = { id: this.segs.length, a, b, ax: file.nodes[a], bx: file.nodes[b], len: meters(file.nodes[a], file.nodes[b]) };
-      this.segs.push(s);
-      (this.out.get(a) ?? this.out.set(a, []).get(a)!).push(s);
-      const n = Math.max(1, Math.ceil(s.len / 25));
-      const cells = new Set<string>();
-      for (let k = 0; k <= n; k++) cells.add(this.cell([s.ax[0] + ((s.bx[0] - s.ax[0]) * k) / n, s.ax[1] + ((s.bx[1] - s.ax[1]) * k) / n]));
-      for (const c of cells) (this.grid.get(c) ?? this.grid.set(c, []).get(c)!).push(s);
+      const c = chain(file.segs[i], file.segs[i + 1]);
+      for (let k = 1; k < c.length; k++) this.addSeg(c[k - 1], c[k]);
     }
+  }
+
+  private addSeg(a: number, b: number) {
+    const s: Seg = { id: this.segs.length, a, b, ax: this.nodes[a], bx: this.nodes[b], len: meters(this.nodes[a], this.nodes[b]) };
+    this.segs.push(s);
+    (this.out.get(a) ?? this.out.set(a, []).get(a)!).push(s);
+    const cells = new Set([this.cell(s.ax), this.cell(s.bx), this.cell([(s.ax[0] + s.bx[0]) / 2, (s.ax[1] + s.bx[1]) / 2])]);
+    for (const c of cells) (this.grid.get(c) ?? this.grid.set(c, []).get(c)!).push(s);
   }
 
   private cell(p: LngLat, dx = 0, dy = 0) {
@@ -176,10 +177,16 @@ export class RoadGraph {
     return p;
   }
 
-  /** Snap a route line onto the roads. Points with no road within 30 m are kept as they are. */
+  /**
+   * Snap a route line onto the roads. The result is built from road junctions in order (so routes
+   * sharing a road share exact geometry), with short detours removed: if the path comes back to a
+   * junction it already passed within DETOUR_MAX_M, that excursion was a mis-snap onto a cross
+   * street at an intersection, not a real move. Points with no road within 30 m are kept as-is.
+   */
   match(line: LngLat[]): LngLat[] {
     const trace = densify(line);
-    const out: LngLat[] = [];
+    const seq: (number | LngLat)[] = []; // road node ids, or raw points off the mapped roads
+    const pushNode = (n: number) => { if (seq[seq.length - 1] !== n) seq.push(n); };
     let prev: { s: Seg; pt: LngLat } | null = null;
     for (let i = 0; i < trace.length; i++) {
       const p = trace[i];
@@ -198,22 +205,43 @@ export class RoadGraph {
           if (!best || score < best.score) best = { s, pt: pr.pt, score };
         }
       }
-      if (!best) { out.push(p); prev = null; continue; } // outside the mapped roads
-      if (prev && best.s !== prev.s) {
+      if (!best) { seq.push(p); prev = null; continue; } // outside the mapped roads
+      if (!prev) {
+        pushNode(best.s.a); pushNode(best.s.b);
+      } else if (best.s !== prev.s) {
         const straight = meters(prev.pt, best.pt);
         const route = this.path(prev.s.b, best.s.a, Math.max(straight * 3, straight + 300));
         if (route) {
-          out.push(prev.s.bx);
-          for (const n of route) out.push(this.file.nodes[n]);
+          for (const n of route) pushNode(n);
+          pushNode(best.s.b);
         } else if (straight > 20) {
           continue; // no road connects them: drop the point rather than cut across
+        } else {
+          pushNode(best.s.a); pushNode(best.s.b);
         }
       }
-      out.push(best.pt);
       prev = best;
     }
-    const clean = out.filter((p, i) => i === 0 || meters(p, out[i - 1]) > 0.5);
-    let result = roundCorners(simplify(removeSpurs(clean), 1.5));
+
+    // Remove short cycles (detours) in the junction sequence.
+    const at = (it: number | LngLat) => (typeof it === "number" ? this.nodes[it] : it);
+    const kept: (number | LngLat)[] = [];
+    const walked: number[] = [];
+    const lastAt = new Map<number, number>();
+    for (const it of seq) {
+      const here = kept.length ? walked[walked.length - 1] + meters(at(kept[kept.length - 1]), at(it)) : 0;
+      const j = typeof it === "number" ? lastAt.get(it) : undefined;
+      if (j !== undefined && here - walked[j] < DETOUR_MAX_M) {
+        for (const gone of kept.splice(j + 1)) if (typeof gone === "number") lastAt.delete(gone);
+        walked.splice(j + 1);
+        continue;
+      }
+      kept.push(it);
+      walked.push(here);
+      if (typeof it === "number") lastAt.set(it, kept.length - 1);
+    }
+
+    let result = roundCorners(simplify(kept.map(at), 1.5));
     // Loops: ETA Spot lines start and end at the first stop; join the ends exactly.
     if (result.length > 2 && meters(result[0], result[result.length - 1]) < 30) result = [...result.slice(0, -1), result[0]];
     return result.map(([x, y]) => [Math.round(x * 1e6) / 1e6, Math.round(y * 1e6) / 1e6] as LngLat);

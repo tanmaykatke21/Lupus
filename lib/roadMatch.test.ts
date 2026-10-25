@@ -27,15 +27,25 @@ describe("RoadGraph.match", () => {
   });
 });
 
-describe("removeSpurs", () => {
-  it("cuts a short out-and-back detour but keeps a real loop", async () => {
-    const { removeSpurs } = await import("./roadMatch");
-    const step = (lng: number, lat: number): LngLat => [-73.13 + lng * 1e-4, 40.91 + lat * 1e-4];
-    // East along a road, a 30 m jog north up a side street and back, then onward east.
-    const spur = [step(0, 0), step(1, 0), step(1, 1.4), step(1, 2.7), step(1, 1.4), step(1.02, 0), step(2, 0)];
-    expect(removeSpurs(spur).some(p => p[1] > 40.91 + 1e-4)).toBe(false);
-    // A ~170 m loop that returns to its start is kept.
-    const loop = [step(0, 0), step(4, 0), step(4, 4), step(0, 4), step(0, 0.2)];
-    expect(removeSpurs(loop)).toHaveLength(loop.length);
+
+describe("detour removal", () => {
+  // A crossroads: west-east street and a north-south street meeting at node 1.
+  const cross: RoadGraphFile = {
+    source: "test", bbox: "",
+    nodes: [[-73.13, 40.91], [-73.128, 40.91], [-73.126, 40.91], [-73.128, 40.9115], [-73.128, 40.9085]],
+    segs: [0, 1, 1, 0, 1, 2, 2, 1, 1, 3, 3, 1, 1, 4, 4, 1],
+  };
+
+  it("drops a brief excursion onto the cross street at an intersection", () => {
+    // Straight through the junction, with a few points that wander north toward the cross street.
+    const wobbly: LngLat[] = [[-73.1299, 40.91], [-73.1281, 40.91005], [-73.12805, 40.9102], [-73.1279, 40.91002], [-73.1261, 40.91]];
+    const snapped = new RoadGraph(cross).match(wobbly);
+    expect(Math.max(...snapped.map(p => p[1]))).toBeLessThan(40.91 + 2e-5); // never goes up the side street
+  });
+
+  it("keeps a real turn onto the cross street", () => {
+    const turn: LngLat[] = [[-73.1299, 40.91], [-73.1281, 40.91], [-73.128, 40.9108], [-73.128, 40.9114]];
+    const snapped = new RoadGraph(cross).match(turn);
+    expect(snapped.at(-1)![1]).toBeGreaterThan(40.911);
   });
 });

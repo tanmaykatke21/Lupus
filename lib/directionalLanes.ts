@@ -14,8 +14,8 @@ const SHARE_M = 18; // closer than this and parallel = the same road
 const PARALLEL = 0.85; // |cos| of the angle between directions
 const STEP_M = 15;
 const CELL_M = 40;
-const MIN_RUN = 3; // ignore lane flickers shorter than this many steps
-const EASE = 2; // ease lane changes over ±2 steps (~60 m)
+const MIN_RUN = 5; // ignore lane flickers shorter than this many steps (~75 m)
+const EASE = 4; // ease lane changes over ±4 steps (~120 m), so turns never jog
 
 interface Step { r: number; i: number; ax: number; ay: number; bx: number; by: number; mx: number; my: number; dx: number; dy: number }
 
