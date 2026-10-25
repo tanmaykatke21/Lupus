@@ -19,7 +19,7 @@
 
 <p>
   <a href="https://loopus.us"><b>Open the app</b></a> ·
-  <a href="#-mlh-tracks">MLH tracks</a> ·
+  <a href="#-tracks">Tracks</a> ·
   <a href="#-features">Features</a> ·
   <a href="#-how-it-works">How it works</a> ·
   <a href="#-run-it-locally">Run it locally</a>
@@ -39,7 +39,16 @@ route, and tells you exactly when to leave, in your language, out loud.
 **The name:** *lupus* is Latin for wolf, for the Stony Brook Seawolves. **The domain:** our buses run in
 loops around campus, so the app lives at **[loopus.us](https://loopus.us)**.
 
-## 🏆 MLH tracks
+## 🏆 Tracks
+
+### Core tracks
+
+| Track | Why Lupus fits |
+| --- | --- |
+| 🥇 **Best Overall** | **A real problem every Stony Brook student has, solved end to end and live today at [loopus.us](https://loopus.us).** Instead of tapping stops on a dot map and guessing, you get one answer: when to leave. Behind it: a walk + bus router over live ETA Spot buses, MTA LIRR realtime and a walking graph from OpenStreetMap plus hand-mapped building shortcuts; four sponsor technologies each doing real work (voice, AI, data history, domain); a recorded bus history that measures ETA Spot's error; and a fallback for every service so the demo never breaks. 80 automated tests run against real saved bus data. |
+| 🎨 **Best UI/UX** | **Designed around a decision, not a map.** The home screen starts from your schedule and a compass that points the way, with the map one tap away. A gauge says stroll, walk or run; a whistle and a spoken alert tell you when to go. Apple-style glass panels keep the map visible, directions are spoken in 7 languages, accessible routes avoid stairs, starred places become one-tap trips, and Ask Lupus answers plain questions ("lab in Life Sciences at 2, will I make it?") by typing or voice. |
+
+### MLH tracks
 
 | Track | What we built with it | Where it lives |
 | --- | --- | --- |
