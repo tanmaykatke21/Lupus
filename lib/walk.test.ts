@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getWalkGraph } from "./walkGraph";
 import { WalkGraph, isShortcutOpen, type Shortcut, type WalkGraphFile } from "./walk";
+import type { LngLat } from "./types";
 
 // A square: 0-1-2 along the bottom, 0-3-2 over the top with stairs on 3-2.
 // Long way round is 474 m; the shortcut cuts straight across.
@@ -71,3 +72,30 @@ describe("campus graph", () => {
     expect(r.meters).toBeLessThan(1600);
   });
 });
+
+describe("hand-drawn paths", () => {
+  // Two separate streets 300 m apart with no link; a drawn path joins them.
+  const islands: WalkGraphFile = {
+    source: "test", builtAt: "", bbox: "",
+    nodes: [[-73.13, 40.91], [-73.13, 40.912], [-73.1264, 40.91], [-73.1264, 40.912]],
+    edges: [[0, 1, 222, 0, []], [2, 3, 222, 0, []]],
+  };
+  const from: LngLat = [-73.13, 40.911], to: LngLat = [-73.1264, 40.911];
+
+  it("connects parts of the network that weren't connected", () => {
+    expect(new WalkGraph(islands).route(from, to)).toBeNull();
+    // Drawn a little short of both streets (within the 30 m connector).
+    const bridge = { id: "p1", coords: [[-73.12985, 40.911], [-73.1282, 40.911], [-73.12655, 40.911]] as LngLat[], stairs: false };
+    const r = new WalkGraph(islands, [], [bridge]).route(from, to)!;
+    expect(r).not.toBeNull();
+    expect(r.meters).toBeLessThan(500); // straight across instead of not at all
+  });
+
+  it("marks drawn stairs so accessible mode avoids them", () => {
+    const steps = { id: "p2", coords: [[-73.13, 40.911], [-73.1264, 40.911]] as LngLat[], stairs: true };
+    const g = new WalkGraph(islands, [], [steps]);
+    expect(g.route(from, to)!.stairs).toBe(true);
+    expect(g.route(from, to, { accessible: true })).toBeNull();
+  });
+});
+

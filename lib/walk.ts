@@ -32,6 +32,19 @@ export interface Shortcut {
   hours: Partial<Record<DayKey, [string, string] | null>>; // "24:00" = midnight
 }
 
+/** A footpath drawn by hand in the /editor (data/custom-paths.json). */
+export interface CustomPath {
+  id: string;
+  name?: string;
+  coords: LngLat[];
+  stairs: boolean;
+}
+
+// Hand-drawn vertices this close to an existing junction become that junction…
+const JOIN_M = 12;
+// …and loose path ends this close to the network get a short connector to it.
+const LINK_M = 30;
+
 export interface WalkOptions {
   accessible?: boolean;
   at?: Date;
@@ -99,8 +112,8 @@ export class WalkGraph {
   private adj: Arc[][];
   private grid = new Map<string, number[]>();
 
-  constructor(file: WalkGraphFile, readonly shortcuts: Shortcut[] = []) {
-    this.nodes = file.nodes;
+  constructor(file: WalkGraphFile, readonly shortcuts: Shortcut[] = [], customPaths: CustomPath[] = []) {
+    this.nodes = [...file.nodes];
     this.adj = file.nodes.map(() => []);
     for (const [a, b, len, flags, flat] of file.edges) {
       const geom: LngLat[] = [];
@@ -114,7 +127,54 @@ export class WalkGraph {
       const list = this.grid.get(k);
       if (list) list.push(i); else this.grid.set(k, [i]);
     });
+    // Hand-drawn paths first, so shortcuts can attach to them too.
+    for (const p of customPaths) this.addCustomPath(p);
     for (const sc of shortcuts) this.addShortcut(sc);
+  }
+
+  private addNode(p: LngLat) {
+    const i = this.nodes.length;
+    this.nodes.push(p);
+    this.adj.push([]);
+    const k = this.cellKey(p);
+    const list = this.grid.get(k);
+    if (list) list.push(i); else this.grid.set(k, [i]);
+    return i;
+  }
+
+  private link(a: number, b: number, stairs: boolean) {
+    if (a === b) return;
+    const len = meters(this.nodes[a], this.nodes[b]);
+    this.adj[a].push({ to: b, len, stairs, geom: [] });
+    this.adj[b].push({ to: a, len, stairs, geom: [] });
+  }
+
+  private addCustomPath(path: CustomPath) {
+    if (path.coords.length < 2) return;
+    const ids = path.coords.map(c => {
+      const near = this.nearestNode(c);
+      return near && near.meters <= JOIN_M ? near.node : this.addNode(c);
+    });
+    for (let i = 1; i < ids.length; i++) this.link(ids[i - 1], ids[i], path.stairs);
+    // Join loose ends to the network if they were drawn slightly short of it.
+    for (const end of [0, ids.length - 1]) {
+      const node = ids[end];
+      if (this.adj[node].length > 1) continue; // already connected beyond this path
+      const near = this.nearestOther(path.coords[end], new Set(ids));
+      if (near && near.meters <= LINK_M) this.link(node, near.node, false);
+    }
+  }
+
+  private nearestOther(p: LngLat, exclude: Set<number>) {
+    let best = -1, bestD = Infinity;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      for (const i of this.grid.get(this.cellKey(p, dx, dy)) ?? []) {
+        if (exclude.has(i)) continue;
+        const d = meters(p, this.nodes[i]);
+        if (d < bestD) { bestD = d; best = i; }
+      }
+    }
+    return best === -1 ? null : { node: best, meters: bestD };
   }
 
   private cellKey([lng, lat]: LngLat, dx = 0, dy = 0) {

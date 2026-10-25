@@ -1,0 +1,4 @@
+{
+ "_readme": "Footpaths drawn by hand in /editor (npm run dev, then open /editor). Coordinates are [lng, lat]. stairs=true paths are skipped in accessible mode.",
+ "paths": []
+}

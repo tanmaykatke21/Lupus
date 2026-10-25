@@ -109,6 +109,20 @@ limit it turns read-only: the app keeps working, new rows just stop being record
 - **Caching**: API responses carry `Cache-Control` (`s-maxage` 10 s for buses, 30 s for LIRR, a year for
   voice clips), upstream calls are shared with `use cache`, and there is a per-IP rate limit.
 
+## Mapping campus by hand (`/editor`)
+
+Run `npm run dev` and open http://localhost:3000/editor (needs the Google Maps key; it uses satellite view).
+
+- **Place**: tap the spot (its main entrance is best), name it, pick a category, add nicknames. Drag any
+  existing label to fix its position.
+- **Path**: tap along a walkway point by point (footpaths OSM missed, cut-throughs between lots). Ends
+  that land within 30 m of the existing network (blue) are joined to it; tick "Has stairs" so accessible
+  routing avoids it.
+- **Shortcut**: tap a building's entrance, any turns inside, then the exit; set weekday / Saturday / Sunday
+  hours (or closed) and whether it's step-free. Closed shortcuts are skipped automatically.
+- **Save** writes `data/places.json`, `data/custom-paths.json` and `data/shortcuts.json`; restart or reload
+  and routing uses them. Commit those files to share them. Saving is refused on deployed builds.
+
 ## Data you should check
 
 - `data/shortcuts.json`: three entries marked `placeholder: true`. Replace entry/exit points and hours.
