@@ -3,7 +3,7 @@
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chainLanes } from "@/lib/laneJoin";
-import { laneSpacingPx, laneWidthPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
+import { closeGaps, laneSpacingPx, laneWidthPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FADED, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, rideEnds, routeFocusKey, routeLanes, setBusHeading, type MapProps } from "@/lib/mapShared";
 import type { LngLat } from "@/lib/types";
@@ -127,8 +127,10 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
       const zoom = map.getZoom() ?? 15;
       const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
       const strokeWeight = laneWidthPx(zoom);
-      chains.forEach((c, i) => {
-        routeLines.current[i]?.setPath(offsetLine(c.coords, c.lanes.map(l => l * m)).map(toLatLng));
+      // Loose ends reach up to two lanes (plus a little) to the rest of their route.
+      const paths = closeGaps(chains.map(c => ({ id: c.id, path: offsetLine(c.coords, c.lanes.map(l => l * m)) })), 2 * m + 5);
+      paths.forEach((path, i) => {
+        routeLines.current[i]?.setPath(path.map(toLatLng));
         routeLines.current[i]?.setOptions({ strokeWeight });
       });
     };
