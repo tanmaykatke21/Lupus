@@ -60,7 +60,7 @@ export default function ResultsPanel(p: Props) {
             </p>
           )}
         </div>
-        <button onClick={p.onClose} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">Close</button>
+        <button onClick={p.onClose} className="h-11 rounded-full btn-glass px-4 text-sm font-medium">Close</button>
       </div>
 
       {p.request.to.placeId && placeById(p.request.to.placeId)?.service && !options.some(o => o.kind === "bus") && p.result && (
@@ -112,16 +112,16 @@ export default function ResultsPanel(p: Props) {
       {selected && (
         <section className="mt-4" aria-labelledby="steps-title">
           <div className="mb-2 flex items-center justify-between gap-2">
-            <h3 id="steps-title" className="font-display text-sm font-bold uppercase tracking-widest text-muted">Steps</h3>
+            <h3 id="steps-title" className="font-display text-sm font-bold uppercase tracking-wide text-muted">Steps</h3>
             {p.onStart && (
-              <button onClick={() => p.onStart!(selected)} className="btn-brass h-11 rounded-xl px-4 text-sm font-bold">
+              <button onClick={() => p.onStart!(selected)} className="btn-brass h-11 rounded-full px-4 text-sm font-bold">
                 ▶ Start navigation
               </button>
             )}
           </div>
           <ol className="space-y-2">
             {stepsFor(selected, p.request.to.name).map((s, i) => (
-              <li key={i} className={`flex gap-3 rounded-xl border border-line bg-surface px-3 py-2 ${s.icon === "shortcut" ? "ml-6" : ""}`}>
+              <li key={i} className={`flex gap-3 card rounded-2xl px-3 py-2 ${s.icon === "shortcut" ? "ml-6" : ""}`}>
                 <span aria-hidden className="text-lg">{STEP_ICON[s.icon]}</span>
                 <span>
                   <span className="block">{s.text}</span>
@@ -141,11 +141,11 @@ export default function ResultsPanel(p: Props) {
             <div className="flex flex-wrap gap-2" role="group" aria-label="Save as">
               {SAVED_LABELS.map(l => (
                 <button key={l} onClick={() => { p.onSave(l); setLabeling(false); }}
-                  className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm">{l}</button>
+                  className="min-h-11 rounded-full card px-3 text-sm">{l}</button>
               ))}
             </div>
           ) : (
-            <button onClick={() => setLabeling(true)} className="min-h-11 rounded-full border border-line px-4 text-sm font-medium">☆ Save this place</button>
+            <button onClick={() => setLabeling(true)} className="min-h-11 rounded-full btn-glass px-4 text-sm font-medium">☆ Save this place</button>
           )}
         </div>
       )}

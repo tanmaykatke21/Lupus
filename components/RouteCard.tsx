@@ -28,7 +28,7 @@ export default function RouteCard({ option, now, selected, fastest, onSelect }: 
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`plate rivets w-full rounded-2xl p-3 pl-4 text-left transition ${selected ? "ring-2 ring-brass" : ""}`}
+      className={`plate w-full rounded-2xl p-3 pl-4 text-left transition ${selected ? "ring-2 ring-brass" : ""}`}
     >
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">

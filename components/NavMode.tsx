@@ -83,11 +83,11 @@ export default function NavMode({ option, destination, lang, voice, now, locatio
   return (
     <div className="flex flex-col gap-3" aria-live="polite">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold uppercase tracking-widest text-muted">Step {index + 1} of {steps.length}</p>
-        <button onClick={onExit} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">End</button>
+        <p className="text-sm font-semibold uppercase tracking-wide text-muted">Step {index + 1} of {steps.length}</p>
+        <button onClick={onExit} className="h-11 rounded-full btn-glass px-4 text-sm font-medium">End</button>
       </div>
 
-      <div className="plate rivets rounded-2xl p-4">
+      <div className="plate rounded-2xl p-4">
         <div className="mb-2 text-4xl" aria-hidden>{ICON[step.icon]}</div>
         <p className="text-2xl font-bold leading-snug">{lineFor(index)}</p>
         {lines?.translated && lang !== "en" && <p className="mt-1 text-sm text-muted">{step.text}</p>}
@@ -101,14 +101,14 @@ export default function NavMode({ option, destination, lang, voice, now, locatio
 
       <div className="grid grid-cols-4 gap-2">
         <button onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0}
-          className="h-12 rounded-xl border border-line text-sm font-medium disabled:opacity-40" aria-label="Previous step">◀</button>
-        <button onClick={repeat} className="h-12 rounded-xl border border-line text-sm font-medium" aria-label="Repeat step">🔁</button>
+          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40" aria-label="Previous step">◀</button>
+        <button onClick={repeat} className="h-12 rounded-full btn-glass text-sm font-medium" aria-label="Repeat step">🔁</button>
         <button onClick={() => { setMuted(m => !m); stopSpeaking(); }} aria-pressed={muted}
-          className="h-12 rounded-xl border border-line text-sm font-medium" aria-label={muted ? "Unmute voice" : "Mute voice"}>
+          className="h-12 rounded-full btn-glass text-sm font-medium" aria-label={muted ? "Unmute voice" : "Mute voice"}>
           {muted ? "🔇" : "🔊"}
         </button>
         <button onClick={() => setIndex(i => Math.min(steps.length - 1, i + 1))} disabled={index === steps.length - 1}
-          className="btn-brass h-12 rounded-xl text-sm font-bold disabled:opacity-40" aria-label="Next step">▶</button>
+          className="btn-brass h-12 rounded-full text-sm font-bold disabled:opacity-40" aria-label="Next step">▶</button>
       </div>
 
       <ol className="space-y-1 text-sm">

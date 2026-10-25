@@ -32,10 +32,10 @@ export default function StopPanel({ stop, routes, onClose }: Props) {
     <div>
       <div className="mb-3 flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted">Bus stop</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted">Bus stop</p>
           <h2 className="font-display text-lg font-bold">{stop.name}</h2>
         </div>
-        <button onClick={onClose} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">
+        <button onClick={onClose} className="h-11 rounded-full btn-glass px-4 text-sm font-medium">
           Close
         </button>
       </div>
@@ -48,8 +48,8 @@ export default function StopPanel({ stop, routes, onClose }: Props) {
         {etas?.map(e => {
           const route = routes.find(r => r.id === e.routeId);
           return (
-            <li key={`${e.routeId}-${e.tripKey}`} className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2">
-              <span className="h-3 w-3 rounded-full" style={{ background: route?.color ?? "#a8781f" }} aria-hidden />
+            <li key={`${e.routeId}-${e.tripKey}`} className="flex min-h-11 items-center gap-3 card rounded-2xl px-3 py-2">
+              <span className="h-3 w-3 rounded-full" style={{ background: route?.color ?? "var(--brass)" }} aria-hidden />
               <span className="flex-1">
                 <span className="font-medium">{route?.name ?? `Route ${e.routeId}`}</span>
                 <span className="block text-xs text-muted">

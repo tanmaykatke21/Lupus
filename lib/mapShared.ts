@@ -93,9 +93,9 @@ export function busElement(color: string, abbr: string) {
   el.innerHTML = `
     <svg viewBox="0 0 34 34" width="34" height="34" aria-hidden="true">
       <g class="heading">
-        <path d="M17 1 L23 9 L11 9 Z" fill="${color}" stroke="#1d150b" stroke-width="1"/>
+        <path d="M17 1 L23 9 L11 9 Z" fill="${color}" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
       </g>
-      <circle cx="17" cy="18" r="11" fill="${color}" stroke="#f0c46a" stroke-width="2.5"/>
+      <circle cx="17" cy="18" r="11" fill="${color}" stroke="#ffffff" stroke-width="2.5"/>
       <text x="17" y="21.5" text-anchor="middle" font-size="9" font-weight="700" fill="#fff" font-family="system-ui">${abbr.slice(0, 3)}</text>
     </svg>`;
   return el;

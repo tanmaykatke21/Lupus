@@ -137,25 +137,25 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
       // Walks of the other possible trips, faded, under the chosen one.
       map.addLayer({ id: "alt-walk", type: "line", source: "alts", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 3, "line-opacity": 0.45, "line-dasharray": [0.5, 2] } });
+        paint: { "line-color": prefersDark() ? "#0a84ff" : "#007aff", "line-width": 3, "line-opacity": 0.45, "line-dasharray": [0.5, 2] } });
       map.addLayer({ id: "trip-walk", type: "line", source: "trip", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 4, "line-dasharray": [0.6, 1.6] } });
+        paint: { "line-color": prefersDark() ? "#0a84ff" : "#007aff", "line-width": 4, "line-dasharray": [0.6, 1.6] } });
       map.addLayer({ id: "stops", type: "circle", source: "stops",
         paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2.5, 17, 6],
-          "circle-color": "#fbf6ea", "circle-stroke-color": "#a8781f", "circle-stroke-width": 2 } });
+          "circle-color": "#ffffff", "circle-stroke-color": "#8e8e93", "circle-stroke-width": 1.5 } });
       map.addLayer({ id: "stop-labels", type: "symbol", source: "stops", minzoom: 16,
         layout: { "text-field": ["get", "name"], "text-size": 11, "text-offset": [0, 1.2], "text-anchor": "top",
           "text-font": ["Noto Sans Regular"] },
-        paint: { "text-color": prefersDark() ? "#f1e6d0" : "#2a2118",
-          "text-halo-color": prefersDark() ? "#14110e" : "#fbf6ea", "text-halo-width": 1.5 } });
+        paint: { "text-color": prefersDark() ? "#f5f5f7" : "#1d1d1f",
+          "text-halo-color": prefersDark() ? "#000000" : "#ffffff", "text-halo-width": 1.5 } });
       // Where the bus is boarded and left.
       map.addLayer({ id: "trip-stops", type: "circle", source: "trip", filter: ["in", ["get", "kind"], ["literal", ["board", "alight"]]],
         paint: { "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": "#fff",
           "circle-color": ["match", ["get", "kind"], "board", "#262840", "#E8264F"] } });
       map.addLayer({ id: "trip-ends", type: "circle", source: "trip", filter: ["in", ["get", "kind"], ["literal", ["from", "to"]]],
         paint: { "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": "#fff",
-          "circle-color": ["match", ["get", "kind"], "from", "#3a3631", "#c8283e"] } });
+          "circle-color": ["match", ["get", "kind"], "from", "#007aff", "#ff3b30"] } });
     }
   }, [styleReady]);
 
@@ -228,7 +228,7 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
       seen.add(bus.id);
       let marker = markers.current.get(bus.id);
       if (!marker) {
-        const el = busElement(route?.color ?? "#a8781f", route?.abbr ?? "Bus");
+        const el = busElement(route?.color ?? "#007aff", route?.abbr ?? "Bus");
         el.setAttribute("aria-label", `${route?.name ?? "Bus"} bus ${bus.id}`);
         marker = new lib.Marker({ element: el }).setLngLat([bus.lng, bus.lat]).addTo(map);
         markers.current.set(bus.id, marker);

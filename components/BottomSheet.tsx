@@ -69,7 +69,7 @@ export default function BottomSheet({ snap, onSnapChange, onHeightChange, header
 
   if (desktop) {
     return (
-      <aside className="plate absolute left-4 top-4 bottom-4 z-10 flex w-[400px] flex-col overflow-hidden rounded-2xl shadow-2xl">
+      <aside className="glass absolute left-4 top-4 bottom-4 z-10 flex w-[400px] flex-col overflow-hidden rounded-[28px]">
         {header}
         <div className="flex-1 overflow-y-auto px-4 pb-6">{children}</div>
       </aside>
@@ -79,7 +79,7 @@ export default function BottomSheet({ snap, onSnapChange, onHeightChange, header
   return (
     <section
       aria-label="Trip planner"
-      className="plate absolute inset-x-0 bottom-0 z-10 flex flex-col rounded-t-3xl shadow-[0_-8px_30px_rgba(0,0,0,0.25)]"
+      className="glass absolute inset-x-2 bottom-2 z-10 flex flex-col overflow-hidden rounded-[28px]"
       style={{ height, transition: drag === null ? "height 260ms cubic-bezier(.2,.8,.2,1)" : "none",
         paddingBottom: "env(safe-area-inset-bottom)" }}
     >
@@ -93,7 +93,7 @@ export default function BottomSheet({ snap, onSnapChange, onHeightChange, header
         onPointerCancel={onPointerUp}
         onKeyDown={onKey}
       >
-        <span className="h-1.5 w-12 rounded-full bg-brass/60" />
+        <span className="h-1.5 w-10 rounded-full bg-muted/40" />
       </button>
       {header}
       <div className="flex-1 overflow-y-auto overscroll-contain px-4 pb-6">{children}</div>

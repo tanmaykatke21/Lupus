@@ -79,16 +79,13 @@ function Dial({ needle, heading, mode }: { needle: number | null; heading: numbe
           <stop offset="1" stopColor="var(--surface-2)" />
         </radialGradient>
         <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f0c46a" />
-          <stop offset=".5" stopColor="#a8781f" />
-          <stop offset="1" stopColor="#5c4310" />
+          <stop offset="0" stopColor="var(--rim-hi)" />
+          <stop offset="1" stopColor="var(--rim-lo)" />
         </linearGradient>
       </defs>
       <circle r="146" fill="url(#rim)" />
-      <circle r="132" fill="url(#face)" stroke="#5c4310" strokeWidth="1.5" />
-      {[0, 90, 180, 270].map(a => (
-        <circle key={a} r="3" fill="#5c4310" transform={`rotate(${a + 45}) translate(0 -139)`} />
-      ))}
+      <circle r="132" fill="var(--bg)" />
+      <circle r="132" fill="url(#face)" stroke="var(--line)" strokeWidth="1" />
       <g style={{ transform: `rotate(${card}deg)`, transition: "transform 250ms linear" }}>
         {ticks.map(t => (
           <line key={t} y1={-128} y2={t % 30 === 0 ? -114 : -121} stroke="var(--muted)" strokeWidth={t % 90 === 0 ? 3 : 1.2} transform={`rotate(${t})`} />
@@ -100,11 +97,11 @@ function Dial({ needle, heading, mode }: { needle: number | null; heading: numbe
       </g>
       {needle !== null && (
         <g style={{ transform: `rotate(${shown}deg)`, transition: "transform 400ms cubic-bezier(.3,1.4,.5,1)" }}>
-          <path d="M0 -112 L20 -10 L0 -24 L-20 -10 Z" fill={mode === "ride" ? "var(--copper)" : "var(--signal)"} stroke="#1d150b" strokeWidth="2" />
+          <path d="M0 -112 L20 -10 L0 -24 L-20 -10 Z" fill={mode === "ride" ? "var(--copper)" : "var(--signal)"} stroke="rgb(0 0 0 / 0.25)" strokeWidth="1.5" strokeLinejoin="round" />
           <path d="M0 -24 L20 -10 L0 60 L-20 -10 Z" fill="var(--iron)" opacity=".85" />
         </g>
       )}
-      <circle r="12" fill="url(#rim)" stroke="#5c4310" />
+      <circle r="12" fill="url(#rim)" stroke="var(--line)" />
     </svg>
   );
 }
@@ -164,8 +161,8 @@ export default function CompassView({ option, destination, location, heading, he
 
       {distanceLabel && <p className="-mt-2 font-display text-2xl font-bold tabular-nums">{distanceLabel}</p>}
 
-      <section className="plate rivets w-full max-w-md rounded-2xl p-4 text-center">
-        <p className="text-xs font-bold uppercase tracking-widest text-muted">Step {i + 1} of {phases.length}</p>
+      <section className="plate w-full max-w-md rounded-2xl p-4 text-center">
+        <p className="text-xs font-bold uppercase tracking-wide text-muted">Step {i + 1} of {phases.length}</p>
         <h2 className="mt-1 text-2xl font-bold leading-snug">{text.title}</h2>
         <p className="mt-1 text-muted">{text.detail}</p>
         {(phase.kind === "wait" || phase.kind === "ride") && (
@@ -191,16 +188,16 @@ export default function CompassView({ option, destination, location, heading, he
 
       <div className="mt-auto grid w-full max-w-md grid-cols-3 gap-2">
         <button onClick={() => setIndex(Math.max(0, i - 1))} disabled={i === 0}
-          className="h-12 rounded-xl border border-line text-sm font-medium disabled:opacity-40">◀ Back</button>
+          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">◀ Back</button>
         {phase.kind === "wait" ? (
-          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-xl text-sm font-bold">I&apos;m on 🚌</button>
+          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-full text-sm font-bold">I&apos;m on 🚌</button>
         ) : phase.kind === "ride" ? (
-          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-xl text-sm font-bold">I&apos;m off</button>
+          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-full text-sm font-bold">I&apos;m off</button>
         ) : (
           <button onClick={() => setIndex(Math.min(phases.length - 1, i + 1))} disabled={phase.kind === "arrive"}
-            className="h-12 rounded-xl border border-line text-sm font-medium disabled:opacity-40">Next ▶</button>
+            className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">Next ▶</button>
         )}
-        <button onClick={onEnd} className="h-12 rounded-xl border border-line text-sm font-medium">End</button>
+        <button onClick={onEnd} className="h-12 rounded-full btn-glass text-sm font-medium">End</button>
       </div>
     </div>
   );

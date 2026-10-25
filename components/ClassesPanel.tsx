@@ -23,18 +23,18 @@ const blank = (): ClassEntry => ({ id: `c${Date.now().toString(36)}`, course: ""
 
 function ClassEditor({ value, onChange, onRemove }: { value: ClassEntry; onChange: (c: ClassEntry) => void; onRemove: () => void }) {
   return (
-    <fieldset className="space-y-2 rounded-xl border border-line bg-surface p-3">
+    <fieldset className="space-y-2 card rounded-2xl p-3">
       <legend className="sr-only">{value.course || "New class"}</legend>
       <div className="flex gap-2">
         <label className="flex-1">
           <span className="sr-only">Course</span>
           <input value={value.course} onChange={e => onChange({ ...value, course: e.target.value })} placeholder="CSE 214"
-            className="h-11 w-full rounded-lg border border-line bg-surface-2 px-3" />
+            className="h-11 w-full rounded-lg bg-surface-2 px-3" />
         </label>
         <label>
           <span className="sr-only">Start time</span>
           <input type="time" value={value.start} onChange={e => onChange({ ...value, start: e.target.value })}
-            className="h-11 rounded-lg border border-line bg-surface-2 px-2" />
+            className="h-11 rounded-lg bg-surface-2 px-2" />
         </label>
       </div>
       <div className="flex flex-wrap gap-1" role="group" aria-label="Days">
@@ -105,8 +105,8 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
         ))}
         <div className="flex gap-2">
           <button disabled={!ok} onClick={() => { onChange([...classes, ...review]); setReview(null); setStatus("Saved."); }}
-            className="btn-brass h-12 flex-1 rounded-xl font-bold disabled:opacity-50">Save {review.length} classes</button>
-          <button onClick={() => { setReview(null); setStatus(null); }} className="h-12 rounded-xl border border-line px-4">Cancel</button>
+            className="btn-brass h-12 flex-1 rounded-full font-bold disabled:opacity-50">Save {review.length} classes</button>
+          <button onClick={() => { setReview(null); setStatus(null); }} className="h-12 rounded-full btn-glass px-4">Cancel</button>
         </div>
         {!ok && <p className="text-xs text-danger">Every class needs a course, at least one day and a building.</p>}
       </div>
@@ -117,16 +117,16 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
     <div className="space-y-3">
       {next ? (
         <button onClick={() => onGo(next.cls, classStartsAt(now, next.inMinutes))}
-          className="plate rivets flex w-full items-center gap-3 rounded-2xl p-4 text-left">
+          className="plate flex w-full items-center gap-3 rounded-2xl p-4 text-left">
           <span className="text-3xl" aria-hidden>🎓</span>
           <span className="flex-1">
-            <span className="block text-xs font-bold uppercase tracking-widest text-muted">Next class</span>
+            <span className="block text-xs font-bold uppercase tracking-wide text-muted">Next class</span>
             <span className="block font-display text-lg font-bold">{next.cls.course}</span>
             <span className="block text-sm text-muted">
               {placeById(next.cls.placeId!)?.name} · starts in {countdown(next.inMinutes * 60_000)}
             </span>
           </span>
-          <span className="btn-brass rounded-xl px-3 py-2 text-sm font-bold">Go ▶</span>
+          <span className="btn-brass rounded-full px-3 py-2 text-sm font-bold">Go ▶</span>
         </button>
       ) : (
         <p className="rounded-xl bg-surface-2 p-3 text-sm text-muted">Add your classes and Lupus will get you to the next one on time.</p>
@@ -137,7 +137,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
           className="h-12 flex-1 rounded-xl border border-brass/60 bg-brass/10 text-sm font-semibold disabled:opacity-60">
           📸 Import SOLAR screenshot
         </button>
-        <button onClick={() => setReview([blank()])} className="h-12 rounded-xl border border-line px-4 text-sm font-semibold">+ Add</button>
+        <button onClick={() => setReview([blank()])} className="h-12 rounded-full btn-glass px-4 text-sm font-semibold">+ Add</button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" aria-label="Schedule screenshot"
           onChange={e => e.target.files?.[0] && importShot(e.target.files[0])} />
       </div>
@@ -145,7 +145,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
 
       <ul className="space-y-2">
         {classes.map(c => (
-          <li key={c.id} className="flex min-h-12 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+          <li key={c.id} className="flex min-h-12 items-center gap-3 card rounded-2xl px-3 py-2">
             <span className="flex-1">
               <span className="block font-medium">{c.course}</span>
               <span className="block text-xs text-muted">

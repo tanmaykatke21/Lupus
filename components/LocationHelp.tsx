@@ -79,8 +79,8 @@ export default function LocationHelp({ status, onRetry, onPickStart }: Props) {
         {info.steps.map(s => <li key={s}>{s}</li>)}
       </ol>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <button onClick={onRetry} className="btn-brass h-11 rounded-xl font-bold">Try again</button>
-        <button onClick={onPickStart} className="h-11 rounded-xl border border-line font-semibold">Pick where I am</button>
+        <button onClick={onRetry} className="btn-brass h-11 rounded-full font-bold">Try again</button>
+        <button onClick={onPickStart} className="h-11 rounded-full btn-glass font-semibold">Pick where I am</button>
       </div>
     </div>
   );

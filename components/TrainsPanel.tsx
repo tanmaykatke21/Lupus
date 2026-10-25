@@ -102,7 +102,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
           <h3 className="mb-2 font-display text-lg font-bold">Where are you headed?</h3>
           <div className="flex flex-wrap gap-2">
             {choices.map(c => (
-              <button key={c.id} onClick={() => goHome(arriving, c.id)} className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm font-medium">
+              <button key={c.id} onClick={() => goHome(arriving, c.id)} className="min-h-11 rounded-full card px-3 text-sm font-medium">
                 {c.label}
               </button>
             ))}
@@ -118,7 +118,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
                 <button
                   disabled={t.canceled}
                   onClick={() => (mode === "catch" ? catchTrain(t) : setArriving(t))}
-                  className="flex min-h-14 w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2 text-left disabled:opacity-50"
+                  className="flex min-h-14 w-full items-center gap-3 card rounded-2xl px-3 py-2 text-left disabled:opacity-50"
                 >
                   <span className="w-1.5 self-stretch rounded-full" style={{ background: t.color }} aria-hidden />
                   <span className="min-w-0 flex-1">

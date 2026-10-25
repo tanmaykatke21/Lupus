@@ -75,12 +75,12 @@ export default function CompassHome(p: Props) {
 
   // The ETA lives in the header on every screen of the trip.
   const header = (
-    <header className="plate flex items-center gap-3 rounded-b-3xl px-4 pb-3 pt-[max(env(safe-area-inset-top),12px)]">
-      <Image src="/icon-192.png" alt="" width={36} height={36} className="rounded-full ring-2 ring-brass" priority />
+    <header className="plate mx-3 mt-[max(env(safe-area-inset-top),12px)] flex items-center gap-3 rounded-[24px] px-3 py-2.5">
+      <Image src="/icon-192.png" alt="" width={36} height={36} className="rounded-[10px] shadow-sm ring-1 ring-line" priority />
       <div className="min-w-0 flex-1">
         {p.request ? (
           <>
-            <p className="truncate text-xs font-semibold uppercase tracking-widest text-muted">
+            <p className="truncate text-xs font-semibold uppercase tracking-wide text-muted">
               {p.request.context ?? p.request.to.name}
               {late !== null && (
                 <span className={`ml-1.5 normal-case tracking-normal ${late > 0 ? "text-danger" : "text-ok"}`}>
@@ -96,8 +96,8 @@ export default function CompassHome(p: Props) {
           <h1 className="font-display text-xl font-bold">Lupus</h1>
         )}
       </div>
-      <button onClick={p.onOpenMap} className="h-11 rounded-full border border-line px-3 text-sm font-semibold" aria-label="Open map">🗺 Map</button>
-      <button onClick={p.onSettings} aria-label="Settings" className="grid h-11 w-11 place-items-center rounded-full text-xl">⚙︎</button>
+      <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass px-3 text-sm font-semibold" aria-label="Open map">🗺 Map</button>
+      <button onClick={p.onSettings} aria-label="Settings" className="glass-icon h-10 w-10 text-lg">⚙︎</button>
     </header>
   );
 
@@ -124,16 +124,16 @@ export default function CompassHome(p: Props) {
       {header}
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-5">
         {!p.request ? (
-          <section className="plate rivets rounded-3xl p-5 text-center">
+          <section className="plate rounded-3xl p-5 text-center">
             <p className="text-5xl" aria-hidden>🧭</p>
             <h2 className="mt-2 font-display text-2xl font-bold">Your schedule drives Lupus</h2>
             <p className="mt-1 text-muted">Add your classes once. Lupus picks the next one, finds the fastest way there, and points the way.</p>
-            <button onClick={p.onAddSchedule} className="btn-brass mt-4 h-12 w-full rounded-xl font-bold">📸 Add my schedule</button>
-            <button onClick={p.onPickDestination} className="mt-2 h-12 w-full rounded-xl border border-line font-semibold">Go somewhere else</button>
+            <button onClick={p.onAddSchedule} className="btn-brass mt-4 h-12 w-full rounded-full font-bold">📸 Add my schedule</button>
+            <button onClick={p.onPickDestination} className="mt-2 h-12 w-full rounded-full btn-glass font-semibold">Go somewhere else</button>
           </section>
         ) : (
-          <section className="plate rivets rounded-3xl p-5">
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">{p.fromSchedule ? "Next up" : "Heading to"}</p>
+          <section className="plate rounded-3xl p-5">
+            <p className="text-xs font-bold uppercase tracking-wide text-muted">{p.fromSchedule ? "Next up" : "Heading to"}</p>
             <h2 className="font-display text-3xl font-bold leading-tight">{p.request.context?.split(" at ")[0] ?? p.request.to.name}</h2>
             {p.request.context && (
               <p className="text-muted">
@@ -162,10 +162,10 @@ export default function CompassHome(p: Props) {
               </p>
             )}
 
-            <button onClick={p.onGuide} className="btn-brass mt-5 h-14 w-full rounded-2xl text-lg font-bold">🧭 Guide me</button>
+            <button onClick={p.onGuide} className="btn-brass mt-5 h-14 w-full rounded-full text-lg font-bold">🧭 Guide me</button>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <button onClick={p.onOpenMap} className="h-11 rounded-xl border border-line text-sm font-semibold">See on map</button>
-              <button onClick={p.onPickDestination} className="h-11 rounded-xl border border-line text-sm font-semibold">Somewhere else</button>
+              <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass text-sm font-semibold">See on map</button>
+              <button onClick={p.onPickDestination} className="h-11 rounded-full btn-glass text-sm font-semibold">Somewhere else</button>
             </div>
           </section>
         )}

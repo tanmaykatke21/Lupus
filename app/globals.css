@@ -1,40 +1,72 @@
 @import "tailwindcss";
 
-/* Steel and Steam palette: brass and copper on parchment (light), on iron (dark). */
+/*
+ * Glass: Apple-style translucent materials over the map. The token names are the app's original ones, so
+ * every component follows the theme: brass is the accent (system blue), surface / surface-2 are the fills
+ * inside glass panels, line is a hairline separator.
+ */
 :root {
-  --bg: #f3ead8;
-  --surface: #fbf6ea;
-  --surface-2: #efe3c9;
-  --ink: #2a2118;
-  --muted: #6e5f4b;
-  --line: #d9c7a3;
-  --brass: #a8781f;
-  --brass-hi: #d4a64a;
-  --copper: #a4532c;
-  --iron: #3a3631;
-  --signal: #c8283e;
+  --bg: #f2f2f7;
+  --surface: rgb(255 255 255 / 0.72);
+  --surface-2: rgb(118 118 128 / 0.12);
+  --ink: #1d1d1f;
+  --muted: rgb(60 60 67 / 0.64);
+  --line: rgb(60 60 67 / 0.14);
+  --brass: #007aff;
+  --brass-hi: #3395ff;
+  --copper: #c93400;
+  --iron: #1c1c1e;
+  --signal: #ff3b30;
   --steam: #ffffff;
-  --ok: #2f6b3a;
-  --warn: #b7791f;
-  --danger: #b4282e;
+  --ok: #248a3d;
+  --warn: #c75300;
+  --danger: #d70015;
+
+  /* Glass material. */
+  --glass: rgb(255 255 255 / 0.58);
+  --glass-strong: rgb(255 255 255 / 0.78);
+  --glass-edge: rgb(255 255 255 / 0.65);
+  --glass-hi: rgb(255 255 255 / 0.9);
+  --glass-shadow: 0 10px 40px rgb(0 0 0 / 0.14), 0 2px 8px rgb(0 0 0 / 0.06);
+  --rim-hi: #ffffff;
+  --rim-lo: #c7c7cc;
+  --wallpaper:
+    radial-gradient(60vmax 60vmax at 0% 0%, rgb(120 170 255 / 0.35), transparent 60%),
+    radial-gradient(50vmax 50vmax at 100% 10%, rgb(255 160 200 / 0.28), transparent 60%),
+    radial-gradient(60vmax 60vmax at 60% 100%, rgb(140 230 210 / 0.3), transparent 60%),
+    #f2f2f7;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14110e;
-    --surface: #201b16;
-    --surface-2: #2b241d;
-    --ink: #f1e6d0;
-    --muted: #b3a385;
-    --line: #3d342a;
-    --brass: #d4a64a;
-    --brass-hi: #f0c46a;
-    --copper: #d07a4a;
-    --iron: #0c0a08;
-    --signal: #ff5a6e;
-    --ok: #6fbf73;
-    --warn: #f0b34a;
-    --danger: #ff6b6b;
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: rgb(58 58 60 / 0.62);
+    --surface-2: rgb(118 118 128 / 0.24);
+    --ink: #f5f5f7;
+    --muted: rgb(235 235 245 / 0.6);
+    --line: rgb(255 255 255 / 0.1);
+    --brass: #0a84ff;
+    --brass-hi: #409cff;
+    --copper: #ff9f0a;
+    --iron: #000000;
+    --signal: #ff453a;
+    --ok: #30d158;
+    --warn: #ff9f0a;
+    --danger: #ff453a;
+
+    --glass: rgb(30 30 32 / 0.55);
+    --glass-strong: rgb(30 30 32 / 0.75);
+    --glass-edge: rgb(255 255 255 / 0.12);
+    --glass-hi: rgb(255 255 255 / 0.14);
+    --glass-shadow: 0 10px 40px rgb(0 0 0 / 0.5), 0 2px 8px rgb(0 0 0 / 0.3);
+    --rim-hi: #636366;
+    --rim-lo: #2c2c2e;
+    --wallpaper:
+      radial-gradient(60vmax 60vmax at 0% 0%, rgb(40 80 200 / 0.45), transparent 60%),
+      radial-gradient(50vmax 50vmax at 100% 10%, rgb(150 50 120 / 0.35), transparent 60%),
+      radial-gradient(60vmax 60vmax at 60% 100%, rgb(20 120 110 / 0.35), transparent 60%),
+      #000000;
   }
 }
 
@@ -53,49 +85,145 @@
   --color-ok: var(--ok);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-cinzel);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-inter), system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-inter), system-ui, sans-serif;
 }
 
 html, body { height: 100%; }
 body {
-  background: var(--bg);
+  background: var(--wallpaper);
+  background-attachment: fixed;
   color: var(--ink);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
 }
+/* Full-screen views (the compass home) sit on the wallpaper rather than a flat fill. */
+.bg-bg { background: var(--wallpaper); }
 
-/* Riveted brass plate used for headings and primary surfaces. */
-.plate {
-  background: linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 100%);
-  border: 1px solid var(--line);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 1px 2px rgb(0 0 0 / 0.08);
-}
-.btn-brass {
-  background: linear-gradient(180deg, var(--brass-hi), var(--brass));
-  color: #1d150b;
-  border: 1px solid color-mix(in srgb, var(--brass) 70%, black);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.35), 0 1px 2px rgb(0 0 0 / 0.2);
-}
-.btn-brass:active { transform: translateY(1px); }
-.rivets {
-  background-image:
-    radial-gradient(circle at 10px 10px, var(--brass) 2px, transparent 2.5px),
-    radial-gradient(circle at calc(100% - 10px) 10px, var(--brass) 2px, transparent 2.5px);
-  background-repeat: no-repeat;
+@layer components {
+  /* Frosted glass: the material for everything floating over the map. */
+  .glass,
+  .plate {
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid var(--glass-edge);
+    box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  }
+  /* Inside a glass panel, plates are cards: a brighter fill without a second blur. */
+  .glass .plate {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--line);
+    box-shadow: inset 0 1px 0 var(--glass-hi), 0 1px 3px rgb(0 0 0 / 0.06);
+  }
+
+  /* Primary action: a filled accent pill with a soft glow. */
+  .btn-brass {
+    background: linear-gradient(180deg, var(--brass-hi), var(--brass));
+    color: #ffffff;
+    border: 1px solid rgb(255 255 255 / 0.18);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.3), 0 4px 14px color-mix(in srgb, var(--brass) 35%, transparent);
+    transition: transform 120ms ease, filter 120ms ease;
+  }
+  .btn-brass:hover { filter: brightness(1.05); }
+  .btn-brass:active { transform: scale(0.97); }
+
+  /* Content inside a glass panel: a brighter rounded fill, no outline. */
+  .card {
+    background: var(--surface);
+    box-shadow: inset 0 1px 0 var(--glass-hi), 0 1px 3px rgb(0 0 0 / 0.05);
+  }
+
+  /* Secondary action: a tinted fill. */
+  .btn-glass {
+    background: var(--surface-2);
+    color: var(--ink);
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .btn-glass:hover { background: color-mix(in srgb, var(--surface-2), var(--ink) 6%); }
+  .btn-glass:active { transform: scale(0.97); }
+
+  .font-display { letter-spacing: -0.022em; }
+
+  /* iOS switch (a checkbox underneath, so it stays a native form control). */
+  .switch {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    flex-shrink: 0;
+    width: 51px;
+    height: 31px;
+    border-radius: 9999px;
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--line);
+    cursor: pointer;
+    transition: background 200ms ease;
+  }
+  .switch::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 27px;
+    height: 27px;
+    border-radius: 9999px;
+    background: #ffffff;
+    box-shadow: 0 3px 8px rgb(0 0 0 / 0.15), 0 1px 1px rgb(0 0 0 / 0.16);
+    transition: transform 220ms cubic-bezier(0.3, 1.3, 0.5, 1);
+  }
+  .switch:checked { background: var(--ok); box-shadow: none; }
+  .switch:checked::after { transform: translateX(20px); }
+
+  /* Round icon button on glass. */
+  .glass-icon {
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: var(--surface-2);
+    transition: transform 120ms ease, background 120ms ease;
+  }
+  .glass-icon:active { transform: scale(0.94); }
 }
 
-/* Warm the base map so it sits inside the theme. */
-.map-warm .maplibregl-canvas { filter: sepia(0.22) saturate(0.95); }
-@media (prefers-color-scheme: dark) {
-  .map-warm .maplibregl-canvas { filter: sepia(0.35) brightness(0.95); }
-}
+/* Press feedback on the tappable glass and cards. */
+button.plate { transition: transform 140ms ease, box-shadow 140ms ease; }
+button.plate:active { transform: scale(0.985); }
 
-.bus-marker { width: 34px; height: 34px; pointer-events: auto; }
+/* Keep the base map clean and slightly brighter under the glass. */
+.map-warm .maplibregl-canvas { filter: saturate(1.05); }
+
+.bus-marker { width: 34px; height: 34px; pointer-events: auto; filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.25)); }
 .bus-marker svg { transition: transform 0.6s ease; }
 
-:focus-visible { outline: 3px solid var(--brass-hi); outline-offset: 2px; }
+/* Map controls as small glass buttons. */
+.maplibregl-ctrl-group {
+  background: var(--glass) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  border-radius: 14px !important;
+  box-shadow: var(--glass-shadow) !important;
+  overflow: hidden;
+}
+.maplibregl-ctrl-group button + button { border-top-color: var(--line) !important; }
+@media (prefers-color-scheme: dark) {
+  .maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: invert(1); }
+}
+
+:focus-visible { outline: 3px solid color-mix(in srgb, var(--brass) 60%, transparent); outline-offset: 2px; }
+
+/* Without backdrop blur, fall back to near-opaque panels so text stays readable. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass, .plate { background: var(--glass-strong); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass, .plate { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }

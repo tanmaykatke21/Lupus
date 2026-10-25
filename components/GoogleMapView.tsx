@@ -139,7 +139,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     stopMarkers.current = stops.map(s => {
       const m = new libs.marker.AdvancedMarkerElement({
         map, position: { lat: s.lat, lng: s.lng }, title: s.name, zIndex: 2,
-        content: dot("#fbf6ea", "#a8781f", 12),
+        content: dot("#ffffff", "#8e8e93", 12),
         gmpClickable: true,
       });
       m.addEventListener("gmp-click", () => onStopRef.current?.(s));
@@ -154,7 +154,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     tripShapes.current.forEach(s => (s instanceof libs.maps.Polyline ? s.setMap(null) : detach(s)));
     tripShapes.current = [];
     if (!overlay) return;
-    const walkColor = prefersDark() ? "#f0c46a" : "#3a3631";
+    const walkColor = prefersDark() ? "#0a84ff" : "#007aff";
     // Walks of the other possible trips, faded, under the chosen one.
     for (const alt of overlay.alternatives ?? []) {
       for (const line of alt.walk) {
@@ -177,10 +177,10 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
       tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(e.at), zIndex: 5, content: dot(e.kind === "board" ? "#262840" : "#E8264F", "#fff", 18) }));
     }
     if (overlay.from) {
-      tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.from), zIndex: 6, content: dot("#3a3631", "#fff", 18) }));
+      tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.from), zIndex: 6, content: dot("#007aff", "#fff", 18) }));
     }
     if (overlay.to) {
-      tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.to), zIndex: 6, content: dot("#c8283e", "#fff", 20) }));
+      tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.to), zIndex: 6, content: dot("#ff3b30", "#fff", 20) }));
     }
   }, [overlay, ready]);
 
@@ -245,7 +245,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
       const route = routes.find(r => r.id === bus.routeId);
       let m = busMarkers.current.get(bus.id);
       if (!m) {
-        const el = busElement(route?.color ?? "#a8781f", route?.abbr ?? "Bus");
+        const el = busElement(route?.color ?? "#007aff", route?.abbr ?? "Bus");
         el.style.transform = "translateY(50%)"; // center the disc on the position
         m = new libs.marker.AdvancedMarkerElement({ map, content: el, zIndex: 10, title: `${route?.name ?? "Bus"} bus ${bus.id}` });
         busMarkers.current.set(bus.id, m);

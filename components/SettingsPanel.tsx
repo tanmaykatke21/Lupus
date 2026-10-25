@@ -22,67 +22,67 @@ export default function SettingsPanel({ settings, onChange, onClose, replay, onR
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-display text-lg font-bold">Settings</h2>
-        <button onClick={onClose} className="h-11 rounded-xl border border-line px-4 text-sm font-medium">Done</button>
+        <button onClick={onClose} className="h-11 rounded-full btn-glass px-4 text-sm font-medium">Done</button>
       </div>
       <div className="space-y-3">
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+        <label className="flex min-h-12 items-center justify-between gap-3 card rounded-2xl px-3 py-2">
           <span>
             <span className="block font-medium">Directions language</span>
             <span className="block text-xs text-muted">Steps are translated with Gemini and spoken aloud</span>
           </span>
-          <select className="h-11 rounded-lg border border-line bg-surface-2 px-2" value={settings.language}
+          <select className="h-11 rounded-lg bg-surface-2 px-2" value={settings.language}
             onChange={e => onChange({ ...settings, language: e.target.value })}>
             {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
           </select>
         </label>
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+        <label className="flex min-h-12 items-center justify-between gap-3 card rounded-2xl px-3 py-2">
           <span>
             <span className="block font-medium">Conductor voice</span>
             <span className="block text-xs text-muted">Speak steps and leave-by alerts</span>
           </span>
-          <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={settings.voice}
+          <input type="checkbox" role="switch" className="switch" checked={settings.voice}
             onChange={e => onChange({ ...settings, voice: e.target.checked })} />
         </label>
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+        <label className="flex min-h-12 items-center justify-between gap-3 card rounded-2xl px-3 py-2">
           <span>
             <span className="block font-medium">Accessible routes</span>
             <span className="block text-xs text-muted">Avoid stairs, assume a slower pace</span>
           </span>
-          <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={settings.accessible}
+          <input type="checkbox" role="switch" className="switch" checked={settings.accessible}
             onChange={e => onChange({ ...settings, accessible: e.target.checked })} />
         </label>
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+        <label className="flex min-h-12 items-center justify-between gap-3 card rounded-2xl px-3 py-2">
           <span>
             <span className="block font-medium">Train buffer</span>
             <span className="block text-xs text-muted">Minutes to buy a ticket and reach the platform</span>
           </span>
-          <select className="h-11 rounded-lg border border-line bg-surface-2 px-2" value={settings.trainBufferMin}
+          <select className="h-11 rounded-lg bg-surface-2 px-2" value={settings.trainBufferMin}
             onChange={e => onChange({ ...settings, trainBufferMin: Number(e.target.value) })}>
             {[2, 3, 5, 7, 10].map(n => <option key={n} value={n}>{n} min</option>)}
           </select>
         </label>
       </div>
 
-      <Link href="/stats" className="mt-4 flex min-h-12 items-center justify-between rounded-xl border border-line bg-surface px-3 font-medium">
+      <Link href="/stats" className="mt-4 flex min-h-12 items-center justify-between card rounded-2xl px-3 font-medium">
         How accurate are bus ETAs? <span aria-hidden>→</span>
       </Link>
 
       {demo && (
         <section className="mt-4 rounded-xl border border-dashed border-brass p-3" aria-label="Demo tools">
-          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-brass">Demo tools</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brass">Demo tools</p>
           <label className="flex min-h-12 items-center justify-between gap-3">
             <span>
               <span className="block font-medium">Replay mode</span>
               <span className="block text-xs text-muted">Play recorded buses from Tiger Data as if live</span>
             </span>
-            <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={replay} onChange={e => onReplay(e.target.checked)} />
+            <input type="checkbox" role="switch" className="switch" checked={replay} onChange={e => onReplay(e.target.checked)} />
           </label>
           <label className="flex min-h-12 items-center justify-between gap-3">
             <span>
               <span className="block font-medium">Pretend the next bus is full</span>
               <span className="block text-xs text-muted">Shows how Lupus reroutes around a packed bus (labeled as a demo)</span>
             </span>
-            <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={demoFull} onChange={e => onDemoFull(e.target.checked)} />
+            <input type="checkbox" role="switch" className="switch" checked={demoFull} onChange={e => onDemoFull(e.target.checked)} />
           </label>
         </section>
       )}

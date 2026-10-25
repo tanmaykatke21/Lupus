@@ -17,7 +17,7 @@ interface Props {
 
 const VERDICT: Record<Verdict, { label: string; cls: string } | null> = {
   yes: { label: "You'll make it", cls: "bg-ok text-white" },
-  tight: { label: "Tight: walk fast", cls: "bg-warn text-[#1d150b]" },
+  tight: { label: "Tight: walk fast", cls: "bg-warn/20 text-warn" },
   no: { label: "You'll be late", cls: "bg-danger text-white" },
   info: null,
   need_info: { label: "One question", cls: "bg-surface-2 text-ink" },
@@ -113,23 +113,23 @@ export default function AskLupus({ current, accessible, voice, lang, onGuide, on
   const card = answer?.card;
 
   return (
-    <section aria-label="Ask Lupus" className="plate rivets rounded-2xl p-3">
+    <section aria-label="Ask Lupus" className="plate rounded-2xl p-3">
       <form onSubmit={e => { e.preventDefault(); ask(q); }} className="flex gap-2">
         <label htmlFor="ask-lupus" className="sr-only">Ask Lupus</label>
         <input id="ask-lupus" value={q} onChange={e => setQ(e.target.value)} enterKeyHint="send"
           placeholder={answer?.verdict === "need_info" ? "Reply…" : "Ask: “Will I make my 2pm lab?”"}
-          className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 text-base placeholder:text-muted" />
+          className="h-12 min-w-0 flex-1 card rounded-2xl px-3 text-base placeholder:text-muted" />
         {canListen && (
           <button type="button" onClick={listen} aria-label="Ask by voice" aria-pressed={listening}
-            className={`h-12 w-12 shrink-0 rounded-xl border border-line text-lg ${listening ? "bg-danger/20" : ""}`}>🎙</button>
+            className={`h-12 w-12 shrink-0 rounded-full text-lg ${listening ? "bg-danger/20" : "btn-glass"}`}>🎙</button>
         )}
-        <button disabled={busy} className="btn-brass h-12 shrink-0 rounded-xl px-4 font-bold disabled:opacity-60">{busy ? "…" : "Ask"}</button>
+        <button disabled={busy} className="btn-brass h-12 shrink-0 rounded-full px-4 font-bold disabled:opacity-60">{busy ? "…" : "Ask"}</button>
       </form>
 
       {!answer && !busy && !error && (
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
           {EXAMPLES.map(e => (
-            <button key={e} onClick={() => ask(e)} className="min-h-9 shrink-0 rounded-full border border-line px-3 text-xs text-muted">{e}</button>
+            <button key={e} onClick={() => ask(e)} className="min-h-9 shrink-0 rounded-full btn-glass px-3 text-xs text-muted">{e}</button>
           ))}
         </div>
       )}
@@ -154,8 +154,8 @@ export default function AskLupus({ current, accessible, voice, lang, onGuide, on
               )}
               {bufferLine(card) && <p className={`mt-1 font-semibold ${card.bufferMin! < 0 ? "text-danger" : ""}`}>{bufferLine(card)}</p>}
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <button onClick={() => onGuide(card)} className="btn-brass h-11 rounded-xl font-bold">🧭 Guide me</button>
-                <button onClick={() => onShowMap(card)} className="h-11 rounded-xl border border-line font-semibold">🗺 Show on map</button>
+                <button onClick={() => onGuide(card)} className="btn-brass h-11 rounded-full font-bold">🧭 Guide me</button>
+                <button onClick={() => onShowMap(card)} className="h-11 rounded-full btn-glass font-semibold">🗺 Show on map</button>
               </div>
             </div>
           )}

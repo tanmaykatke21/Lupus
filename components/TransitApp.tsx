@@ -200,23 +200,23 @@ export default function TransitApp() {
 
   const header = (
     <header className="flex items-center gap-3 px-4 pb-3 pt-1 md:pt-4">
-      <Image src="/icon-192.png" alt="" width={40} height={40} className="rounded-full ring-2 ring-brass" priority />
+      <Image src="/icon-192.png" alt="" width={40} height={40} className="rounded-[12px] shadow-sm ring-1 ring-line" priority />
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-xl font-bold leading-none tracking-wide">Lupus</h1>
+        <h1 className="font-display text-[22px] font-bold leading-none tracking-tight">Lupus</h1>
         {etaOption ? (
           <p className="truncate text-xs font-semibold text-ink" aria-live="polite">ETA {formatClock(etaOption.arriveAt)} · {request?.to.name}</p>
         ) : (
-          <p className="truncate text-xs text-muted">Steel &amp; Steam campus transit</p>
+          <p className="truncate text-xs text-muted">Campus transit</p>
         )}
       </div>
-      <button onClick={() => setMode("compass")} aria-label="Compass" className="grid h-11 w-11 place-items-center rounded-full border border-line text-lg">🧭</button>
+      <button onClick={() => setMode("compass")} aria-label="Compass" className="glass-icon h-10 w-10 text-lg">🧭</button>
       <span
         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${busError ? "bg-danger/15 text-danger" : "bg-ok/15 text-ok"}`}
         aria-live="polite"
       >
         {busError ? "Bus feed down" : `${source === "replay" ? "Replay" : "Live"} · ${ago(updatedAt, now)}`}
       </span>
-      <button onClick={() => setView("settings")} aria-label="Settings" className="grid h-11 w-11 place-items-center rounded-full text-xl">
+      <button onClick={() => setView("settings")} aria-label="Settings" className="glass-icon h-10 w-10 text-lg">
         ⚙︎
       </button>
     </header>
@@ -295,7 +295,7 @@ export default function TransitApp() {
         <div className="mb-3">{askLupus}</div>
         <button
           onClick={() => { setView("search-to"); setSnap("full"); }}
-          className="mb-3 flex h-12 w-full items-center gap-3 rounded-xl border border-line bg-surface px-4 text-left text-base text-muted"
+          className="mb-3 flex h-11 w-full items-center gap-2.5 rounded-full bg-surface-2 px-4 text-left text-[17px] text-muted transition active:scale-[0.99]"
         >
           <span aria-hidden>🔎</span> Where to?
         </button>
@@ -305,7 +305,7 @@ export default function TransitApp() {
               const p = PLACES.find(x => x.id === s.placeId);
               return p && (
                 <button key={s.placeId} onClick={() => pickDestination(p)}
-                  className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-3 text-sm font-medium">
+                  className="min-h-10 rounded-full bg-brass/12 px-3.5 text-sm font-semibold text-brass">
                   ★ {s.label}
                 </button>
               );
@@ -317,12 +317,12 @@ export default function TransitApp() {
             Couldn&apos;t load bus routes ({networkError}). Walking directions still work.
           </p>
         )}
-        <h2 className="mb-2 font-display text-sm font-bold uppercase tracking-widest text-muted">Lines</h2>
-        <ul className="space-y-2">
+        <h2 className="mb-2 px-1 text-[13px] font-semibold uppercase tracking-wide text-muted">Lines</h2>
+        <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-surface">
           {routes.map(r => {
             const count = buses.filter(b => b.routeId === r.id).length;
             return (
-              <li key={r.id} className="flex min-h-11 items-center gap-3 rounded-xl border border-line bg-surface px-3 py-2">
+              <li key={r.id} className="flex min-h-12 items-center gap-3 px-4 py-2">
                 <span className="h-3 w-8 rounded-full" style={{ background: r.color }} aria-hidden />
                 <span className="flex-1 font-medium">{r.name}</span>
                 <span className="text-sm text-muted">{count ? `${count} running` : "not running"}</span>
@@ -400,18 +400,18 @@ export default function TransitApp() {
         <button
           onClick={() => { if (!followOn) heading.start(); setFollowing(f => !f); }}
           aria-pressed={followOn}
-          className={`absolute right-3 z-10 flex h-12 items-center gap-2 rounded-full px-4 text-sm font-bold shadow-lg ${followOn ? "btn-brass" : "plate"}`}
-          style={{ bottom: sheetPx + 12 }}
+          className={`absolute right-4 z-10 flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold ${followOn ? "btn-brass" : "plate"}`}
+          style={{ bottom: sheetPx + 20 }}
         >
           {followOn ? "🧭 Following" : "📍 Follow me"}
         </button>
       )}
       <BottomSheet snap={snap} onSnapChange={setSnap} onHeightChange={onHeight} header={header}>
         {view === "home" && (
-          <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Sections">
+          <div className="mb-3 grid grid-cols-3 gap-1 rounded-full bg-surface-2 p-1" role="tablist" aria-label="Sections">
             {(["go", "trains", "classes"] as const).map(t => (
               <button key={t} role="tab" aria-selected={homeTab === t} onClick={() => setHomeTab(t)}
-                className={`min-h-11 rounded-lg text-sm font-semibold ${homeTab === t ? "plate" : "text-muted"}`}>
+                className={`min-h-9 rounded-full text-sm font-semibold transition ${homeTab === t ? "plate text-ink" : "text-muted"}`}>
                 {t === "go" ? "🧭 Go" : t === "trains" ? "🚂 Trains" : "🎓 Classes"}
               </button>
             ))}

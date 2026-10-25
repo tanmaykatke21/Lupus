@@ -33,13 +33,13 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
           autoComplete="off"
           enterKeyHint="search"
           onKeyDown={e => { if (e.key === "Enter" && results[0]) onPick(results[0]); }}
-          className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-4 text-base placeholder:text-muted"
+          className="h-12 min-w-0 flex-1 card rounded-2xl px-4 text-base placeholder:text-muted"
         />
         <button onClick={onCancel} className="h-12 rounded-xl px-3 text-sm font-semibold text-muted">Cancel</button>
       </div>
 
       {allowMyLocation && !q && (
-        <button onClick={onMyLocation} className="mb-2 flex min-h-12 w-full items-center gap-3 rounded-xl border border-line bg-surface px-3 text-left font-medium">
+        <button onClick={onMyLocation} className="mb-2 flex min-h-12 w-full items-center gap-3 card rounded-2xl px-3 text-left font-medium">
           <span aria-hidden>📍</span> My current location
         </button>
       )}
@@ -68,7 +68,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
         </div>
       )}
 
-      <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface" aria-live="polite">
+      <ul className="divide-y divide-line overflow-hidden card rounded-2xl" aria-live="polite">
         {results.map(p => (
           <li key={p.id}>
             <button onClick={() => onPick(p)} className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left">
