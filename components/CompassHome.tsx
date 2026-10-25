@@ -6,10 +6,12 @@ import { skippedNote } from "@/lib/crowding";
 import { announce } from "@/lib/voice";
 import CompassView from "./CompassView";
 import Gauge from "./Gauge";
+import LocationHelp from "./LocationHelp";
 import type { RouteOption } from "@/lib/router";
 import { formatClock } from "@/lib/time";
 import type { TripRequest } from "@/lib/trip";
 import type { HeadingStatus } from "@/lib/useHeading";
+import type { LocationStatus } from "@/lib/useLocation";
 import type { LngLat } from "@/lib/types";
 import { countdown } from "@/lib/useNow";
 
@@ -21,7 +23,9 @@ interface Props {
   loading: boolean;
   error: string | null;
   location: LngLat | null;
-  locationStatus: string;
+  locationStatus: LocationStatus;
+  onRetryLocation: () => void;
+  onPickStart: () => void;
   heading: number | null;
   headingStatus: HeadingStatus;
   guiding: boolean;
@@ -101,6 +105,7 @@ export default function CompassHome(p: Props) {
     return (
       <div className="flex h-dvh flex-col bg-bg">
         {header}
+        <div className="mx-4 mt-3"><LocationHelp status={p.locationStatus} onRetry={p.onRetryLocation} onPickStart={p.onPickStart} /></div>
         {reroute && (
           <div role="alert" className="mx-4 mt-3 flex items-start gap-2 rounded-2xl border-2 border-copper bg-copper/15 p-3 text-sm font-semibold">
             <span aria-hidden>🔀</span>
@@ -149,9 +154,11 @@ export default function CompassHome(p: Props) {
                 </div>
                 <Gauge slack={o.slackMinutes === null ? null : (o.leaveBy - p.now) / 60_000} size={72} />
               </div>
+            ) : p.locationStatus === "denied" || p.locationStatus === "unavailable" ? (
+              <div className="mt-4"><LocationHelp status={p.locationStatus} onRetry={p.onRetryLocation} onPickStart={p.onPickStart} /></div>
             ) : (
               <p className="mt-4 text-sm text-muted" role="status">
-                {p.error ?? (p.locationStatus === "denied" ? "Location is blocked, so Lupus can't plan from where you are." : p.loading || p.locationStatus === "locating" ? "Finding the fastest way…" : "Tap below to find your way.")}
+                {p.error ?? (p.loading || p.locationStatus === "locating" ? "Finding the fastest way…" : "Tap below to find your way.")}
               </p>
             )}
 

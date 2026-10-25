@@ -7,6 +7,7 @@ import AskLupus from "./AskLupus";
 import BottomSheet, { type Snap } from "./BottomSheet";
 import ClassesPanel from "./ClassesPanel";
 import CompassHome from "./CompassHome";
+import LocationHelp from "./LocationHelp";
 import NavMode from "./NavMode";
 import ResultsPanel from "./ResultsPanel";
 import SearchPanel from "./SearchPanel";
@@ -250,12 +251,18 @@ export default function TransitApp() {
     );
   } else if (view === "results" && request) {
     body = (
+      <>
+      {origin.kind === "me" && !request.from && (
+        <div className="mb-3">
+          <LocationHelp status={location.status} onRetry={() => location.start()}
+            onPickStart={() => { setView("search-from"); setSnap("full"); }} />
+        </div>
+      )}
       <ResultsPanel
         originName={originName}
         request={request}
         result={trip.data}
-        error={trip.error ?? (origin.kind === "me" && location.status === "denied"
-          ? { message: "Location is blocked. Choose where you're starting from.", offMap: false } : null)}
+        error={trip.error}
         loading={trip.loading || (origin.kind === "me" && location.status === "locating")}
         now={now}
         selectedId={selected?.id ?? null}
@@ -276,6 +283,7 @@ export default function TransitApp() {
           setSnap("half");
         }}
       />
+      </>
     );
   } else if (homeTab === "classes") {
     body = <ClassesPanel classes={classes} now={now} onChange={setClasses} onGo={goToClass} />;
@@ -362,6 +370,12 @@ export default function TransitApp() {
           onAddSchedule={() => { setMode("map"); setView("home"); setHomeTab("classes"); setSnap("full"); }}
           onPickDestination={() => { setGuiding(false); setMode("map"); setView("search-to"); setSnap("full"); }}
           onSettings={() => { setMode("map"); setView("settings"); setSnap("full"); }}
+          onRetryLocation={() => location.start()}
+          onPickStart={() => {
+            setGuiding(false);
+            if (compassRequest) setRequest(compassRequest);
+            setMode("map"); setView("search-from"); setSnap("full");
+          }}
           ask={askLupus}
         />
       </main>
