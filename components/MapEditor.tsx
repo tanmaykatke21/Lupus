@@ -13,6 +13,8 @@ const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAP_ID || "DEMO_MAP_ID";
 const CATEGORIES: PlaceCategory[] = ["academic", "dorm", "dining", "medical", "transit", "athletics", "services", "parking", "shopping", "town"];
 const DAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+// Places the app looks up by id; they can be renamed or moved but not deleted.
+const PROTECTED: Record<string, string> = { lirr: "the Trains tab and Ask Lupus use it for LIRR trips" };
 
 type Tool = "select" | "place" | "path" | "shortcut";
 type Selected = { kind: "place" | "path" | "shortcut"; id: string } | null;
@@ -162,8 +164,13 @@ export default function MapEditor() {
     resetDraft();
   };
 
+  const updatePlace = (id: string, patch: Partial<Place>) => {
+    setPlaces(ps => ps.map(p => (p.id === id ? { ...p, ...patch } : p)));
+    setDirty(true);
+  };
+
   const deleteSelected = () => {
-    if (!selected) return;
+    if (!selected || (selected.kind === "place" && PROTECTED[selected.id])) return;
     if (selected.kind === "place") setPlaces(ps => ps.filter(p => p.id !== selected.id));
     if (selected.kind === "path") setPaths(ps => ps.filter(p => p.id !== selected.id));
     if (selected.kind === "shortcut") setShortcuts(ss => ss.filter(s => s.id !== selected.id));
@@ -271,8 +278,34 @@ export default function MapEditor() {
         {sel && (
           <div className="space-y-2 rounded-xl border border-brass p-3">
             <p className="font-semibold">Selected {selected!.kind}: {"name" in sel && sel.name ? sel.name : sel.id}</p>
-            {selected!.kind === "place" && "category" in sel && <p className="text-muted">{sel.category} · drag its label on the map to move it</p>}
-            <button onClick={deleteSelected} className="h-10 w-full rounded-lg border border-danger font-semibold text-danger">Delete</button>
+            {selected!.kind === "place" && "category" in sel && (
+              <div className="space-y-2">
+                <label className="block">
+                  <span className="text-xs text-muted">Name (renaming keeps saved places and classes linked)</span>
+                  <input value={sel.name} onChange={e => updatePlace(sel.id, { name: e.target.value })}
+                    className="h-10 w-full rounded-lg border border-line bg-surface-2 px-2" />
+                </label>
+                <label className="block">
+                  <span className="text-xs text-muted">Category</span>
+                  <select value={sel.category} onChange={e => updatePlace(sel.id, { category: e.target.value as PlaceCategory })}
+                    className="h-10 w-full rounded-lg border border-line bg-surface-2 px-2">
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-xs text-muted">Nicknames (comma separated)</span>
+                  <input defaultValue={sel.aliases.join(", ")} key={sel.id}
+                    onBlur={e => updatePlace(sel.id, { aliases: e.target.value.split(",").map(a => a.trim()).filter(Boolean) })}
+                    className="h-10 w-full rounded-lg border border-line bg-surface-2 px-2" />
+                </label>
+                <p className="text-xs text-muted">Drag its label on the map to move it.</p>
+              </div>
+            )}
+            {selected!.kind === "place" && PROTECTED[selected!.id] ? (
+              <p className="text-xs text-warn">Can&apos;t delete: {PROTECTED[selected!.id]}. Rename or move it instead.</p>
+            ) : (
+              <button onClick={deleteSelected} className="h-10 w-full rounded-lg border border-danger font-semibold text-danger">Delete</button>
+            )}
           </div>
         )}
         <p className="text-xs text-muted">Changes stay in this page until you Save. Saving writes data/places.json, data/custom-paths.json and data/shortcuts.json.</p>

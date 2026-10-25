@@ -75,6 +75,8 @@ export async function POST(request: Request) {
     if (bad !== -1) return json({ error: `${k}[${bad}] is invalid: ${JSON.stringify(list[bad]).slice(0, 160)}` }, CACHE.none, 400);
     const ids = new Set(list.map(i => i.id));
     if (ids.size !== list.length) return json({ error: `${k} has duplicate ids` }, CACHE.none, 400);
+    // The app looks the station up by id (trains, Ask Lupus): it can be renamed or moved, not removed.
+    if (k === "places" && !ids.has("lirr")) return json({ error: "The LIRR station place can't be deleted." }, CACHE.none, 400);
     const text = await read(k);
     const file = JSON.parse(text);
     file[KEYS[k]] = list;
