@@ -6,96 +6,96 @@
    "name": "Student Activities Center",
    "category": "dining",
    "aliases": ["SAC", "SAC food court", "student activities"],
-   "lng": -73.12378,
-   "lat": 40.91432
+   "lng": -73.12421,
+   "lat": 40.914515
   },
   {
    "id": "union",
    "name": "Stony Brook Union",
    "category": "services",
    "aliases": ["Union", "SBU Union"],
-   "lng": -73.12245,
-   "lat": 40.91716
+   "lng": -73.122216,
+   "lat": 40.916959
   },
   {
    "id": "library",
    "name": "Melville Library",
    "category": "academic",
    "aliases": ["Library", "Melville", "main library"],
-   "lng": -73.12273,
-   "lat": 40.91548
+   "lng": -73.122504,
+   "lat": 40.914995
   },
   {
    "id": "javits",
    "name": "Javits Lecture Center",
    "category": "academic",
    "aliases": ["Javits", "Javits 100", "Javits 110"],
-   "lng": -73.12209,
-   "lat": 40.91296
+   "lng": -73.121763,
+   "lat": 40.913104
   },
   {
    "id": "frey",
    "name": "Frey Hall",
    "category": "academic",
    "aliases": ["Frey"],
-   "lng": -73.12387,
-   "lat": 40.91567
+   "lng": -73.123952,
+   "lat": 40.915352
   },
   {
    "id": "cs",
    "name": "Computer Science",
    "category": "academic",
    "aliases": ["Old CS", "CS building"],
-   "lng": -73.12229,
-   "lat": 40.91259
+   "lng": -73.122077,
+   "lat": 40.912491
   },
   {
    "id": "ncs",
    "name": "New Computer Science",
    "category": "academic",
    "aliases": ["NCS", "new CS"],
-   "lng": -73.12356,
-   "lat": 40.91295
+   "lng": -73.123671,
+   "lat": 40.912608
   },
   {
    "id": "engineering",
    "name": "Engineering",
    "category": "academic",
    "aliases": ["Old Engineering", "ENG"],
-   "lng": -73.12447,
-   "lat": 40.91333
+   "lng": -73.124613,
+   "lat": 40.913119
   },
   {
    "id": "light-eng",
    "name": "Light Engineering",
    "category": "academic",
    "aliases": ["Light Eng"],
-   "lng": -73.12541,
-   "lat": 40.91353
+   "lng": -73.125031,
+   "lat": 40.913665
   },
   {
    "id": "heavy-eng",
    "name": "Heavy Engineering",
    "category": "academic",
    "aliases": ["Heavy Eng"],
-   "lng": -73.12557,
-   "lat": 40.91247
+   "lng": -73.12573,
+   "lat": 40.912783
   },
   {
    "id": "humanities",
    "name": "Humanities",
    "category": "academic",
    "aliases": ["HUM"],
-   "lng": -73.12091,
-   "lat": 40.91394
+   "lng": -73.121105,
+   "lat": 40.914279
   },
   {
    "id": "sbs",
    "name": "Social and Behavioral Sciences",
    "category": "academic",
    "aliases": ["SBS", "S B S"],
-   "lng": -73.12008,
-   "lat": 40.91306
+   "lng": -73.120156,
+   "lat": 40.913085
   },
   {
    "id": "life-sci",
@@ -110,56 +110,56 @@
    "name": "Chemistry",
    "category": "academic",
    "aliases": ["Chem"],
-   "lng": -73.12371,
-   "lat": 40.9164
+   "lng": -73.12357,
+   "lat": 40.91639
   },
   {
    "id": "physics",
    "name": "Physics",
    "category": "academic",
    "aliases": ["Physics building"],
-   "lng": -73.12597,
-   "lat": 40.91625
+   "lng": -73.125782,
+   "lat": 40.916061
   },
   {
    "id": "math-tower",
    "name": "Math Tower",
    "category": "academic",
    "aliases": ["Math"],
-   "lng": -73.12633,
-   "lat": 40.91585
+   "lng": -73.12641,
+   "lat": 40.915881
   },
   {
    "id": "harriman",
    "name": "Harriman Hall",
    "category": "academic",
    "aliases": ["Harriman", "business school"],
-   "lng": -73.12507,
-   "lat": 40.91575
+   "lng": -73.125346,
+   "lat": 40.91556
   },
   {
    "id": "ess",
    "name": "Earth & Space Sciences",
    "category": "academic",
    "aliases": ["ESS"],
-   "lng": -73.12548,
-   "lat": 40.91499
+   "lng": -73.125607,
+   "lat": 40.914865
   },
   {
    "id": "psych-a",
    "name": "Psychology A",
    "category": "academic",
    "aliases": ["Psych A"],
-   "lng": -73.12229,
-   "lat": 40.91427
+   "lng": -73.12245,
+   "lat": 40.91451
   },
   {
    "id": "psych-b",
    "name": "Psychology B",
    "category": "academic",
    "aliases": ["Psych B"],
-   "lng": -73.1221,
-   "lat": 40.9139
+   "lng": -73.122061,
+   "lat": 40.914068
   },
   {
    "id": "bioeng",
@@ -182,72 +182,72 @@
    "name": "Educational Communications Center",
    "category": "academic",
    "aliases": ["ECC"],
-   "lng": -73.12251,
-   "lat": 40.91339
+   "lng": -73.122504,
+   "lat": 40.913547
   },
   {
    "id": "staller",
    "name": "Staller Center for the Arts",
    "category": "academic",
    "aliases": ["Staller"],
-   "lng": -73.12145,
-   "lat": 40.91572
+   "lng": -73.121935,
+   "lat": 40.916038
   },
   {
    "id": "wang",
    "name": "Charles B. Wang Center",
    "category": "services",
    "aliases": ["Wang Center", "Wang"],
-   "lng": -73.11974,
-   "lat": 40.91598
+   "lng": -73.118866,
+   "lat": 40.915892
   },
   {
    "id": "admin",
    "name": "Administration Building",
    "category": "services",
    "aliases": ["Admin", "bursar", "registrar"],
-   "lng": -73.11961,
-   "lat": 40.91423
+   "lng": -73.120019,
+   "lat": 40.914831
   },
   {
    "id": "health-center",
    "name": "Student Health Center",
    "category": "medical",
    "aliases": ["health center", "SHC"],
-   "lng": -73.12175,
-   "lat": 40.91933
+   "lng": -73.121661,
+   "lat": 40.919202
   },
   {
    "id": "rec-center",
    "name": "Campus Recreation Center",
    "category": "athletics",
    "aliases": ["Rec Center", "gym", "Hawrys"],
-   "lng": -73.12343,
-   "lat": 40.91724
+   "lng": -73.123873,
+   "lat": 40.917007
   },
   {
    "id": "arena",
    "name": "Island Federal Credit Union Arena",
    "category": "athletics",
    "aliases": ["Arena", "IFCU Arena", "basketball"],
-   "lng": -73.12598,
-   "lat": 40.91741
+   "lng": -73.125986,
+   "lat": 40.917183
   },
   {
    "id": "stadium",
    "name": "LaValle Stadium",
    "category": "athletics",
    "aliases": ["Stadium", "LaValle", "football"],
-   "lng": -73.12421,
-   "lat": 40.9188
+   "lng": -73.12383,
+   "lat": 40.918151
   },
   {
    "id": "east-dining",
    "name": "East Side Dining",
    "category": "dining",
    "aliases": ["East Side", "Chavez", "EDH"],
-   "lng": -73.12071,
-   "lat": 40.91686
+   "lng": -73.121211,
+   "lat": 40.917129
   },
   {
    "id": "west-dining",
@@ -262,72 +262,72 @@
    "name": "Roth Cafe",
    "category": "dining",
    "aliases": ["Roth Food", "Roth Café"],
-   "lng": -73.12384,
-   "lat": 40.91078
+   "lng": -73.123571,
+   "lat": 40.91077
   },
   {
    "id": "hquad",
    "name": "H Quad",
    "category": "dorm",
    "aliases": ["H-Quad", "Langmuir", "James", "Benedict"],
-   "lng": -73.12119,
-   "lat": 40.91906
+   "lng": -73.119519,
+   "lat": 40.919747
   },
   {
    "id": "james",
    "name": "James College",
    "category": "dorm",
    "aliases": ["James"],
-   "lng": -73.12032,
-   "lat": 40.91927
+   "lng": -73.120169,
+   "lat": 40.919622
   },
   {
    "id": "langmuir",
    "name": "Langmuir College",
    "category": "dorm",
    "aliases": ["Langmuir"],
-   "lng": -73.12016,
-   "lat": 40.92032
+   "lng": -73.120098,
+   "lat": 40.919994
   },
   {
    "id": "benedict",
    "name": "Benedict College",
    "category": "dorm",
    "aliases": ["Benedict"],
-   "lng": -73.11869,
-   "lat": 40.91961
+   "lng": -73.118796,
+   "lat": 40.919621
   },
   {
    "id": "ammann",
    "name": "Ammann College",
    "category": "dorm",
    "aliases": ["Ammann", "Mendelsohn"],
-   "lng": -73.12076,
-   "lat": 40.91872
+   "lng": -73.12107,
+   "lat": 40.918431
   },
   {
    "id": "gray",
    "name": "Gray College",
    "category": "dorm",
    "aliases": ["Gray", "Mendelsohn"],
-   "lng": -73.12093,
-   "lat": 40.91778
+   "lng": -73.121147,
+   "lat": 40.918095
   },
   {
    "id": "oneill-irving",
    "name": "O'Neill and Irving College",
    "category": "dorm",
    "aliases": ["O'Neill", "Irving", "Mendelsohn"],
-   "lng": -73.11961,
-   "lat": 40.91806
+   "lng": -73.119595,
+   "lat": 40.918045
   },
   {
    "id": "tubman",
    "name": "Tubman Hall",
    "category": "dorm",
    "aliases": ["Tubman"],
-   "lng": -73.11921,
-   "lat": 40.91694
+   "lng": -73.119661,
+   "lat": 40.916985
   },
   {
    "id": "roth-quad",
@@ -398,8 +398,8 @@
    "name": "Chapin Apartments",
    "category": "dorm",
    "aliases": ["Chapin", "grad housing"],
-   "lng": -73.11029,
-   "lat": 40.90808
+   "lng": -73.1103,
+   "lat": 40.908049
   },
   {
    "id": "hospital",
@@ -422,24 +422,24 @@
    "name": "Health Sciences Tower",
    "category": "medical",
    "aliases": ["HST"],
-   "lng": -73.11617,
-   "lat": 40.90971
+   "lng": -73.116228,
+   "lat": 40.909862
   },
   {
    "id": "bst",
    "name": "Basic Sciences Tower",
    "category": "medical",
    "aliases": ["BST"],
-   "lng": -73.11676,
-   "lat": 40.91031
+   "lng": -73.116764,
+   "lat": 40.910414
   },
   {
    "id": "hospital-garage",
    "name": "Hospital Parking Garage",
    "category": "parking",
    "aliases": ["hospital garage"],
-   "lng": -73.11599,
-   "lat": 40.90781
+   "lng": -73.115194,
+   "lat": 40.90803
   },
   {
    "id": "lirr",
@@ -470,8 +470,8 @@
    "name": "Administration Parking Garage",
    "category": "parking",
    "aliases": ["Admin garage"],
-   "lng": -73.11961,
-   "lat": 40.91423
+   "lng": -73.119487,
+   "lat": 40.914802
   },
   {
    "id": "south-campus",
@@ -486,8 +486,8 @@
    "name": "Simons Center for Geometry and Physics",
    "category": "academic",
    "aliases": ["Simons Center"],
-   "lng": -73.12697,
-   "lat": 40.91579
+   "lng": -73.126915,
+   "lat": 40.915743
   },
   {
    "id": "cewit",
@@ -550,6 +550,38 @@
    "lng": -73.14726,
    "lat": 40.91899,
    "service": "Port Jefferson Shuttle, Fridays and Saturdays"
+  },
+  {
+   "id": "benedict-north",
+   "name": "Benedict North",
+   "category": "dorm",
+   "aliases": [],
+   "lng": -73.118736,
+   "lat": 40.919892
+  },
+  {
+   "id": "benedict-south",
+   "name": "Benedict South",
+   "category": "dorm",
+   "aliases": [],
+   "lng": -73.118848,
+   "lat": 40.91943
+  },
+  {
+   "id": "o-neill-college",
+   "name": "O'Neill College",
+   "category": "dorm",
+   "aliases": [],
+   "lng": -73.11966,
+   "lat": 40.918297
+  },
+  {
+   "id": "irving-college",
+   "name": "Irving College",
+   "category": "dorm",
+   "aliases": [],
+   "lng": -73.119762,
+   "lat": 40.91791
   }
  ]
 }
