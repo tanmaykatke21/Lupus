@@ -12,7 +12,7 @@ export function conductorIntro(option: RouteOption, destination: string) {
 export function conductorLine(step: Step) {
   switch (step.icon) {
     case "bus":
-      return step.text.startsWith("Board") ? `${step.text} Tickets ready!` : step.text;
+      return step.text.startsWith("Board") ? `${step.text} Step lively, it's free to ride!` : step.text;
     case "arrive":
       return `${step.text} End of the line, safe travels.`;
     case "shortcut":
