@@ -11,7 +11,7 @@ const DEMO_TICK_MS = 1000;
 
 const fetchWalk: FetchWalk = async (from: LatLng, to: LatLng) => {
   const q = (p: LatLng) => `${p.lat.toFixed(6)},${p.lng.toFixed(6)}`;
-  const res = await fetch(`/api/walk?from=${q(from)}&to=${q(to)}`);
+  const res = await fetch(`/api/walk?from=${q(from)}&to=${q(to)}`, { signal: AbortSignal.timeout(10_000) });
   if (!res.ok) return null;
   const walk = (await res.json()) as WalkResult;
   return { coords: walk.coords, junctions: walk.junctions };

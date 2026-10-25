@@ -52,6 +52,8 @@ export interface NavSnapshot {
   bearing: number | null;
   walked: [number, number][];
   ahead: [number, number][];
+  /** While the walker is off the path: a short line from them to the nearest point on it. */
+  backToPath: [number, number][] | null;
   /** "Turn left in 60 m", "Ride to Chapin Apartments", "You've arrived". */
   instruction: string;
   /** What the instruction is about, for its arrow; null while there's nothing to point at. */
@@ -70,8 +72,20 @@ export interface NavSnapshot {
 export type FetchWalk = (from: LatLng, to: LatLng) => Promise<{ coords: [number, number][]; junctions?: number[] } | null>;
 
 /** Off the route for this many fixes in a row means re-route (one stray fix is just GPS noise). */
-const OFF_FIXES = 3;
-const REROUTE_GAP_MS = 8000;
+/**
+ * Leaving the route: farther than OFF_ROUTE_M (and farther than GPS's own uncertainty) for two fixes in a
+ * row, or for OFF_HOLD_MS, or more than FAR_OFF_M at once.
+ */
+const OFF_FIXES = 2;
+const OFF_HOLD_MS = 4000;
+const FAR_OFF_M = 60;
+/** Within this distance the walker is drawn on the path; farther away, where GPS actually puts them. */
+const SNAP_M = 12;
+/** GPS that vague still gets drawn on the path when it's this close, since it can't say otherwise. */
+const VAGUE_SNAP_M = 40;
+const REROUTE_GAP_MS = 5000;
+/** Give up on a directions request after this long and try again on a later fix. */
+const ROUTE_TIMEOUT_MS = 10_000;
 /** Near enough to the stop to get off: a ride ends once the rider is this close to it. */
 const OFF_BUS_M = 60;
 
@@ -80,8 +94,10 @@ export class NavEngine {
   private route: NavRoute | null = null;
   private progress: number | null = null;
   private pos: Position | null = null;
-  private shown: { me: [number, number]; bearing: number | null } | null = null;
+  /** Where to draw the walker, and (when that's off the path) the nearest point on it. */
+  private shown: { me: [number, number]; bearing: number | null; snapped?: [number, number] } | null = null;
   private offCount = 0;
+  private offSince: number | null = null;
   private offRoute = false;
   private rerouting = false;
   private lastRerouteAt = -Infinity;
@@ -132,25 +148,36 @@ export class NavEngine {
     }
 
     const fix = locate(this.route, pos, this.progress);
-    // Poor accuracy can look like leaving the route; only count it when GPS is sure enough.
-    const sure = (pos.accuracyM ?? 0) < fix.offM;
-    if (fix.offM > OFF_ROUTE_M && sure) {
+    const accuracy = pos.accuracyM ?? 0;
+    // Off the route only when they're farther from it than GPS's own uncertainty: vague GPS can't tell.
+    const clearlyOff = fix.offM > Math.max(OFF_ROUTE_M, accuracy);
+    if (clearlyOff) {
       this.offCount++;
-      this.offRoute = this.offCount >= OFF_FIXES;
+      this.offSince ??= this.now();
     } else {
       this.offCount = 0;
-      this.offRoute = false;
+      this.offSince = null;
     }
+    this.offRoute =
+      clearlyOff && (this.offCount >= OFF_FIXES || fix.offM > FAR_OFF_M || this.now() - (this.offSince ?? this.now()) >= OFF_HOLD_MS);
 
     if (this.offRoute) {
       // Show where they really are, and find a new way from there.
-      this.shown = { me: [pos.lng, pos.lat], bearing: null };
+      this.shown = { me: [pos.lng, pos.lat], bearing: null, snapped: fix.snapped };
       if (!this.rerouting && this.now() - this.lastRerouteAt >= REROUTE_GAP_MS) void this.reroute(pos);
       return this.emit();
     }
 
+    // Close to the path: draw them on it. A little farther (a lawn, the other side of a road): draw them
+    // where they are, so the dot never freezes while they move, and keep counting progress along the route.
+    // Pinning someone to the very start or end of the route would freeze the dot while they walk away from
+    // it (just after a re-route, the route starts where they were), so only pin to points along it.
+    const alongRoute = fix.progressM > 1 && fix.progressM < this.route.total - 1;
+    const onPath = fix.offM < 3 || (alongRoute && fix.offM <= Math.max(SNAP_M, Math.min(accuracy, VAGUE_SNAP_M)));
     this.progress = fix.progressM;
-    this.shown = { me: fix.snapped, bearing: fix.bearing };
+    this.shown = onPath
+      ? { me: fix.snapped, bearing: fix.bearing }
+      : { me: [pos.lng, pos.lat], bearing: fix.bearing, snapped: fix.snapped };
     const left = this.route.total - fix.progressM;
     if (left <= ARRIVED_M || meters(pos, this.target()) <= ARRIVED_M) {
       if (this.phase === "to-stop") this.startRide();
@@ -189,6 +216,7 @@ export class NavEngine {
     this.route = null;
     this.progress = null;
     this.offCount = 0;
+    this.offSince = null;
     this.offRoute = false;
     this.generation++;
   }
@@ -201,7 +229,11 @@ export class NavEngine {
     this.emit();
     let walk: Awaited<ReturnType<FetchWalk>> = null;
     try {
-      walk = await this.fetchWalk(from, this.target());
+      // A request that hangs (a weak signal) mustn't block re-routing forever.
+      walk = await Promise.race([
+        this.fetchWalk(from, this.target()),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ROUTE_TIMEOUT_MS)),
+      ]);
     } catch {
       walk = null;
     }
@@ -218,6 +250,7 @@ export class NavEngine {
     this.route = prepareRoute(coords, walk?.junctions);
     this.progress = null;
     this.offCount = 0;
+    this.offSince = null;
     this.offRoute = false;
     if (this.pos) return this.update(this.pos);
     this.emit();
@@ -234,6 +267,7 @@ export class NavEngine {
       offRoute: this.offRoute,
       rerouting: this.rerouting,
       notice: this.notice,
+      backToPath: this.route && this.shown?.snapped ? [this.shown.me, this.shown.snapped] : null,
     };
     if (this.phase === "arrived") {
       return {

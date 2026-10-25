@@ -152,7 +152,15 @@ export default function LiveMap({
   const destMarker = useRef<Marker | null>(null);
   const originMarker = useRef<Marker | null>(null);
   // Latest overlay data, re-applied whenever the map style (re)loads.
-  const overlay = useRef({ routes: EMPTY, stops: EMPTY, trip: EMPTY, walk: EMPTY, navWalked: EMPTY, navAhead: EMPTY });
+  const overlay = useRef({
+    routes: EMPTY,
+    stops: EMPTY,
+    trip: EMPTY,
+    walk: EMPTY,
+    navWalked: EMPTY,
+    navAhead: EMPTY,
+    navLink: EMPTY,
+  });
   const meMarker = useRef<Marker | null>(null);
   // The navigation session in which the rider dragged the map away; following stops until they recenter.
   const [detachedFrom, setDetachedFrom] = useState<string | null>(null);
@@ -197,6 +205,7 @@ export default function LiveMap({
         m.addSource("walk", { type: "geojson", data: data.walk });
         m.addSource("navWalked", { type: "geojson", data: data.navWalked });
         m.addSource("navAhead", { type: "geojson", data: data.navAhead });
+        m.addSource("navLink", { type: "geojson", data: data.navLink });
         // Each route keeps its own lane where routes share a road: the offset is in line widths, so lanes
         // stay side by side at every zoom. The route being ridden is solid and drawn on top.
         m.addLayer({
@@ -257,6 +266,14 @@ export default function LiveMap({
           source: "navAhead",
           layout: { "line-cap": "round", "line-join": "round" },
           paint: { "line-color": "#262840", "line-width": 6 },
+        });
+        // Off the path: a thin red dotted line from the walker back to the nearest point on it.
+        m.addLayer({
+          id: "nav-link",
+          type: "line",
+          source: "navLink",
+          layout: { "line-cap": "round" },
+          paint: { "line-color": "#E8264F", "line-width": 3, "line-dasharray": [0.1, 2] },
         });
         m.addLayer({
           id: "stop-dots",
@@ -463,14 +480,16 @@ export default function LiveMap({
   // Live navigation lines.
   const navWalked = nav?.walked;
   const navAhead = nav?.ahead;
+  const navLink = nav?.backToPath ?? undefined;
   useEffect(() => {
     const line = (coords: [number, number][] | undefined): FC => walkGeo(coords && coords.length >= 2 ? [coords] : []);
-    overlay.current = { ...overlay.current, navWalked: line(navWalked), navAhead: line(navAhead) };
+    overlay.current = { ...overlay.current, navWalked: line(navWalked), navAhead: line(navAhead), navLink: line(navLink) };
     const m = map.current;
     if (!ready || !m) return;
     (m.getSource("navWalked") as GeoJSONSource | undefined)?.setData(overlay.current.navWalked);
     (m.getSource("navAhead") as GeoJSONSource | undefined)?.setData(overlay.current.navAhead);
-  }, [ready, navWalked, navAhead]);
+    (m.getSource("navLink") as GeoJSONSource | undefined)?.setData(overlay.current.navLink);
+  }, [ready, navWalked, navAhead, navLink]);
 
   // You are here: a navy dot with an arrow for the way you're going. While navigating it sits on the path and
   // the map follows it; otherwise it's the live GPS position.

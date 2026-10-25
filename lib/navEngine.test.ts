@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LatLng } from "./geo";
-import { demoStep, NavEngine, type NavPlan, type NavSnapshot } from "./navEngine";
+import { demoStep, NavEngine, type FetchWalk, type NavPlan, type NavSnapshot } from "./navEngine";
 
 const LAT0 = 40.912;
 const LNG0 = -73.123;
@@ -18,7 +18,7 @@ const lWalk = async (from: LatLng, to: LatLng) => ({
 });
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
-function start(plan: NavPlan, fetchWalk = lWalk) {
+function start(plan: NavPlan, fetchWalk: FetchWalk = lWalk) {
   const seen: NavSnapshot[] = [];
   let clock = 0;
   const engine = new NavEngine(plan, fetchWalk, (s) => seen.push(s), () => clock);
@@ -49,7 +49,7 @@ describe("NavEngine walking", () => {
     expect(s.offRoute).toBe(false);
   });
 
-  it("re-routes after a few fixes well away from the path", async () => {
+  it("re-routes after two fixes well away from the path", async () => {
     const calls: LatLng[] = [];
     const nav = start(walkPlan, async (from, to) => {
       calls.push(from);
@@ -58,26 +58,80 @@ describe("NavEngine walking", () => {
     nav.engine.update(at(0, 0));
     await flush();
     nav.engine.update(at(50, 0));
-    // Wander 60 m south of the path.
+    // Wander 45 m south of the path.
     nav.tick(10_000);
-    nav.engine.update(at(60, -60));
-    nav.engine.update(at(62, -60));
-    expect(nav.last().offRoute).toBe(false); // two fixes could be GPS noise
-    nav.engine.update(at(64, -60));
+    nav.engine.update({ ...at(60, -45), accuracyM: 10 });
+    expect(nav.last().offRoute).toBe(false); // one fix could be GPS noise
+    // ...but the dot already shows where they are, with a line back to the path.
+    expect(nav.last().me![1]).toBeCloseTo(at(60, -45).lat, 6);
+    expect(nav.last().backToPath).toHaveLength(2);
+    nav.engine.update({ ...at(62, -45), accuracyM: 10 });
     expect(nav.last().offRoute).toBe(true);
     expect(nav.last().rerouting).toBe(true);
     await flush();
     expect(calls).toHaveLength(2);
-    expect(calls[1].lat).toBeCloseTo(at(64, -60).lat, 6);
+    expect(calls[1].lat).toBeCloseTo(at(62, -45).lat, 6);
     expect(nav.last().offRoute).toBe(false);
+    expect(nav.last().backToPath).toBeNull();
+  });
+
+  it("keeps showing a walker who carries on away from where a new route starts", async () => {
+    const nav = start(walkPlan);
+    nav.engine.update(at(0, 0));
+    await flush();
+    // Directions start at (0, 0); walking 8 m the other way mustn't pin them back to that start.
+    nav.engine.update({ ...at(-8, 0), accuracyM: 5 });
+    expect(nav.last().me![0]).toBeCloseTo(at(-8, 0).lng, 6);
+  });
+
+  it("re-routes at once when the walker is far from the path", async () => {
+    const nav = start(walkPlan);
+    nav.engine.update(at(0, 0));
+    await flush();
+    nav.tick(10_000);
+    nav.engine.update({ ...at(60, -90), accuracyM: 10 });
+    expect(nav.last().offRoute).toBe(true);
+  });
+
+  it("moves the dot off the path a little way out without calling it leaving", async () => {
+    const nav = start(walkPlan);
+    nav.engine.update(at(0, 0));
+    await flush();
+    // 20 m off: too far to draw them on the path, not far enough to re-route.
+    nav.engine.update({ ...at(80, 20), accuracyM: 8 });
+    const s = nav.last();
+    expect(s.offRoute).toBe(false);
+    expect(s.me![1]).toBeCloseTo(at(80, 20).lat, 6);
+    expect(s.instruction).toBe("Turn left in 120 m");
   });
 
   it("doesn't call it leaving the route when GPS is too vague to tell", async () => {
     const nav = start(walkPlan);
     nav.engine.update(at(0, 0));
     await flush();
-    for (let i = 0; i < 5; i++) nav.engine.update({ ...at(50, -40), accuracyM: 80 });
+    for (let i = 0; i < 5; i++) {
+      nav.tick(2000);
+      nav.engine.update({ ...at(50, -40), accuracyM: 80 });
+    }
     expect(nav.last().offRoute).toBe(false);
+    // So vague a fix is drawn on the path.
+    expect(nav.last().me![1]).toBeCloseTo(LAT0, 6);
+  });
+
+  it("tries again when directions don't come back", async () => {
+    let calls = 0;
+    const nav = start(walkPlan, async (from, to) => {
+      calls++;
+      return calls === 1 ? null : lWalk(from, to);
+    });
+    nav.engine.update(at(0, 0));
+    await flush();
+    expect(nav.last().notice).toMatch(/Couldn't get walking directions/);
+    nav.tick(6000);
+    nav.engine.update(at(5, 0));
+    await flush();
+    expect(calls).toBe(2);
+    expect(nav.last().ahead.length).toBeGreaterThan(1);
   });
 
   it("says when you've arrived", async () => {
