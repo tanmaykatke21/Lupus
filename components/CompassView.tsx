@@ -56,7 +56,7 @@ function describe(p: Phase, location: LngLat | null, now: number) {
       };
     }
     case "arrive":
-      return { title: "You've arrived", detail: p.name, spoken: `You've arrived at ${p.name}.` };
+      return { title: "You've arrived", detail: p.name, spoken: `You've arrived at ${p.name}. End of the line!` };
   }
 }
 
