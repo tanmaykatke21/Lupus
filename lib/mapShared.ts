@@ -18,7 +18,18 @@ export interface MapProps {
   userLocation?: LngLat | null;
   onStopClick?: (stop: BusStop) => void;
   bottomPadding?: number;
+  /** Frame the trip only when this changes (new trip or option), never on routine refreshes. */
+  fitKey?: string | null;
+  /** Navigation follow mode: center on the user, rotate so their heading is up, tilt. */
+  follow?: { on: boolean; heading: number | null };
+  /** The user dragged the map (pauses follow mode). */
+  onUserPan?: () => void;
 }
+
+export const FOLLOW_ZOOM = 18;
+export const FOLLOW_TILT = 50;
+/** Skip camera updates smaller than this, so a jittery compass doesn't thrash the map. */
+export const FOLLOW_MIN_TURN = 4;
 
 /** Bus marker: route-colored disc with a heading arrow. Rotate `.heading` to point it. */
 export function busElement(color: string, abbr: string) {

@@ -9,6 +9,8 @@ export type LocationStatus = "idle" | "locating" | "ok" | "denied" | "unavailabl
 export function useLocation() {
   const [coords, setCoords] = useState<LngLat | null>(null);
   const [status, setStatus] = useState<LocationStatus>("idle");
+  // Direction of travel from GPS (degrees from north), when moving; a fallback for phones without a compass.
+  const [course, setCourse] = useState<number | null>(null);
   const watchId = useRef<number | null>(null);
 
   const start = useCallback(() => {
@@ -16,7 +18,12 @@ export function useLocation() {
     if (watchId.current !== null) return;
     setStatus("locating");
     watchId.current = navigator.geolocation.watchPosition(
-      pos => { setCoords([pos.coords.longitude, pos.coords.latitude]); setStatus("ok"); },
+      pos => {
+        setCoords([pos.coords.longitude, pos.coords.latitude]);
+        setStatus("ok");
+        const { heading, speed } = pos.coords;
+        if (heading !== null && !Number.isNaN(heading) && (speed ?? 0) > 0.5) setCourse(heading);
+      },
       err => {
         setStatus(err.code === err.PERMISSION_DENIED ? "denied" : "unavailable");
         if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
@@ -30,5 +37,5 @@ export function useLocation() {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current);
   }, []);
 
-  return { coords, status, start };
+  return { coords, status, start, course };
 }

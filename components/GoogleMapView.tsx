@@ -4,7 +4,8 @@ import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { laneSpacingPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
 import { laneRoutes } from "@/lib/lanes";
-import { busElement, CAMPUS_CENTER, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
+import { turn } from "@/lib/compass";
+import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
 import type { LngLat } from "@/lib/types";
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -30,7 +31,7 @@ function dot(fill: string, stroke: string, size: number, className = "") {
   return el;
 }
 
-export default function GoogleMapView({ routes, stops, buses, overlay, userLocation, onStopClick, bottomPadding = 0, onError }: MapProps & { onError: () => void }) {
+export default function GoogleMapView({ routes, stops, buses, overlay, userLocation, onStopClick, bottomPadding = 0, onError, fitKey, follow, onUserPan }: MapProps & { onError: () => void }) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const libsRef = useRef<Libs | null>(null);
@@ -43,9 +44,14 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
   const lastPadding = useRef(bottomPadding);
   const onStopRef = useRef(onStopClick);
   const onErrorRef = useRef(onError);
+  const onPanRef = useRef(onUserPan);
+  const overlayRef = useRef(overlay);
+  const lastCamera = useRef<{ heading: number; lng: number; lat: number } | null>(null);
   useEffect(() => {
     onStopRef.current = onStopClick;
     onErrorRef.current = onError;
+    onPanRef.current = onUserPan;
+    overlayRef.current = overlay;
   });
 
   // Load the API and create the map once.
@@ -72,7 +78,12 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
           fullscreenControl: false,
           gestureHandling: "greedy",
           clickableIcons: false,
+          // Vector rendering allows rotating and tilting the map for navigation.
+          renderingType: "VECTOR",
+          headingInteractionEnabled: true,
+          tiltInteractionEnabled: true,
         });
+        mapRef.current.addListener("dragstart", () => onPanRef.current?.());
         setReady(true);
       } catch (err) {
         console.error("[map] Google Maps failed to load", err);
@@ -160,15 +171,49 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     if (overlay.to) {
       tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.to), zIndex: 6, content: dot("#c8283e", "#fff", 20) }));
     }
-    const pts = [...overlay.walk.flat(), ...overlay.bus.flatMap(b => b.coords)];
-    if (pts.length > 1) {
-      const bounds = new libs.core.LatLngBounds();
-      pts.forEach(p => bounds.extend(toLatLng(p)));
-      map.fitBounds(bounds, { top: 70, left: 40, right: 40, bottom: bottomPadding + 40 });
-    }
-    // Framing uses the padding at the time the trip appears; sheet drags are handled below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [overlay, ready]);
+
+  // Frame the trip only when the trip itself changes, so the user's own zoom is never undone.
+  const following = !!follow?.on;
+  useEffect(() => {
+    const map = mapRef.current, libs = libsRef.current, trip = overlayRef.current;
+    if (!map || !libs || !trip || !fitKey || following) return;
+    const pts = [...trip.walk.flat(), ...trip.bus.flatMap(b => b.coords)];
+    if (pts.length < 2) return;
+    const bounds = new libs.core.LatLngBounds();
+    pts.forEach(p => bounds.extend(toLatLng(p)));
+    map.moveCamera({ heading: 0, tilt: 0 });
+    map.fitBounds(bounds, { top: 70, left: 40, right: 40, bottom: lastPadding.current + 40 });
+  }, [fitKey, ready, following]);
+
+  // Follow mode: user centered (a little low, above the sheet), heading up, tilted.
+  const heading = follow?.heading ?? null;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    if (!following || !userLocation) {
+      if (lastCamera.current) map.moveCamera({ heading: 0, tilt: 0 });
+      lastCamera.current = null;
+      return;
+    }
+    const prev = lastCamera.current;
+    const h = heading ?? prev?.heading ?? 0;
+    const moved = !prev || Math.abs(prev.lng - userLocation[0]) > 1e-5 || Math.abs(prev.lat - userLocation[1]) > 1e-5;
+    if (prev && !moved && Math.abs(turn(prev.heading, h)) < FOLLOW_MIN_TURN) return;
+    lastCamera.current = { heading: h, lng: userLocation[0], lat: userLocation[1] };
+    const zoom = prev ? map.getZoom() ?? FOLLOW_ZOOM : Math.max(map.getZoom() ?? 0, FOLLOW_ZOOM);
+    // Put the user 70% of the way down the visible map (above the sheet), looking forward:
+    // the camera centers that many pixels "behind" them along the heading.
+    const mapH = map.getDiv().clientHeight;
+    const offsetPx = mapH / 2 - 0.7 * (mapH - lastPadding.current);
+    const backM = offsetPx * metersPerPixel(userLocation[1], zoom);
+    const rad = (h * Math.PI) / 180;
+    const center = {
+      lat: userLocation[1] - (backM * Math.cos(rad)) / 110_540,
+      lng: userLocation[0] - (backM * Math.sin(rad)) / (111_320 * Math.cos((userLocation[1] * Math.PI) / 180)),
+    };
+    map.moveCamera({ center, heading: h, tilt: FOLLOW_TILT, zoom });
+  }, [following, heading, userLocation, ready]);
 
   // Google Maps has no persistent padding, so keep the view centered above the sheet by panning.
   useEffect(() => {

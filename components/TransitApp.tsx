@@ -85,6 +85,8 @@ export default function TransitApp() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [homeTab, setHomeTab] = useState<"go" | "trains" | "classes">("go");
   const [navOption, setNavOption] = useState<RouteOption | null>(null);
+  // Map follow mode (heading-up navigation view); paused when the user drags the map.
+  const [following, setFollowing] = useState(false);
   const onHeight = useCallback((px: number) => setSheetPx(px), []);
 
   const fromCoords: LngLat | null = request?.from ? lngLat(request.from)
@@ -237,7 +239,7 @@ export default function TransitApp() {
   } else if (view === "nav" && navOption && request) {
     body = (
       <NavMode option={navOption} destination={request.to.name} lang={settings.language} voice={settings.voice}
-        now={now} location={location.coords} onExit={() => { setNavOption(null); setView("results"); }} />
+        now={now} location={location.coords} onExit={() => { setNavOption(null); setFollowing(false); setView("results"); }} />
     );
   } else if (view === "results" && request) {
     body = (
@@ -259,7 +261,9 @@ export default function TransitApp() {
         onUnsave={() => setSaved(s => s.filter(x => x.placeId !== request.to.placeId))}
         onStart={option => {
           unlockAudio(); // must run inside the tap for iOS
+          heading.start(); // iOS asks for motion access here, for the heading-up map
           if (!request.from && origin.kind === "me") location.start();
+          setFollowing(true);
           setNavOption(option);
           setView("nav");
           setSnap("half");
@@ -357,11 +361,30 @@ export default function TransitApp() {
     );
   }
 
+  // Frame the map only when the trip or the chosen option changes, not on every refresh or GPS fix.
+  const shownOption = view === "nav" ? navOption : view === "results" ? selected : null;
+  const fitKey = overlay && request && shownOption ? `${request.to.lng},${request.to.lat}|${shownOption.id}|${view}` : null;
+  const canFollow = !!overlay && origin.kind === "me" && !!location.coords && (view === "results" || view === "nav");
+  const followOn = following && canFollow;
+
   return (
     <main className="relative h-dvh w-full overflow-hidden">
       <MapView routes={routes} stops={stops} buses={buses} overlay={overlay}
         userLocation={origin.kind === "me" ? location.coords : null}
-        onStopClick={onStopClick} bottomPadding={sheetPx} />
+        onStopClick={onStopClick} bottomPadding={sheetPx}
+        fitKey={fitKey}
+        follow={{ on: followOn, heading: heading.heading ?? location.course }}
+        onUserPan={() => setFollowing(false)} />
+      {canFollow && (
+        <button
+          onClick={() => { if (!followOn) heading.start(); setFollowing(f => !f); }}
+          aria-pressed={followOn}
+          className={`absolute right-3 z-10 flex h-12 items-center gap-2 rounded-full px-4 text-sm font-bold shadow-lg ${followOn ? "btn-brass" : "plate"}`}
+          style={{ bottom: sheetPx + 12 }}
+        >
+          {followOn ? "🧭 Following" : "📍 Follow me"}
+        </button>
+      )}
       <BottomSheet snap={snap} onSnapChange={setSnap} onHeightChange={onHeight} header={header}>
         {view === "home" && (
           <div className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Sections">

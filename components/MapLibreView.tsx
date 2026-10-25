@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
-import { busElement, CAMPUS_CENTER, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
+import { turn } from "@/lib/compass";
+import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
 import { laneRoutes } from "@/lib/lanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
@@ -51,17 +52,18 @@ function overlayData(o: TripOverlay | null | undefined): FC {
   ]);
 }
 
-export default function MapLibreView({ routes, stops, buses, overlay, userLocation, onStopClick, bottomPadding = 0 }: MapProps) {
+export default function MapLibreView({ routes, stops, buses, overlay, userLocation, onStopClick, bottomPadding = 0, fitKey, follow, onUserPan }: MapProps) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
   const libRef = useRef<typeof import("maplibre-gl") | null>(null);
   const markers = useRef(new Map<string, Marker>());
   const userMarker = useRef<Marker | null>(null);
   const [styleReady, setStyleReady] = useState(0); // bumps on every style load
-  const latest = useRef({ routes, stops, overlay, onStopClick });
+  const latest = useRef({ routes, stops, overlay, onStopClick, onUserPan });
   useEffect(() => {
-    latest.current = { routes, stops, overlay, onStopClick };
+    latest.current = { routes, stops, overlay, onStopClick, onUserPan };
   });
+  const lastCamera = useRef<{ heading: number; lng: number; lat: number } | null>(null);
 
   // Create the map once.
   useEffect(() => {
@@ -88,6 +90,8 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
         const stop = latest.current.stops.find(s => s.id === id);
         if (stop) latest.current.onStopClick?.(stop);
       });
+      // A drag by the user (not our own camera moves) pauses follow mode.
+      map.on("dragstart", e => { if (e.originalEvent) latest.current.onUserPan?.(); });
       map.on("mouseenter", "stops", () => (map.getCanvas().style.cursor = "pointer"));
       map.on("mouseleave", "stops", () => (map.getCanvas().style.cursor = ""));
 
@@ -157,19 +161,51 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
     mapRef.current?.easeTo({ padding: { top: 0, left: 0, right: 0, bottom: bottomPadding }, duration: 300 });
   }, [bottomPadding, styleReady]);
 
-  // Trip overlay: draw and frame it.
+  // Trip overlay: redraw on every refresh…
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
     (map.getSource("trip") as GeoJSONSource | undefined)?.setData(overlayData(overlay));
     if (map.getLayer("routes")) map.setPaintProperty("routes", "line-opacity", overlay ? 0.25 : 0.8);
-    if (!overlay || !libRef.current) return;
-    const pts = [...overlay.walk.flat(), ...overlay.bus.flatMap(b => b.coords)];
+  }, [overlay, styleReady]);
+
+  // …but frame it only when the trip itself changes, so the user's own zoom is never undone.
+  const following = !!follow?.on;
+  useEffect(() => {
+    const map = mapRef.current, lib = libRef.current, trip = latest.current.overlay;
+    if (!map || !lib || !styleReady || !trip || !fitKey || following) return;
+    const pts = [...trip.walk.flat(), ...trip.bus.flatMap(b => b.coords)];
     if (pts.length < 2) return;
-    const bounds = pts.reduce((b, p) => b.extend(p), new libRef.current.LngLatBounds(pts[0], pts[0]));
-    // The sheet is already accounted for by the map's own padding (set below via easeTo).
-    map.fitBounds(bounds, { padding: { top: 70, left: 40, right: 40, bottom: 40 }, maxZoom: 17.5, duration: 700 });
-  }, [overlay, styleReady, bottomPadding]);
+    const bounds = pts.reduce((b, p) => b.extend(p), new lib.LngLatBounds(pts[0], pts[0]));
+    // The sheet is already accounted for by the map's own padding.
+    map.fitBounds(bounds, { padding: { top: 70, left: 40, right: 40, bottom: 40 }, maxZoom: 17.5, bearing: 0, pitch: 0, duration: 700 });
+  }, [fitKey, styleReady, following]);
+
+  // Follow mode: keep the user centered, heading up, tilted, like turn-by-turn navigation.
+  const heading = follow?.heading ?? null;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !styleReady) return;
+    if (!following || !userLocation) {
+      if (lastCamera.current) map.easeTo({ pitch: 0, bearing: 0, duration: 500 });
+      lastCamera.current = null;
+      return;
+    }
+    const prev = lastCamera.current;
+    const h = heading ?? prev?.heading ?? 0;
+    const moved = !prev || Math.abs(prev.lng - userLocation[0]) > 1e-5 || Math.abs(prev.lat - userLocation[1]) > 1e-5;
+    if (prev && !moved && Math.abs(turn(prev.heading, h)) < FOLLOW_MIN_TURN) return;
+    lastCamera.current = { heading: h, lng: userLocation[0], lat: userLocation[1] };
+    // Map padding already keeps the sheet clear; nudge the user lower in the visible area, looking ahead.
+    const visibleH = map.getContainer().clientHeight - bottomPadding;
+    map.easeTo({
+      center: userLocation, bearing: h, pitch: FOLLOW_TILT, offset: [0, visibleH * 0.2],
+      zoom: prev ? map.getZoom() : Math.max(map.getZoom(), FOLLOW_ZOOM), // keep the user's zoom once following
+      duration: prev ? 350 : 800,
+    });
+    // bottomPadding is read for the offset only; sheet drags shouldn't re-run the camera.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [following, heading, userLocation, styleReady]);
 
   // Live bus markers, keyed by vehicle id so they glide instead of blinking.
   useEffect(() => {
