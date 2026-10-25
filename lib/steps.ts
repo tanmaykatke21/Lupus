@@ -1,5 +1,5 @@
 // Plain-English step instructions for a route option. Short and clear first;
-// the conductor flavor is added separately so it never hides the instruction.
+// lib/conductor.ts turns them into spoken lines.
 import type { Leg, RouteOption } from "./router";
 import { formatClock } from "./time";
 import type { LngLat } from "./types";
