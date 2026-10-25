@@ -3,6 +3,7 @@ import { mockClient } from "@/lib/agent/mock";
 import { runAgent, type Turn } from "@/lib/agent/run";
 import type { AgentContext } from "@/lib/agent/tools";
 import { getBusFeed, getNetwork } from "@/lib/etaspot";
+import { walkBetween } from "@/lib/walkService";
 import { searchablePlaces } from "@/lib/places";
 
 const MAX_QUESTION = 400;
@@ -56,7 +57,18 @@ export async function POST(request: Request) {
       ? { lat: c.lat, lng: c.lng, label: typeof c.label === "string" ? c.label.slice(0, 60) : "Your location" }
       : null;
   const places = searchablePlaces(network);
-  const ctx: AgentContext = { network, buses: feed.buses, places, current, nowMs: feed.asOf, plans: new Map() };
+  const ctx: AgentContext = {
+    network,
+    buses: feed.buses,
+    places,
+    current,
+    nowMs: feed.asOf,
+    plans: new Map(),
+    walkMeters: (from, to) => {
+      const walk = walkBetween(from, to);
+      return walk.source === "paths" ? walk.meters : null;
+    },
+  };
 
   const history: Turn[] = [];
   const prev = body.previous;

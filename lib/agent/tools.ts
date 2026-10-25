@@ -19,6 +19,8 @@ export interface AgentContext {
   nowMs: number;
   /** Plans made during this conversation turn, so show_answer can point at one by id. */
   plans: Map<string, StoredPlan>;
+  /** Walking distance along real paths, when the server has them; null falls back to an estimate. */
+  walkMeters?: (from: LatLng, to: LatLng) => number | null;
 }
 
 export interface StoredPlan {
@@ -156,7 +158,7 @@ export function runTool(name: string, args: Record<string, unknown>, ctx: AgentC
         from = { id: p.id, name: p.name, lat: p.lat, lng: p.lng };
       }
 
-      const plan = planTrip(from, to, ctx.network, ctx.buses);
+      const plan = planTrip(from, to, ctx.network, ctx.buses, { walkMeters: ctx.walkMeters?.(from, to) ?? null });
       if (plan.farFromStops && meters(from, to) > 5000) {
         return { error: `The start is ${Math.round(plan.nearestStopMeters / 1000)} km from campus. Ask where on campus they are starting.` };
       }

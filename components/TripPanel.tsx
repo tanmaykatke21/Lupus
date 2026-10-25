@@ -5,8 +5,9 @@ import { clockAfter, minLabel } from "@/lib/campusClock";
 import type { Bus } from "@/lib/etaspot";
 import type { LatLng } from "@/lib/geo";
 import type { Network } from "@/lib/network";
-import { planTrip, type LeaveStatus, type TripOption, type TripPlan } from "@/lib/planner";
+import { planTrip, type LeaveStatus, type TravelMode, type TripOption, type TripPlan, type TripView } from "@/lib/planner";
 import { routeColor, routeLabel, routeName, textOn } from "@/lib/routes";
+import type { WalkResult } from "@/lib/walkService";
 
 interface Props {
   origin: LatLng;
@@ -15,8 +16,14 @@ interface Props {
   buses: Bus[];
   /** When the bus data was received, so countdowns keep running between updates. */
   receivedAt: number;
-  /** Lets the map highlight the stops of the option being shown. */
-  onShow: (option: TripOption | null) => void;
+  /** Best (whatever is fastest), bus only, or walk only. */
+  mode: TravelMode;
+  /** Walking directions for the whole trip, once they arrive; their distance replaces the estimate. */
+  walk?: WalkResult | null;
+  /** Start live navigation for the trip shown; `demo` walks it automatically instead of following GPS. */
+  onStart?: (demo: boolean) => void;
+  /** Tells the map what to draw: the bus option shown, or the walk. */
+  onShow: (view: TripView) => void;
   /** A deadline the rider gave Ask Lupus ("lab at 3"), kept live as buses move. */
   deadline?: { label: string; atMs: number } | null;
   /**
@@ -81,6 +88,27 @@ function StatusScale({ status }: { status: LeaveStatus }) {
   );
 }
 
+function distanceLabel(m: number): string {
+  return m < 950 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(1)} km`;
+}
+
+function StartButtons({ onStart }: { onStart: (demo: boolean) => void }) {
+  return (
+    <div className="mt-3 flex gap-2">
+      <button type="button" onClick={() => onStart(false)} className="flex-1 rounded-full bg-navy px-4 py-2.5 text-sm font-semibold text-white">
+        Start
+      </button>
+      <button
+        type="button"
+        onClick={() => onStart(true)}
+        className="rounded-full bg-concrete px-4 py-2.5 text-sm font-semibold text-navy hover:bg-fur/20"
+      >
+        Demo walk
+      </button>
+    </div>
+  );
+}
+
 /** "12 min to spare before 3:00 PM" / "About 4 min late for 3:00 PM", from minutes left after arriving. */
 function bufferText(spare: number, label: string): string {
   const m = Math.round(Math.abs(spare));
@@ -89,7 +117,19 @@ function bufferText(spare: number, label: string): string {
   return `About ${m} min late for ${label}`;
 }
 
-export default function TripPanel({ origin, destination, network, buses, receivedAt, onShow, deadline, clockShiftMs = 0 }: Props) {
+export default function TripPanel({
+  origin,
+  destination,
+  network,
+  buses,
+  receivedAt,
+  mode,
+  walk,
+  onStart,
+  onShow,
+  deadline,
+  clockShiftMs = 0,
+}: Props) {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -104,13 +144,24 @@ export default function TripPanel({ origin, destination, network, buses, receive
   const base = now ?? receivedAt;
   const clock = base + clockShiftMs;
   // Recompute once per second from the latest bus data; the planner is cheap.
+  const pathMeters = walk?.source === "paths" ? walk.meters : null;
   const plan: TripPlan = useMemo(
-    () => planTrip(origin, destination, network, ageBuses(buses, (base - receivedAt) / 60_000)),
-    [origin, destination, network, buses, receivedAt, base],
+    () => planTrip(origin, destination, network, ageBuses(buses, (base - receivedAt) / 60_000), { walkMeters: pathMeters }),
+    [origin, destination, network, buses, receivedAt, base, pathMeters],
   );
+  const walkNote = !walk
+    ? null
+    : walk.source === "paths"
+      ? `${distanceLabel(walk.meters)} along campus paths, shown on the map.`
+      : "Walking paths aren't loaded, so the map shows a straight line and the time is an estimate.";
 
-  const top = plan.best === "bus" ? plan.options[0] : null;
-  useEffect(() => onShow(top ?? null), [top?.busId, top?.board.stop.id, top?.alight.stop.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // "Best" follows the planner; "Bus" shows the fastest bus even when walking is quicker; "Walk" never a bus.
+  const byBus = mode === "bus" || (mode === "best" && plan.best === "bus");
+  const top = byBus ? (plan.options[0] ?? null) : null;
+  useEffect(
+    () => onShow(byBus ? { kind: "bus", option: top } : { kind: "walk" }),
+    [byBus, top?.busId, top?.board.stop.id, top?.alight.stop.id], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   // "Walk 2 more min to X and save 7": compare the best option with the one from the closest stop.
   const closest = [...plan.options].sort((a, b) => a.board.walkMin - b.board.walkMin)[0];
@@ -122,7 +173,9 @@ export default function TripPanel({ origin, destination, network, buses, receive
         )} sooner than from ${closest.board.stop.name}.`
       : null;
 
-  const others = plan.options.filter((o) => o !== top).slice(0, 3);
+  const others = mode === "walk" ? [] : plan.options.filter((o) => o !== top).slice(0, 3);
+  const vsWalk = top ? plan.walkMin - top.arriveInMin : 0;
+  const busGain = plan.options[0] ? plan.walkMin - plan.options[0].arriveInMin : 0;
   const spare = deadline ? (deadline.atMs - base) / 60_000 - (top ? top.arriveInMin : plan.walkMin) : null;
   const deadlineLine =
     deadline && spare !== null ? (
@@ -155,7 +208,13 @@ export default function TripPanel({ origin, destination, network, buses, receive
           <p className="mt-3 text-sm">
             Arrive {about(top)}
             <span className="font-semibold">{clockAfter(clock, top.arriveInMin)}</span>
-            <span className="text-fur-dark">, {minLabel(plan.walkMin - top.arriveInMin)} faster than walking</span>
+            <span className="text-fur-dark">
+              {vsWalk >= 0.5
+                ? `, ${minLabel(vsWalk)} faster than walking`
+                : vsWalk > -0.5
+                  ? ", about the same as walking"
+                  : `. Walking is ${minLabel(-vsWalk)} faster`}
+            </span>
           </p>
           {deadlineLine}
           {top.estimated && (
@@ -164,21 +223,35 @@ export default function TripPanel({ origin, destination, network, buses, receive
             </p>
           )}
           {tradeoff && <p className="mt-3 rounded-xl bg-concrete px-3 py-2 text-sm">{tradeoff}</p>}
+          {onStart && <StartButtons onStart={onStart} />}
+        </article>
+      ) : byBus ? (
+        <article className="rounded-2xl bg-white p-4" aria-live="polite">
+          <h3 className="text-2xl font-semibold leading-tight">No bus right now</h3>
+          <p className="mt-1 text-sm text-fur-dark">
+            No running bus gets you there from here. Walking takes {minLabel(plan.walkMin)}, arriving{" "}
+            {clockAfter(clock, plan.walkMin)}.
+          </p>
+          {deadlineLine}
         </article>
       ) : (
         <article className="rounded-2xl bg-white p-4" aria-live="polite">
           <h3 className="tabular text-3xl font-semibold leading-tight">Walk there, {minLabel(plan.walkMin)}</h3>
           <p className="mt-1 text-sm text-fur-dark">
-            {plan.options.length
-              ? "Walking beats every bus that's running right now."
-              : "No running bus gets you there from here right now."}{" "}
+            {mode === "walk" && busGain >= 0.5
+              ? `The bus would be ${minLabel(busGain)} faster.`
+              : plan.options.length
+                ? "Walking beats every bus that's running right now."
+                : "No running bus gets you there from here right now."}{" "}
             Arrive {clockAfter(clock, plan.walkMin)}.
           </p>
+          {walkNote && <p className="mt-2 text-xs text-fur-dark">{walkNote}</p>}
           {deadlineLine}
+          {onStart && <StartButtons onStart={onStart} />}
         </article>
       )}
 
-      {(others.length > 0 || top) && (
+      {(others.length > 0 || (top && mode === "best")) && (
         <ul className="flex flex-col overflow-hidden rounded-2xl bg-white" aria-label="Other ways to go">
           {others.map((o) => (
             <li key={`${o.busId}-${o.board.stop.id}`} className="flex items-center gap-3 px-4 py-3">
@@ -196,7 +269,7 @@ export default function TripPanel({ origin, destination, network, buses, receive
               </p>
             </li>
           ))}
-          {top && (
+          {top && mode === "best" && (
             <li className="flex items-center gap-3 px-4 py-3">
               <span className="grid h-7 min-w-7 place-items-center rounded-lg bg-concrete text-xs font-semibold" aria-hidden="true">
                 Walk

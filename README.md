@@ -43,7 +43,20 @@ LAN address in the phone's browser for everything except location.
   without Gemini (for demos without quota, and tests).
 - **Routes and stops** (`/api/network`) come live from ETA Spot (cached 15 minutes, since weekday and weekend
   routes differ), falling back to the copy saved by `npm run save:etaspot`. The map draws each route in its
-  ETA Spot color.
+  ETA Spot color; where routes share a road they run side by side in lanes. During a trip only the routes
+  that serve it are drawn, faded, with the route you'd ride solid.
+- **Best / Bus / Walk filter**: Best shows whatever is fastest (no bus layer at all when walking wins), Bus
+  always shows the fastest bus, Walk only the walk.
+- **Walking directions** (`/api/walk`): walks follow real campus paths, sidewalks and stairs from
+  OpenStreetMap, routed with A* over the network in `data/walkways.json` (built by `npm run build:walkways`).
+  The map draws the whole walk, or the walks to and from the bus, and the trip times use the real distance.
+  Without that file the app falls back to a straight line and says so.
+- **Live navigation**: "Start" on a trip follows your GPS (high accuracy, screen kept awake). Your dot is
+  snapped onto the path you're walking, the walked part turns grey, and the panel shows the next turn
+  ("Turn left in 60 m") with time, distance and arrival. Wander more than 30 m off the path for three fixes
+  and Lupus finds a new way from where you are. Bus trips go walk to the stop → ride (live countdown for your
+  bus, "I'm off the bus") → walk to the destination. "Demo walk" plays the trip without GPS, for demos.
+  Phones only share location over HTTPS, so test navigation on the deployed site (or localhost on a laptop).
 
 ## Scripts
 
@@ -54,6 +67,7 @@ LAN address in the phone's browser for everything except location.
 | `npm run typecheck` / `lint` | Type and lint checks |
 | `npm run save:etaspot` | Save ETA Spot's routes, stops and a vehicle snapshot to `data/samples/` |
 | `npm run build:places` | Look up campus buildings in OpenStreetMap and write `data/places.json` (add `--refresh` to re-download) |
+| `npm run build:walkways` | Download campus footpaths, sidewalks and walkable streets from OpenStreetMap and write the walking network to `data/walkways.json` (add `--refresh` to re-download) |
 
 ## Environment variables
 

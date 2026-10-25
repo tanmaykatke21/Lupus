@@ -118,8 +118,13 @@ function statusFor(leaveInMin: number): LeaveStatus {
   return "run";
 }
 
-export function planTrip(origin: LatLng, destination: LatLng, network: Network, buses: Bus[]): TripPlan {
-  const walkMeters = meters(origin, destination) * PATH_DETOUR;
+export interface PlanOptions {
+  /** The real walking distance along paths, when known; otherwise it's estimated from the straight line. */
+  walkMeters?: number | null;
+}
+
+export function planTrip(origin: LatLng, destination: LatLng, network: Network, buses: Bus[], opts: PlanOptions = {}): TripPlan {
+  const walkMeters = opts.walkMeters ?? meters(origin, destination) * PATH_DETOUR;
   const walkMin = walkMeters / WALK_M_PER_MIN;
   const stops = new Map(network.stops.map((s) => [s.id, s]));
   const seg = observedSegments(buses);
@@ -194,3 +199,9 @@ export function planTrip(origin: LatLng, destination: LatLng, network: Network, 
     nearestStopMeters,
   };
 }
+
+/** The rider's filter for trip options: whatever is fastest, only buses, or only walking. */
+export type TravelMode = "best" | "bus" | "walk";
+
+/** What the map should draw for the trip: a bus option (null when no bus can do it) or a walk. */
+export type TripView = { kind: "bus"; option: TripOption | null } | { kind: "walk" };

@@ -4,20 +4,32 @@ import Image from "next/image";
 import { useCallback, useMemo, useState } from "react";
 import { useBusFeed } from "@/hooks/useBusFeed";
 import { useLocation } from "@/hooks/useLocation";
+import { useNavigation } from "@/hooks/useNavigation";
 import { useNetwork } from "@/hooks/useNetwork";
+import { useWalkPaths, type WalkLeg } from "@/hooks/useWalkPaths";
 import { meters, type LatLng } from "@/lib/geo";
+import { relevantRouteIds } from "@/lib/relevance";
+import { routeColor, routeLabel, routeName, textOn } from "@/lib/routes";
 import { searchablePlaces, type Place } from "@/lib/places";
-import type { TripOption } from "@/lib/planner";
+import type { TravelMode, TripView } from "@/lib/planner";
 import type { AnswerCard } from "@/lib/agent/run";
+import type { NavPlan } from "@/lib/navEngine";
 import AskLupus, { VERDICT, type AskState } from "./AskLupus";
 import BusRow from "./BusRow";
 import LiveMap from "./LiveMap";
+import NavPanel from "./NavPanel";
 import PlaceSearch from "./PlaceSearch";
 import StatusPill from "./StatusPill";
 import TripPanel from "./TripPanel";
 
 /** Beyond this distance from every stop, GPS can't be the starting point (you're not on campus). */
 const ON_CAMPUS_M = 1500;
+
+const MODES: { id: TravelMode; label: string }[] = [
+  { id: "best", label: "Best" },
+  { id: "bus", label: "Bus" },
+  { id: "walk", label: "Walk" },
+];
 
 export default function TransitApp() {
   const { feed, receivedAt, error } = useBusFeed();
@@ -28,7 +40,12 @@ export default function TransitApp() {
   const [destination, setDestination] = useState<Place | null>(null);
   const [startPlace, setStartPlace] = useState<Place | null>(null);
   const [pickingStart, setPickingStart] = useState(false);
-  const [shown, setShown] = useState<TripOption | null>(null);
+  const [shown, setShown] = useState<TripView | null>(null);
+  const [travelMode, setTravelMode] = useState<TravelMode>("best");
+  // Live navigation: the trip being navigated, and whether it's the automatic demo walk.
+  const [navPlan, setNavPlan] = useState<NavPlan | null>(null);
+  const [navDemo, setNavDemo] = useState(false);
+  const navigation = useNavigation(navPlan, navDemo);
   const [searching, setSearching] = useState(false);
   // The start-point box only makes the sheet taller; it must not hide the trip section it lives in.
   const [startSearching, setStartSearching] = useState(false);
@@ -55,6 +72,52 @@ export default function TransitApp() {
   const gpsOnCampus = nearestStopM !== null && nearestStopM <= ON_CAMPUS_M;
 
   const origin: LatLng | null = startPlace ?? (gpsOnCampus ? gpsOrigin : null);
+  // While planning a trip, only routes that can take you there are drawn on the map.
+  const focusRouteIds = useMemo(
+    () => (destination && network ? relevantRouteIds(network, destination, origin) : null),
+    [destination, network, origin],
+  );
+
+  // Walking directions along campus paths: the whole walk, plus the walks to and from the bus being shown.
+  const busOption = shown?.kind === "bus" ? shown.option : null;
+  const walkLegs = useMemo<WalkLeg[]>(() => {
+    // While navigating, the navigation has its own route; don't re-plan the walk on every GPS update.
+    if (!destination || !origin || navPlan) return [];
+    const legs: WalkLeg[] = [{ from: origin, to: destination }];
+    if (busOption) legs.push({ from: origin, to: busOption.board.stop }, { from: busOption.alight.stop, to: destination });
+    return legs;
+  }, [destination, origin, busOption, navPlan]);
+  const walks = useWalkPaths(walkLegs);
+  const directWalk = walks[0] ?? null;
+  const walkLines = useMemo(() => {
+    const lines = shown?.kind === "walk" ? [walks[0]] : busOption ? [walks[1], walks[2]] : [];
+    return lines.filter((w) => w !== null && w !== undefined).map((w) => w.coords);
+  }, [walks, shown, busOption]);
+
+  const startNav = (demo: boolean) => {
+    if (!destination || !origin) return;
+    const o = busOption;
+    setNavDemo(demo);
+    setCollapsed(false);
+    setNavPlan({
+      origin: { lat: origin.lat, lng: origin.lng },
+      destination: { lat: destination.lat, lng: destination.lng, name: destination.name },
+      bus:
+        shown?.kind === "bus" && o
+          ? {
+              board: { lat: o.board.stop.lat, lng: o.board.stop.lng, name: o.board.stop.name },
+              alight: { lat: o.alight.stop.lat, lng: o.alight.stop.lng, name: o.alight.stop.name },
+              boardStopId: o.board.stop.id,
+              alightStopId: o.alight.stop.id,
+              routeId: o.routeId,
+              busId: o.busId,
+            }
+          : null,
+    });
+  };
+  const navigating = navPlan !== null;
+  const clockShiftMs = feed?.source === "sample" && receivedAt ? feed.asOf - receivedAt : 0;
+
   const needStart =
     Boolean(destination) &&
     !startPlace &&
@@ -71,6 +134,7 @@ export default function TransitApp() {
   }, []);
   const chooseDestination = (p: Place | null) => {
     setDestination(p);
+    setNavPlan(null);
     setAgentNote(null); // a destination picked by hand isn't the trip Lupus answered about
     if (!p) setShown(null);
   };
@@ -118,8 +182,12 @@ export default function TransitApp() {
         selectedId={selectedId}
         onSelect={toggleSelect}
         destination={destination}
-        origin={destination ? origin : null}
-        trip={shown}
+        origin={destination && !navigating ? origin : null}
+        view={destination ? shown : null}
+        walkLines={destination && !navigating ? walkLines : []}
+        nav={navigating ? navigation.snapshot : null}
+        navId={navPlan ? `${navPlan.destination.name}|${navDemo}|${navPlan.bus?.busId ?? "walk"}` : null}
+        focusRouteIds={focusRouteIds}
       />
 
       {/* Top bar floats over the map */}
@@ -139,7 +207,9 @@ export default function TransitApp() {
           // While searching, the sheet fills most of the screen so the phone keyboard can't cover suggestions.
           collapsed
             ? "max-h-[9.5rem]"
-            : searching || startSearching
+            : navigating
+              ? "max-h-[48dvh]"
+              : searching || startSearching
               ? "max-md:h-[88dvh] max-md:max-h-[88dvh]"
               : destination || askOpen
                 ? "max-h-[75dvh]"
@@ -159,10 +229,10 @@ export default function TransitApp() {
           <div className="mb-3 hidden px-1 md:block">
             <Image src="/logo.png" alt="Lupus" width={96} height={38} priority />
           </div>
-          {!askOpen && (
+          {!askOpen && !navigating && (
             <PlaceSearch places={places} value={destination} onChoose={chooseDestination} onOpenChange={onSearchOpen} />
           )}
-          {!askOpen && !searching && !destination && (
+          {!askOpen && !navigating && !searching && !destination && (
             <button
               type="button"
               onClick={() => {
@@ -192,7 +262,21 @@ export default function TransitApp() {
             />
           )}
 
-          {!askOpen && destination && !searching && (
+          {navPlan && (
+            <NavPanel
+              plan={navPlan}
+              snapshot={navigation.snapshot}
+              demo={navDemo}
+              network={network}
+              buses={buses}
+              receivedAt={receivedAt}
+              clockShiftMs={clockShiftMs}
+              onGotOff={navigation.gotOffBus}
+              onEnd={() => setNavPlan(null)}
+            />
+          )}
+
+          {!askOpen && !navigating && destination && !searching && (
             <>
               {/* What Lupus said about this trip, kept after "Show on map" */}
               {note && (
@@ -279,6 +363,52 @@ export default function TransitApp() {
                 </div>
               )}
 
+              {/* Filter: whatever is fastest, only buses, or only walking */}
+              <div role="radiogroup" aria-label="Show trips by" className="grid grid-cols-3 gap-1 rounded-full bg-white p-1">
+                {MODES.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={travelMode === m.id}
+                    onClick={() => setTravelMode(m.id)}
+                    className={`rounded-full py-1.5 text-sm font-semibold ${
+                      travelMode === m.id ? "bg-navy text-white" : "text-fur-dark hover:bg-concrete"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              {focusRouteIds && network && shown?.kind !== "walk" && (
+                <div className="px-1" aria-label="Routes shown on the map">
+                  {focusRouteIds.length ? (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm text-fur-dark">On the map:</span>
+                      {focusRouteIds.map((id) => {
+                        const c = routeColor(id, network);
+                        // The route being ridden is solid; the others are faded, as on the map.
+                        const ridden = shown?.kind === "bus" && shown.option?.routeId === id;
+                        const faded = shown?.kind === "bus" && shown.option !== null && !ridden;
+                        return (
+                          <span
+                            key={id}
+                            className={`rounded-md px-2 py-0.5 text-xs font-semibold ${faded ? "opacity-45" : ""}`}
+                            style={{ background: c, color: textOn(c) }}
+                            title={routeName(id, network)}
+                          >
+                            {routeLabel(id, network)}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-fur-dark">No bus route stops near {destination.name}, so walking is the way.</p>
+                  )}
+                </div>
+              )}
+
               {origin && network && receivedAt ? (
                 <TripPanel
                   origin={origin}
@@ -286,9 +416,12 @@ export default function TransitApp() {
                   network={network}
                   buses={buses}
                   receivedAt={receivedAt}
+                  mode={travelMode}
+                  walk={directWalk}
+                  onStart={startNav}
                   onShow={setShown}
                   deadline={note?.deadline ?? null}
-                  clockShiftMs={feed?.source === "sample" ? feed.asOf - receivedAt : 0}
+                  clockShiftMs={clockShiftMs}
                 />
               ) : (
                 !needStart && (

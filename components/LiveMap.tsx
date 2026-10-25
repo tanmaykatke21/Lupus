@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { GeoJSONSource, Map as MlMap, Marker } from "maplibre-gl";
 import type { Bus } from "@/lib/etaspot";
 import type { LatLng } from "@/lib/geo";
 import type { Network } from "@/lib/network";
 import type { Place } from "@/lib/places";
-import type { TripOption } from "@/lib/planner";
+import { laneRoutes, type LanePiece } from "@/lib/lanes";
+import type { NavSnapshot } from "@/lib/navEngine";
+import type { TripOption, TripView } from "@/lib/planner";
 import { decodePolyline } from "@/lib/polyline";
 import { routeColor, routeLabel, textOn } from "@/lib/routes";
 
@@ -28,33 +30,65 @@ interface Props {
   onSelect: (id: string) => void;
   destination: Place | null;
   origin: LatLng | null;
-  /** The trip option being shown: its boarding and alighting stops are highlighted. */
-  trip: TripOption | null;
+  /**
+   * What the trip panel is showing. A bus option is drawn solid (its route, bus and stops) with the other
+   * routes faded; a walk hides the bus layer and draws the walk instead.
+   */
+  view: TripView | null;
+  /** Walking directions to draw, as [lng, lat] lines: the whole walk, or the walks to and from the bus. */
+  walkLines: [number, number][][];
+  /** Live navigation: the walker's spot and the route split into walked and still ahead. */
+  nav: NavSnapshot | null;
+  /** Changes with each navigation session, so following the walker restarts with it. */
+  navId: string | null;
+  /** When planning a trip, only these routes (and their buses and stops) are drawn. Null shows everything. */
+  focusRouteIds: number[] | null;
 }
+
+/** Opacity of route lines that aren't the one being ridden. */
+const FADED = 0.45;
 
 type FC = GeoJSON.FeatureCollection;
 const EMPTY: FC = { type: "FeatureCollection", features: [] };
 
-function routesGeo(network: Network | null): FC {
+/** Route lines for the routes being shown, split into side-by-side lanes where routes share a road. */
+function routeLanes(network: Network | null, focus: number[] | null): LanePiece[] {
+  if (!network) return [];
+  return laneRoutes(
+    network.routes
+      .filter((r) => r.encLine && (!focus || focus.includes(r.id)))
+      .map((r) => ({ id: r.id, coords: decodePolyline(r.encLine!) })),
+  );
+}
+
+function routesGeo(network: Network | null, pieces: LanePiece[], solidRoute: number | null): FC {
   if (!network) return EMPTY;
+  const colors = new Map(network.routes.map((r) => [r.id, r.color]));
   return {
     type: "FeatureCollection",
-    features: network.routes
-      .filter((r) => r.encLine)
-      .map((r) => ({
-        type: "Feature",
-        properties: { color: r.color, id: r.id },
-        geometry: { type: "LineString", coordinates: decodePolyline(r.encLine!) },
-      })),
+    features: pieces.map((p) => ({
+      type: "Feature",
+      properties: { color: colors.get(p.id) ?? "#262840", lane: p.lane, solid: p.id === solidRoute ? 1 : 0 },
+      geometry: { type: "LineString", coordinates: p.coords },
+    })),
   };
 }
 
-function stopsGeo(network: Network | null): FC {
+function walkGeo(lines: [number, number][][]): FC {
+  return {
+    type: "FeatureCollection",
+    features: lines
+      .filter((l) => l.length >= 2)
+      .map((coordinates) => ({ type: "Feature", properties: {}, geometry: { type: "LineString", coordinates } })),
+  };
+}
+
+function stopsGeo(network: Network | null, focus: number[] | null): FC {
   if (!network) return EMPTY;
   return {
     type: "FeatureCollection",
     features: network.stops
-      .filter((s) => s.routeIds.length > 0)
+      .filter((s) => s.routeIds.length > 0 && (!focus || s.routeIds.some((id) => focus.includes(id))))
       .map((s) => ({ type: "Feature", properties: { name: s.name }, geometry: { type: "Point", coordinates: [s.lng, s.lat] } })),
   };
 }
@@ -69,7 +103,34 @@ function tripGeo(trip: TripOption | null): FC {
   return { type: "FeatureCollection", features: [pt("board", trip.board.stop), pt("alight", trip.alight.stop)] };
 }
 
-export default function LiveMap({ buses, network, selectedId, onSelect, destination, origin, trip }: Props) {
+export default function LiveMap({
+  buses: allBuses,
+  network,
+  selectedId,
+  onSelect,
+  destination,
+  origin,
+  view,
+  walkLines,
+  nav,
+  navId,
+  focusRouteIds,
+}: Props) {
+  const focusKey = focusRouteIds ? focusRouteIds.join(",") : "all";
+  const walking = view?.kind === "walk";
+  const trip = view?.kind === "bus" ? view.option : null;
+  // Only the buses on the routes being shown; none when the trip is a walk.
+  const buses = useMemo(() => {
+    if (walking) return [];
+    const ids = focusKey === "all" ? null : new Set(focusKey.split(",").filter(Boolean).map(Number));
+    return ids ? allBuses.filter((b) => ids.has(b.routeId)) : allBuses;
+  }, [allBuses, focusKey, walking]);
+  // Lanes only change with the routes shown, not every time the trip updates.
+  const lanes = useMemo(
+    () => routeLanes(network, focusKey === "all" ? null : focusKey.split(",").filter(Boolean).map(Number)),
+    [network, focusKey],
+  );
+  const tripBusId = trip?.busId ?? null;
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MlMap | null>(null);
   const markers = useRef(new Map<string, Marker>());
@@ -79,7 +140,15 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
   const destMarker = useRef<Marker | null>(null);
   const originMarker = useRef<Marker | null>(null);
   // Latest overlay data, re-applied whenever the map style (re)loads.
-  const overlay = useRef({ routes: EMPTY, stops: EMPTY, trip: EMPTY });
+  const overlay = useRef({ routes: EMPTY, stops: EMPTY, trip: EMPTY, walk: EMPTY, navWalked: EMPTY, navAhead: EMPTY });
+  const meMarker = useRef<Marker | null>(null);
+  // The navigation session in which the rider dragged the map away; following stops until they recenter.
+  const [detachedFrom, setDetachedFrom] = useState<string | null>(null);
+  const following = navId !== null && detachedFrom !== navId;
+  const navIdRef = useRef(navId);
+  useEffect(() => {
+    navIdRef.current = navId;
+  }, [navId]);
   const onSelectRef = useRef(onSelect);
   useEffect(() => {
     onSelectRef.current = onSelect;
@@ -109,12 +178,69 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
         m.addSource("routes", { type: "geojson", data: data.routes });
         m.addSource("stops", { type: "geojson", data: data.stops });
         m.addSource("trip", { type: "geojson", data: data.trip });
+        m.addSource("walk", { type: "geojson", data: data.walk });
+        m.addSource("navWalked", { type: "geojson", data: data.navWalked });
+        m.addSource("navAhead", { type: "geojson", data: data.navAhead });
+        // Each route keeps its own lane where routes share a road: the offset is in line widths, so lanes
+        // stay side by side at every zoom. The route being ridden is solid and drawn on top.
         m.addLayer({
           id: "route-lines",
           type: "line",
           source: "routes",
-          layout: { "line-join": "round", "line-cap": "round" },
-          paint: { "line-color": ["get", "color"], "line-width": 4, "line-opacity": 0.5 },
+          layout: { "line-join": "round", "line-cap": "round", "line-sort-key": ["get", "solid"] },
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": ["interpolate", ["linear"], ["zoom"], 12, 2.5, 15, 4.5, 18, 8],
+            "line-offset": [
+              "interpolate",
+              ["linear"],
+              ["zoom"],
+              12,
+              ["*", ["get", "lane"], 3.2],
+              15,
+              ["*", ["get", "lane"], 5.6],
+              18,
+              ["*", ["get", "lane"], 9.5],
+            ],
+            "line-opacity": ["case", ["==", ["get", "solid"], 1], 1, FADED],
+          },
+        });
+        // Walking directions: navy dots on a soft white band so they read over streets and buildings.
+        m.addLayer({
+          id: "walk-casing",
+          type: "line",
+          source: "walk",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#FFFFFF", "line-width": 8, "line-opacity": 0.85 },
+        });
+        m.addLayer({
+          id: "walk-line",
+          type: "line",
+          source: "walk",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#262840", "line-width": 4.5, "line-dasharray": [0.1, 1.8] },
+        });
+        // Live navigation: the stretch already walked fades to grey; the way ahead is a solid navy line.
+        m.addLayer({
+          id: "nav-walked",
+          type: "line",
+          source: "navWalked",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#8E8B9B", "line-width": 5, "line-opacity": 0.7 },
+        });
+        m.addLayer({
+          id: "nav-ahead-casing",
+          type: "line",
+          source: "navAhead",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#FFFFFF", "line-width": 10 },
+        });
+        m.addLayer({
+          id: "nav-ahead",
+          type: "line",
+          source: "navAhead",
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: { "line-color": "#262840", "line-width": 6 },
         });
         m.addLayer({
           id: "stop-dots",
@@ -174,6 +300,57 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
     };
   }, []);
 
+  /**
+   * Buses that overlap on screen (two buses at SAC) would hide one another, so lay each overlapping group
+   * out in a row, using the markers' real widths. Overlap depends on zoom, so this reruns after zooming.
+   */
+  const layoutMarkers = () => {
+    const m = map.current;
+    if (!m) return;
+    const GAP = 4;
+    const items = [...markers.current.values()].map((mk) => {
+      const p = m.project(mk.getLngLat());
+      const w = (mk.getElement().firstElementChild as HTMLElement | null)?.offsetWidth || 34;
+      return { mk, x: p.x, y: p.y, w };
+    });
+    items.sort((a, b) => a.x - b.x);
+    const groups: (typeof items)[] = [];
+    for (const it of items) {
+      const g = groups.find((grp) => grp.some((o) => Math.abs(o.x - it.x) < (o.w + it.w) / 2 + GAP && Math.abs(o.y - it.y) < 34));
+      if (g) g.push(it);
+      else groups.push([it]);
+    }
+    for (const g of groups) {
+      const cx = g.reduce((a, it) => a + it.x, 0) / g.length;
+      const total = g.reduce((a, it) => a + it.w, 0) + GAP * (g.length - 1);
+      let x = cx - total / 2;
+      for (const it of g) {
+        // Offset from the marker's own position to its slot in the row.
+        it.mk.setOffset(g.length > 1 ? [x + it.w / 2 - it.x, 0] : [0, 0]);
+        x += it.w + GAP;
+      }
+    }
+  };
+  const layoutRef = useRef(layoutMarkers);
+  useEffect(() => {
+    layoutRef.current = layoutMarkers;
+  });
+  useEffect(() => {
+    const m = map.current;
+    if (!ready || !m) return;
+    const onZoom = () => layoutRef.current();
+    // Dragging the map while navigating means the rider wants to look around: stop following them.
+    const onDrag = () => {
+      if (navIdRef.current) setDetachedFrom(navIdRef.current);
+    };
+    m.on("zoomend", onZoom);
+    m.on("dragstart", onDrag);
+    return () => {
+      m.off("zoomend", onZoom);
+      m.off("dragstart", onDrag);
+    };
+  }, [ready]);
+
   // Add, move and remove bus markers whenever the feed changes.
   useEffect(() => {
     const m = map.current;
@@ -199,6 +376,8 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
       el.style.color = textOn(color);
       el.dataset.soon = String(bus.minutesToNextStop !== null && bus.minutesToNextStop < 2);
       el.dataset.selected = String(bus.id === selectedId);
+      // While a bus trip is shown, every other bus steps back.
+      el.dataset.faded = String(tripBusId !== null && bus.id !== tripBusId);
       el.setAttribute("aria-label", `Bus ${bus.id} on route ${bus.routeId}`);
       (el.querySelector(".label") as HTMLElement).textContent = routeLabel(bus.routeId, network);
       (el.querySelector(".heading") as HTMLElement).style.transform = `rotate(${bus.heading}deg)`;
@@ -221,7 +400,8 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
         markers.current.delete(id);
       }
     }
-  }, [ready, buses, selectedId, network]);
+    layoutMarkers();
+  }, [ready, buses, selectedId, network, tripBusId]);
 
   // Fly to a bus when it is picked from the list.
   useEffect(() => {
@@ -233,13 +413,62 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
 
   // Keep the overlay layers in sync with the network and the trip being shown.
   useEffect(() => {
-    overlay.current = { routes: routesGeo(network), stops: stopsGeo(network), trip: tripGeo(trip) };
+    const focus = focusKey === "all" ? null : focusKey.split(",").filter(Boolean).map(Number);
+    const layers = walking
+      ? { routes: EMPTY, stops: EMPTY, trip: EMPTY, walk: walkGeo(walkLines) }
+      : {
+          routes: routesGeo(network, lanes, trip?.routeId ?? null),
+          stops: stopsGeo(network, focus),
+          trip: tripGeo(trip),
+          walk: walkGeo(walkLines),
+        };
+    overlay.current = { ...overlay.current, ...layers };
     const m = map.current;
     if (!ready || !m) return;
-    for (const [id, data] of Object.entries(overlay.current)) {
+    for (const [id, data] of Object.entries(layers)) {
       (m.getSource(id) as GeoJSONSource | undefined)?.setData(data);
     }
-  }, [ready, network, trip]);
+  }, [ready, network, trip, focusKey, lanes, walking, walkLines]);
+
+  // Live navigation lines.
+  const navWalked = nav?.walked;
+  const navAhead = nav?.ahead;
+  useEffect(() => {
+    const line = (coords: [number, number][] | undefined): FC => walkGeo(coords && coords.length >= 2 ? [coords] : []);
+    overlay.current = { ...overlay.current, navWalked: line(navWalked), navAhead: line(navAhead) };
+    const m = map.current;
+    if (!ready || !m) return;
+    (m.getSource("navWalked") as GeoJSONSource | undefined)?.setData(overlay.current.navWalked);
+    (m.getSource("navAhead") as GeoJSONSource | undefined)?.setData(overlay.current.navAhead);
+  }, [ready, navWalked, navAhead]);
+
+  // The walker: a navy dot with an arrow pointing the way they're going, and the map following them.
+  const me = nav?.me ?? null;
+  const meKey = me ? `${me[0].toFixed(6)},${me[1].toFixed(6)}` : "";
+  const bearing = nav?.bearing ?? null;
+  useEffect(() => {
+    const m = map.current;
+    const maplibre = lib.current;
+    if (!ready || !m || !maplibre) return;
+    if (!me) {
+      meMarker.current?.remove();
+      meMarker.current = null;
+      return;
+    }
+    if (!meMarker.current) {
+      const el = document.createElement("div");
+      el.innerHTML = `<div class="nav-puck" role="img" aria-label="You are here"><span class="nav-heading"></span><span class="nav-dot"></span></div>`;
+      meMarker.current = new maplibre.Marker({ element: el }).setLngLat(me).addTo(m);
+    } else {
+      meMarker.current.setLngLat(me);
+    }
+    const heading = meMarker.current.getElement().querySelector(".nav-heading") as HTMLElement;
+    heading.style.display = bearing === null ? "none" : "";
+    if (bearing !== null) heading.style.transform = `rotate(${bearing}deg)`;
+    if (following) m.easeTo({ center: me, zoom: Math.max(m.getZoom(), 17), duration: 900 });
+    // Keyed on the rounded position, not the array, so equal fixes don't re-run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, meKey, bearing, following]);
 
   // Where the trip starts: a navy dot with a white ring.
   useEffect(() => {
@@ -293,6 +522,15 @@ export default function LiveMap({ buses, network, selectedId, onSelect, destinat
   return (
     <div className="absolute inset-0" role="region" aria-label="Map of live buses">
       <div ref={container} className="h-full w-full" />
+      {navId && !following && me && (
+        <button
+          type="button"
+          onClick={() => setDetachedFrom(null)}
+          className="absolute right-3 top-28 rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white shadow-[0_2px_8px_rgb(38_40_64/0.3)] max-md:bottom-[calc(48dvh+12px)] max-md:top-auto"
+        >
+          Recenter
+        </button>
+      )}
     </div>
   );
 }
