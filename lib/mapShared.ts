@@ -1,5 +1,6 @@
 // Shared by both map renderers (Google Maps and the MapLibre fallback).
-import { joinLanes } from "./laneJoin";
+import zonesFile from "@/data/lane-zones.json";
+import { bundleZones, joinLanes } from "./laneJoin";
 import { laneRoutes, type LanePiece } from "./lanes";
 import type { Bus, BusRoute, BusStop, LngLat } from "./types";
 
@@ -64,8 +65,10 @@ export function routeLanes(routes: BusRoute[], focusKey: string): RouteLane[] {
   const others = ids(othersPart);
   const shown = focusKey === "all" ? routes : routes.filter(r => ridden.includes(r.id) || others.includes(r.id));
   const color = new Map(routes.map(r => [r.id, r.color]));
-  // joinLanes ramps between lanes so a route stays one connected line where it joins or leaves a shared road.
-  return joinLanes(laneRoutes(shown.map(r => ({ id: r.id, coords: r.shape })))).map(p => ({
+  // Routes bundle in the hand-picked zones (tight terminals), and joinLanes ramps between lanes so a route stays
+  // one connected line where it joins or leaves a shared road or a zone.
+  const pieces = bundleZones(laneRoutes(shown.map(r => ({ id: r.id, coords: r.shape }))), zonesFile.zones);
+  return joinLanes(pieces).map(p => ({
     ...p,
     color: color.get(p.id) ?? "#262840",
     solid: ridden.includes(p.id),

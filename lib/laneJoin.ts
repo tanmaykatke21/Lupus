@@ -35,6 +35,37 @@ function cut(line: LngLat[], m: number): [LngLat[], LngLat[]] {
 
 const same = (a: LngLat, b: LngLat) => a[0] === b[0] && a[1] === b[1];
 
+export interface LaneZone {
+  lat: number;
+  lng: number;
+  radiusM: number;
+}
+
+/**
+ * Inside each zone every route is drawn in lane 0, bundled down the middle of the road: for tight terminals
+ * where side-by-side lanes don't fit (data/lane-zones.json). joinLanes then ramps routes in and out of it.
+ */
+export function bundleZones<P extends LanePiece>(pieces: P[], zones: LaneZone[]): P[] {
+  if (!zones.length) return pieces;
+  const inside = (p: LngLat) => zones.some(z => dist(p, [z.lng, z.lat]) <= z.radiusM);
+  const out: P[] = [];
+  for (const p of pieces) {
+    const coords = p.coords as LngLat[];
+    const isIn = coords.map(inside);
+    // A step is in the zone when both its ends are; cut the piece wherever that changes.
+    const stepIn = (k: number) => isIn[k] && isIn[k + 1];
+    let start = 0;
+    for (let k = 0; k < coords.length - 1; k++) {
+      if (k === coords.length - 2 || stepIn(k + 1) !== stepIn(k)) {
+        const part = coords.slice(start, k + 2);
+        if (part.length > 1) out.push({ ...p, coords: part, lane: stepIn(k) ? 0 : p.lane });
+        start = k + 1;
+      }
+    }
+  }
+  return out;
+}
+
 export function joinLanes<P extends LanePiece>(pieces: P[]): P[] {
   const out: P[] = [];
   // Each piece, trimmed where ramps take over its ends.

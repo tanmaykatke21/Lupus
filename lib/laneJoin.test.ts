@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chainLanes, joinLanes } from "./laneJoin";
+import { bundleZones, chainLanes, joinLanes } from "./laneJoin";
 import { laneRoutes } from "./lanes";
 
 const WEST: [number, number] = [-73.13, 40.912];
@@ -40,6 +40,23 @@ describe("chainLanes", () => {
       const mine = chains.filter(c => c.id === id);
       expect(mine).toHaveLength(1);
       expect(mine[0].lanes).toHaveLength(mine[0].coords.length);
+    }
+  });
+});
+
+describe("bundleZones", () => {
+  it("draws every route in lane 0 inside a zone, and leaves it alone outside", () => {
+    const pieces = laneRoutes([
+      { id: 1, coords: [WEST, EAST] },
+      { id: 2, coords: [WEST, EAST] },
+    ]);
+    // A 100 m zone around the east end of the shared road.
+    const bundled = bundleZones(pieces, [{ lat: EAST[1], lng: EAST[0], radiusM: 100 }]);
+    for (const id of [1, 2]) {
+      const mine = bundled.filter(p => p.id === id);
+      expect(mine.at(-1)!.lane).toBe(0);
+      expect(mine[0].lane).not.toBe(0);
+      expect(mine.at(-1)!.coords.at(-1)).toEqual(EAST);
     }
   });
 });

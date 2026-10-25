@@ -1,0 +1,12 @@
+{
+  "about": "Places where every bus route drops its lane and is drawn down the middle of the road, bundled together. Use for tight terminals and turnarounds where side-by-side lanes don't fit. radiusM is in meters; routes slide back into their lanes as they leave.",
+  "zones": [
+    {
+      "name": "Richard L. Gelfond Dr loop",
+      "why": "Turnaround at the end of a divided road: five routes in lanes filled the gap between the carriageways with a solid square.",
+      "lat": 40.914148,
+      "lng": -73.125022,
+      "radiusM": 38
+    }
+  ]
+}
