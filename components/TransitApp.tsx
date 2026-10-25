@@ -297,7 +297,8 @@ export default function TransitApp() {
   } else if (homeTab === "classes") {
     body = <ClassesPanel classes={classes} now={now} onChange={setClasses} onGo={goToClass} />;
   } else if (homeTab === "trains") {
-    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} />;
+    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo}
+      onSave={p => setSaved(s => [...s.filter(x => x.placeId !== p.placeId), p])} />;
   } else {
     body = (
       <>

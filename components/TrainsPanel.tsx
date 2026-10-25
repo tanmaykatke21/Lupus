@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import type { LirrTrain } from "@/lib/lirr";
-import { PLACES, placeById } from "@/lib/places";
-import type { SavedPlace } from "@/lib/storage";
+import { PLACES, placeById, searchPlaces } from "@/lib/places";
+import { SAVED_LABELS, type SavedPlace } from "@/lib/storage";
 import { formatClock } from "@/lib/time";
 import { catchTrainRequest, type Endpoint, type TripRequest } from "@/lib/trip";
 import { countdown } from "@/lib/useNow";
@@ -13,6 +13,7 @@ interface Props {
   bufferMin: number;
   saved: SavedPlace[];
   onPlan: (req: TripRequest) => void;
+  onSave: (place: SavedPlace) => void;
 }
 
 interface Feed {
@@ -26,12 +27,14 @@ type Mode = "catch" | "back";
 
 const HOME_CHOICES = ["sac", "hospital", "chapin", "west-apts"];
 
-export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
+export default function TrainsPanel({ now, bufferMin, saved, onPlan, onSave }: Props) {
   const [mode, setMode] = useState<Mode>("catch");
   const [direction, setDirection] = useState<"west" | "east">("west");
   const [feed, setFeed] = useState<Feed | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [arriving, setArriving] = useState<LirrTrain | null>(null);
+  const [q, setQ] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
     let stopped = false;
@@ -67,12 +70,14 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
     ...saved.map(s => ({ id: s.placeId, label: s.label })),
     ...HOME_CHOICES.filter(id => !saved.some(s => s.placeId === id)).map(id => ({ id, label: placeById(id)?.name ?? id })),
   ].filter(c => PLACES.some(p => p.id === c.id));
+  const results = q.trim() ? searchPlaces(q).slice(0, 6) : [];
+  const leaveArriving = () => { setArriving(null); setQ(""); setSaving(null); };
 
   return (
     <div>
       <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Train mode">
         {(["catch", "back"] as Mode[]).map(m => (
-          <button key={m} role="tab" aria-selected={mode === m} onClick={() => { setMode(m); setArriving(null); }}
+          <button key={m} role="tab" aria-selected={mode === m} onClick={() => { setMode(m); leaveArriving(); }}
             className={`min-h-11 rounded-lg text-sm font-semibold ${mode === m ? "plate" : "text-muted"}`}>
             {m === "catch" ? "Catch a train" : "Coming back"}
           </button>
@@ -107,7 +112,53 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
               </button>
             ))}
           </div>
-          <button onClick={() => setArriving(null)} className="mt-3 min-h-11 text-sm text-muted underline">Back to trains</button>
+
+          <label htmlFor="train-dest" className="sr-only">Search for somewhere else</label>
+          <input
+            id="train-dest"
+            value={q}
+            onChange={e => { setQ(e.target.value); setSaving(null); }}
+            placeholder="Somewhere else? Search campus"
+            autoComplete="off"
+            enterKeyHint="search"
+            onKeyDown={e => { if (e.key === "Enter" && results[0]) goHome(arriving, results[0].id); }}
+            className="mt-3 h-12 w-full card rounded-2xl px-4 text-base placeholder:text-muted"
+          />
+          {results.length > 0 && (
+            <ul className="mt-2 divide-y divide-line overflow-hidden card rounded-2xl" aria-live="polite">
+              {results.map(p => {
+                const savedAs = saved.find(s => s.placeId === p.id)?.label;
+                return (
+                  <li key={p.id}>
+                    <div className="flex items-center">
+                      <button onClick={() => goHome(arriving, p.id)} className="min-h-12 min-w-0 flex-1 px-3 py-2 text-left">
+                        <span className="block truncate font-medium">{p.name}</span>
+                        {savedAs && <span className="block text-xs text-muted">Saved as {savedAs}</span>}
+                      </button>
+                      <button onClick={() => setSaving(saving === p.id ? null : p.id)} aria-expanded={saving === p.id}
+                        className="min-h-12 shrink-0 px-3 text-sm font-semibold text-brass">
+                        {savedAs ? "Change" : "Save"}
+                      </button>
+                    </div>
+                    {saving === p.id && (
+                      <div className="flex flex-wrap gap-2 px-3 pb-3" role="group" aria-label={`Save ${p.name} as`}>
+                        {SAVED_LABELS.map(l => (
+                          <button key={l} onClick={() => { onSave({ placeId: p.id, label: l }); setSaving(null); setQ(""); }}
+                            aria-pressed={savedAs === l}
+                            className={`min-h-11 rounded-full border px-3 text-sm font-medium ${savedAs === l ? "border-brass bg-brass/20" : "border-line"}`}>
+                            {l}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          {q.trim() && results.length === 0 && <p className="mt-2 text-sm text-muted">No campus places match “{q}”.</p>}
+
+          <button onClick={leaveArriving} className="mt-3 min-h-11 text-sm text-muted underline">Back to trains</button>
         </div>
       ) : (
         <ul className="space-y-2">
