@@ -2,10 +2,9 @@
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { laneSpacingPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
-import { laneRoutes } from "@/lib/lanes";
+import { laneSpacingPx, laneWidthPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
 import { turn } from "@/lib/compass";
-import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
+import { busElement, CAMPUS_CENTER, FADED, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, rideEnds, routeFocusKey, routeLanes, setBusHeading, type MapProps } from "@/lib/mapShared";
 import type { LngLat } from "@/lib/types";
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
@@ -105,30 +104,32 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
   }, []);
 
   // Route lines, side by side in lanes where routes share a road. Google has no line offset, so each
-  // lane's geometry is shifted by the lane spacing for the current zoom, and redone when zoom changes.
-  const pieces = useMemo(() => laneRoutes(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
+  // lane's geometry is shifted by the lane spacing for the current zoom, and redone when zoom changes. The
+  // stroke narrows with the spacing so neighboring lanes don't paint over each other. The route being ridden
+  // is solid and on top; the rest are faded.
+  const focusKey = routeFocusKey(overlay);
+  const pieces = useMemo(() => routeLanes(routes, focusKey), [routes, focusKey]);
   useEffect(() => {
     const map = mapRef.current, libs = libsRef.current;
     if (!map || !libs) return;
-    const color = new Map(routes.map(r => [r.id, r.color]));
     routeLines.current.forEach(l => l.setMap(null));
     routeLines.current = pieces.map(p => new libs.maps.Polyline({
-      map, path: p.coords.map(toLatLng), strokeColor: color.get(p.id), strokeOpacity: 0.8, strokeWeight: 4, zIndex: 1, clickable: false,
+      map, path: p.coords.map(toLatLng), strokeColor: p.color, strokeOpacity: p.solid ? 1 : FADED,
+      strokeWeight: laneWidthPx(map.getZoom() ?? 15), zIndex: p.solid ? 2 : 1, clickable: false,
     }));
     const place = () => {
       const zoom = map.getZoom() ?? 15;
       const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
-      pieces.forEach((p, i) => routeLines.current[i]?.setPath(offsetLine(p.coords, p.lane * m).map(toLatLng)));
+      const strokeWeight = laneWidthPx(zoom);
+      pieces.forEach((p, i) => {
+        routeLines.current[i]?.setPath(offsetLine(p.coords, p.lane * m).map(toLatLng));
+        routeLines.current[i]?.setOptions({ strokeWeight });
+      });
     };
     place();
     const listener = map.addListener("zoom_changed", place);
     return () => listener.remove();
-  }, [pieces, routes, ready]);
-
-  // Dim the network while a trip is shown.
-  useEffect(() => {
-    routeLines.current.forEach(l => l.setOptions({ strokeOpacity: overlay ? 0.25 : 0.8 }));
-  }, [overlay, routes, ready]);
+  }, [pieces, ready]);
 
   // Stops.
   useEffect(() => {
@@ -154,7 +155,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     tripShapes.current = [];
     if (!overlay) return;
     const walkColor = prefersDark() ? "#f0c46a" : "#3a3631";
-    // Other possible routes, faded, under the chosen one.
+    // Walks of the other possible trips, faded, under the chosen one.
     for (const alt of overlay.alternatives ?? []) {
       for (const line of alt.walk) {
         if (line.length < 2) continue;
@@ -162,9 +163,6 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
           map, path: line.map(toLatLng), strokeOpacity: 0, zIndex: 2, clickable: false,
           icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 0.45, strokeColor: walkColor, scale: 2 }, offset: "0", repeat: "12px" }],
         }));
-      }
-      for (const b of alt.bus) {
-        tripShapes.current.push(new libs.maps.Polyline({ map, path: b.coords.map(toLatLng), strokeColor: b.color, strokeOpacity: 0.4, strokeWeight: 5, zIndex: 2, clickable: false }));
       }
     }
     for (const line of overlay.walk) {
@@ -174,9 +172,9 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
         icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 1, strokeColor: walkColor, scale: 3 }, offset: "0", repeat: "10px" }],
       }));
     }
-    for (const b of overlay.bus) {
-      tripShapes.current.push(new libs.maps.Polyline({ map, path: b.coords.map(toLatLng), strokeColor: "#f0c46a", strokeWeight: 10, zIndex: 3, clickable: false }));
-      tripShapes.current.push(new libs.maps.Polyline({ map, path: b.coords.map(toLatLng), strokeColor: b.color, strokeWeight: 6, zIndex: 4, clickable: false }));
+    // Where the bus is boarded and left (the ride itself is the solid route line, in its lane).
+    for (const e of rideEnds(overlay)) {
+      tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(e.at), zIndex: 5, content: dot(e.kind === "board" ? "#262840" : "#E8264F", "#fff", 18) }));
     }
     if (overlay.from) {
       tripShapes.current.push(new libs.marker.AdvancedMarkerElement({ map, position: toLatLng(overlay.from), zIndex: 6, content: dot("#3a3631", "#fff", 18) }));

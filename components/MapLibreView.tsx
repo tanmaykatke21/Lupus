@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { turn } from "@/lib/compass";
-import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
-import { laneRoutes } from "@/lib/lanes";
-import type { BusRoute, BusStop } from "@/lib/types";
+import { busElement, CAMPUS_CENTER, FADED, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, rideEnds, routeFocusKey, routeLanes, setBusHeading, type MapProps, type RouteLane, type TripOverlay } from "@/lib/mapShared";
+import type { BusStop } from "@/lib/types";
 
 // Fallback renderer (no Google key, or Google failed to load). Free OpenFreeMap tiles.
 const STYLE_LIGHT = "https://tiles.openfreemap.org/styles/liberty";
@@ -15,11 +14,10 @@ type FC = GeoJSON.FeatureCollection;
 const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", features });
 
 // Where routes share a road they're drawn side by side in lanes (lib/lanes.ts, from Tanmay's branch).
-function routesData(routes: BusRoute[]): FC {
-  const color = new Map(routes.map(r => [r.id, r.color]));
-  return fc(laneRoutes(routes.map(r => ({ id: r.id, coords: r.shape }))).map(p => ({
+function routesData(lanes: RouteLane[]): FC {
+  return fc(lanes.map(p => ({
     type: "Feature",
-    properties: { id: p.id, color: color.get(p.id), lane: p.lane },
+    properties: { id: p.id, color: p.color, lane: p.lane, solid: p.solid ? 1 : 0 },
     geometry: { type: "LineString", coordinates: p.coords },
   })));
 }
@@ -27,6 +25,9 @@ function routesData(routes: BusRoute[]): FC {
 // Lane spacing in pixels by zoom (matches laneSpacingPx for the Google renderer).
 const LANE_OFFSET = ["interpolate", ["linear"], ["zoom"],
   12, ["*", ["get", "lane"], 3.2], 15, ["*", ["get", "lane"], 5.6], 18, ["*", ["get", "lane"], 9.5]] as unknown as number;
+// Line width grows with zoom but stays narrower than the lane spacing, so neighboring lanes never overlap
+// (matches laneWidthPx).
+const LANE_WIDTH = ["interpolate", ["linear"], ["zoom"], 12, 2.5, 15, 4.5, 18, 8] as unknown as number;
 
 function stopsData(stops: BusStop[]): FC {
   return fc(stops.map(s => ({
@@ -41,9 +42,6 @@ function altData(o: TripOverlay | null | undefined): FC {
     ...a.walk.filter(l => l.length > 1).map(coords => ({
       type: "Feature" as const, properties: { kind: "walk", color: "#000" }, geometry: { type: "LineString" as const, coordinates: coords },
     })),
-    ...a.bus.map(b => ({
-      type: "Feature" as const, properties: { kind: "bus", color: b.color }, geometry: { type: "LineString" as const, coordinates: b.coords },
-    })),
   ]));
 }
 
@@ -54,10 +52,7 @@ function overlayData(o: TripOverlay | null | undefined): FC {
       type: "Feature" as const, properties: { kind: "walk", color: "#000" },
       geometry: { type: "LineString" as const, coordinates: coords },
     })),
-    ...o.bus.map(b => ({
-      type: "Feature" as const, properties: { kind: "bus", color: b.color },
-      geometry: { type: "LineString" as const, coordinates: b.coords },
-    })),
+    ...rideEnds(o).map(e => ({ type: "Feature" as const, properties: { kind: e.kind }, geometry: { type: "Point" as const, coordinates: e.at } })),
     ...(o.from ? [{ type: "Feature" as const, properties: { kind: "from" }, geometry: { type: "Point" as const, coordinates: o.from } }] : []),
     ...(o.to ? [{ type: "Feature" as const, properties: { kind: "to" }, geometry: { type: "Point" as const, coordinates: o.to } }] : []),
   ]);
@@ -70,9 +65,12 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   const markers = useRef(new Map<string, Marker>());
   const userMarker = useRef<Marker | null>(null);
   const [styleReady, setStyleReady] = useState(0); // bumps on every style load
-  const latest = useRef({ routes, stops, overlay, onStopClick, onUserPan });
+  // Lanes only change with the routes shown, not every time the trip refreshes.
+  const focusKey = routeFocusKey(overlay);
+  const lanes = useMemo(() => routeLanes(routes, focusKey), [routes, focusKey]);
+  const latest = useRef({ lanes, stops, overlay, onStopClick, onUserPan });
   useEffect(() => {
-    latest.current = { routes, stops, overlay, onStopClick, onUserPan };
+    latest.current = { lanes, stops, overlay, onStopClick, onUserPan };
   });
   const lastCamera = useRef<{ heading: number; lng: number; lat: number } | null>(null);
 
@@ -125,34 +123,24 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !styleReady) return;
-    const { routes, stops, overlay } = latest.current;
+    const { lanes, stops, overlay } = latest.current;
     if (!map.getSource("routes")) {
-      map.addSource("routes", { type: "geojson", data: routesData(routes) });
+      map.addSource("routes", { type: "geojson", data: routesData(lanes) });
       map.addSource("stops", { type: "geojson", data: stopsData(stops) });
       map.addSource("trip", { type: "geojson", data: overlayData(overlay) });
       map.addSource("alts", { type: "geojson", data: altData(overlay) });
-      map.addLayer({ id: "routes-casing", type: "line", source: "routes",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25, "line-offset": LANE_OFFSET } });
+      // Each route keeps its own lane where routes share a road. The route being ridden is solid and on top.
       map.addLayer({ id: "routes", type: "line", source: "routes",
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8, "line-offset": LANE_OFFSET } });
-      // Other possible routes, faded, under the chosen one.
-      map.addLayer({ id: "alt-bus", type: "line", source: "alts", filter: ["==", ["get", "kind"], "bus"],
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 5, "line-opacity": 0.4 } });
+        layout: { "line-join": "round", "line-cap": "round", "line-sort-key": ["get", "solid"] },
+        paint: { "line-color": ["get", "color"], "line-width": LANE_WIDTH, "line-offset": LANE_OFFSET,
+          "line-opacity": ["case", ["==", ["get", "solid"], 1], 1, FADED] } });
+      // Walks of the other possible trips, faded, under the chosen one.
       map.addLayer({ id: "alt-walk", type: "line", source: "alts", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 3, "line-opacity": 0.45, "line-dasharray": [0.5, 2] } });
       map.addLayer({ id: "trip-walk", type: "line", source: "trip", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 4, "line-dasharray": [0.6, 1.6] } });
-      map.addLayer({ id: "trip-bus-casing", type: "line", source: "trip", filter: ["==", ["get", "kind"], "bus"],
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#f0c46a", "line-width": 10 } });
-      map.addLayer({ id: "trip-bus", type: "line", source: "trip", filter: ["==", ["get", "kind"], "bus"],
-        layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 6 } });
       map.addLayer({ id: "stops", type: "circle", source: "stops",
         paint: { "circle-radius": ["interpolate", ["linear"], ["zoom"], 13, 2.5, 17, 6],
           "circle-color": "#fbf6ea", "circle-stroke-color": "#a8781f", "circle-stroke-width": 2 } });
@@ -161,6 +149,10 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
           "text-font": ["Noto Sans Regular"] },
         paint: { "text-color": prefersDark() ? "#f1e6d0" : "#2a2118",
           "text-halo-color": prefersDark() ? "#14110e" : "#fbf6ea", "text-halo-width": 1.5 } });
+      // Where the bus is boarded and left.
+      map.addLayer({ id: "trip-stops", type: "circle", source: "trip", filter: ["in", ["get", "kind"], ["literal", ["board", "alight"]]],
+        paint: { "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": "#fff",
+          "circle-color": ["match", ["get", "kind"], "board", "#262840", "#E8264F"] } });
       map.addLayer({ id: "trip-ends", type: "circle", source: "trip", filter: ["in", ["get", "kind"], ["literal", ["from", "to"]]],
         paint: { "circle-radius": 9, "circle-stroke-width": 3, "circle-stroke-color": "#fff",
           "circle-color": ["match", ["get", "kind"], "from", "#3a3631", "#c8283e"] } });
@@ -168,8 +160,8 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   }, [styleReady]);
 
   useEffect(() => {
-    (mapRef.current?.getSource("routes") as GeoJSONSource | undefined)?.setData(routesData(routes));
-  }, [routes, styleReady]);
+    (mapRef.current?.getSource("routes") as GeoJSONSource | undefined)?.setData(routesData(lanes));
+  }, [lanes, styleReady]);
 
   useEffect(() => {
     (mapRef.current?.getSource("stops") as GeoJSONSource | undefined)?.setData(stopsData(stops));
@@ -186,7 +178,6 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
     if (!map || !styleReady) return;
     (map.getSource("trip") as GeoJSONSource | undefined)?.setData(overlayData(overlay));
     (map.getSource("alts") as GeoJSONSource | undefined)?.setData(altData(overlay));
-    if (map.getLayer("routes")) map.setPaintProperty("routes", "line-opacity", overlay ? 0.25 : 0.8);
   }, [overlay, styleReady]);
 
   // …but frame it only when the trip itself changes, so the user's own zoom is never undone.

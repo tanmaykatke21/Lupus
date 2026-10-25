@@ -2,9 +2,7 @@
 // line-offset; Google Maps can't, so for it we move the geometry itself and redo it on zoom.
 import type { LngLat } from "./types";
 
-/** Pixels between adjacent lanes at a zoom level (same curve as the MapLibre line-offset). */
-export function laneSpacingPx(zoom: number) {
-  const stops: [number, number][] = [[12, 3.2], [15, 5.6], [18, 9.5]];
+function interpolate(stops: [number, number][], zoom: number) {
   if (zoom <= stops[0][0]) return stops[0][1];
   for (let i = 1; i < stops.length; i++) {
     const [z0, v0] = stops[i - 1], [z1, v1] = stops[i];
@@ -12,6 +10,12 @@ export function laneSpacingPx(zoom: number) {
   }
   return stops[stops.length - 1][1];
 }
+
+/** Pixels between adjacent lanes at a zoom level (same curve as the MapLibre line-offset). */
+export const laneSpacingPx = (zoom: number) => interpolate([[12, 3.2], [15, 5.6], [18, 9.5]], zoom);
+
+/** Route line width at a zoom level: always narrower than laneSpacingPx, so lanes sit side by side without overlapping. */
+export const laneWidthPx = (zoom: number) => interpolate([[12, 2.5], [15, 4.5], [18, 8]], zoom);
 
 /** Web Mercator ground resolution (meters per CSS pixel) at a latitude and zoom. */
 export const metersPerPixel = (lat: number, zoom: number) => (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;

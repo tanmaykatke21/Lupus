@@ -55,7 +55,7 @@ function classRequest(cls: ClassEntry, startsAt: number): TripRequest | null {
 
 const pathsOf = (o: RouteOption) => ({
   walk: o.legs.flatMap(l => (l.type === "walk" ? [l.coords] : [])),
-  bus: o.legs.flatMap(l => (l.type === "bus" ? [{ coords: l.coords, color: l.color }] : [])),
+  bus: o.legs.flatMap(l => (l.type === "bus" ? [{ coords: l.coords, color: l.color, routeId: l.routeId }] : [])),
 });
 
 function overlayFor(option: RouteOption | undefined, from: LngLat | null, to: Endpoint | null, others: RouteOption[] = []): TripOverlay | null {
