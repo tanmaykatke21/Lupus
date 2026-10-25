@@ -11,11 +11,13 @@ interface Props {
   onClose: () => void;
   replay: boolean;
   onReplay: (on: boolean) => void;
+  demoFull: boolean;
+  onDemoFull: (on: boolean) => void;
 }
 
-export default function SettingsPanel({ settings, onChange, onClose, replay, onReplay }: Props) {
+export default function SettingsPanel({ settings, onChange, onClose, replay, onReplay, demoFull, onDemoFull }: Props) {
   const [taps, setTaps] = useState(0);
-  const demo = taps >= 5 || replay;
+  const demo = taps >= 5 || replay || demoFull;
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -74,6 +76,13 @@ export default function SettingsPanel({ settings, onChange, onClose, replay, onR
               <span className="block text-xs text-muted">Play recorded buses from Tiger Data as if live</span>
             </span>
             <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={replay} onChange={e => onReplay(e.target.checked)} />
+          </label>
+          <label className="flex min-h-12 items-center justify-between gap-3">
+            <span>
+              <span className="block font-medium">Pretend the next bus is full</span>
+              <span className="block text-xs text-muted">Shows how Lupus reroutes around a packed bus (labeled as a demo)</span>
+            </span>
+            <input type="checkbox" className="h-6 w-6 accent-[var(--brass)]" checked={demoFull} onChange={e => onDemoFull(e.target.checked)} />
           </label>
         </section>
       )}

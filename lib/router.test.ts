@@ -158,3 +158,35 @@ describe("off-campus shuttles", () => {
   });
 });
 
+describe("packed buses", () => {
+  // The 07:00 Outer Loop at SAC (T0+143) is the bus to beat; give it a live bus id so load applies.
+  const withBus = (busId: string) => async (id: number) =>
+    (sampleEtas[id] ?? []).map(e => (e.routeId === 3 ? { ...e, busId } : e));
+
+  it("skips a bus at 110% of its seats (no standing room left)", async () => {
+    const options = await plan({ from: SAC, to: LIRR_STATION, time: at(140) },
+      deps({ etas: withBus("61"), busLoad: () => 1.12, liveBusCount: () => 1 }));
+    const used = options.flatMap(o => o.legs).filter((l): l is BusLeg => l.type === "bus");
+    expect(used.every(l => !(l.routeId === 3 && l.departAt === T0 + 143 * 60_000))).toBe(true);
+  });
+
+  it("still boards a bus whose seats are taken but has standing room (105%)", async () => {
+    const options = await plan({ from: SAC, to: LIRR_STATION, time: at(140) },
+      deps({ etas: withBus("61"), busLoad: () => 1.05 }));
+    const ride = options.flatMap(o => o.legs).find((l): l is BusLeg => l.type === "bus")!;
+    expect(ride).toMatchObject({ routeId: 3, busId: "61", load: 1.05 });
+  });
+
+  it("demo mode treats the next bus as full and takes the following one, flagged", async () => {
+    const options = await plan({ from: SAC, to: LIRR_STATION, time: at(140) },
+      deps({ etas: withBus("61"), demoFullFirst: true, liveBusCount: () => 1 }));
+    const bus = options.find(o => o.kind === "bus" && o.skippedFull);
+    // The next Outer Loop is a cycle later, so walking may win; either way the full bus is never used.
+    const used = options.flatMap(o => o.legs).filter((l): l is BusLeg => l.type === "bus");
+    expect(used.some(l => l.departAt === T0 + 143 * 60_000)).toBe(false);
+    if (bus) expect(bus.skippedFull).toMatchObject({ routeName: "Outer Loop", busId: "61", demo: true });
+    // Whatever wins explains that the bus was full.
+    expect(options[0].skippedFull).toMatchObject({ routeName: "Outer Loop", demo: true });
+  });
+});
+

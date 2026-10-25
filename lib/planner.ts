@@ -7,7 +7,7 @@ import { historicalRideMinutes, reliabilityNote } from "./segments";
 import { campusClock } from "./time";
 import { getWalkGraph } from "./walkGraph";
 
-export async function planTrip(req: PlanRequest, opts: { replay?: boolean } = {}) {
+export async function planTrip(req: PlanRequest, opts: { replay?: boolean; demoFull?: boolean } = {}) {
   const warnings: string[] = [];
   const now = (req.time ?? new Date()).getTime();
   const replay = opts.replay ? await replayBuses(Date.now()) : null;
@@ -32,6 +32,8 @@ export async function planTrip(req: PlanRequest, opts: { replay?: boolean } = {}
       ? id => replayStopEtas(id, Date.now())
       : id => cachedStopEtas(id).catch(err => { etaFailures++; throw err; }),
     liveBusCount: routeId => buses.filter(b => b.routeId === routeId && b.inService).length,
+    busLoad: busId => buses.find(b => b.id === busId)?.load ?? null,
+    demoFullFirst: opts.demoFull,
     historicalRide: (routeId, from, to, at) => {
       const route = routes.find(r => r.id === routeId);
       return route ? historicalRideMinutes(segments, route, from, to, campusClock(at).minutes / 60 | 0) : null;

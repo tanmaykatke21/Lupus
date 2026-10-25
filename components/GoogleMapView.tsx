@@ -154,6 +154,19 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     tripShapes.current = [];
     if (!overlay) return;
     const walkColor = prefersDark() ? "#f0c46a" : "#3a3631";
+    // Other possible routes, faded, under the chosen one.
+    for (const alt of overlay.alternatives ?? []) {
+      for (const line of alt.walk) {
+        if (line.length < 2) continue;
+        tripShapes.current.push(new libs.maps.Polyline({
+          map, path: line.map(toLatLng), strokeOpacity: 0, zIndex: 2, clickable: false,
+          icons: [{ icon: { path: "M 0,-1 0,1", strokeOpacity: 0.45, strokeColor: walkColor, scale: 2 }, offset: "0", repeat: "12px" }],
+        }));
+      }
+      for (const b of alt.bus) {
+        tripShapes.current.push(new libs.maps.Polyline({ map, path: b.coords.map(toLatLng), strokeColor: b.color, strokeOpacity: 0.4, strokeWeight: 5, zIndex: 2, clickable: false }));
+      }
+    }
     for (const line of overlay.walk) {
       if (line.length < 2) continue;
       tripShapes.current.push(new libs.maps.Polyline({

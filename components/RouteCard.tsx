@@ -1,6 +1,7 @@
 "use client";
 
 import Gauge from "./Gauge";
+import { crowding, skippedNote } from "@/lib/crowding";
 import type { RouteOption } from "@/lib/router";
 import { formatClock } from "@/lib/time";
 import { countdown } from "@/lib/useNow";
@@ -20,6 +21,7 @@ export default function RouteCard({ option, now, selected, fastest, onSelect }: 
   const leaveIn = option.leaveBy - now;
   const slack = option.slackMinutes === null ? null : leaveIn / 60_000;
   const stairs = option.legs.some(l => l.type === "walk" && l.stairs);
+  const crowd = bus?.type === "bus" ? crowding(bus.load) : null;
 
   return (
     <button
@@ -62,7 +64,9 @@ export default function RouteCard({ option, now, selected, fastest, onSelect }: 
           ? <span className="text-ok">● live</span>
           : <span className="text-muted">{option.estimated ? "estimated" : "scheduled"}</span>)}
         {stairs && <span className="text-muted">· stairs</span>}
+        {crowd && <span className={crowd.tone === "ok" ? "text-ok" : crowd.tone === "warn" ? "text-warn" : "text-danger"}>· {crowd.icon} {crowd.label}</span>}
       </div>
+      {option.skippedFull && <p className="mt-1.5 text-xs font-semibold text-copper">🚫 {skippedNote(option.skippedFull)}</p>}
       {option.reliability && <p className="mt-1.5 text-xs text-copper">⏱ {option.reliability}</p>}
     </button>
   );

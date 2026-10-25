@@ -77,7 +77,7 @@ export function guide(line: LngLat[], p: LngLat) {
 
 export type Phase =
   | { kind: "walk"; line: LngLat[]; toLabel: string; final: boolean }
-  | { kind: "wait"; stop: LngLat; stopName: string; routeName: string; color: string; busId: string | null; departAt: number; live: boolean }
+  | { kind: "wait"; stop: LngLat; stopName: string; routeName: string; color: string; busId: string | null; departAt: number; live: boolean; load: number | null }
   | { kind: "ride"; line: LngLat[]; alight: LngLat; alightName: string; routeName: string; color: string; stopCount: number; arriveAt: number }
   | { kind: "arrive"; name: string };
 
@@ -93,7 +93,7 @@ export function phasesFor(option: RouteOption, destination: string): Phase[] {
       const stop = leg.coords[0], alight = leg.coords[leg.coords.length - 1];
       out.push({
         kind: "wait", stop, stopName: leg.boardStopName, routeName: leg.routeName, color: leg.color,
-        busId: leg.busId, departAt: leg.departAt, live: leg.live,
+        busId: leg.busId, departAt: leg.departAt, live: leg.live, load: leg.load ?? null,
       });
       out.push({
         kind: "ride", line: leg.coords, alight, alightName: leg.alightStopName, routeName: leg.routeName,

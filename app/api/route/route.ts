@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   try {
     const result = await planTrip(
       { from, to, time, arriveBy, accessible: q.get("accessible") === "1" },
-      { replay: q.get("replay") === "1" },
+      { replay: q.get("replay") === "1", demoFull: q.get("demoFull") === "1" },
     );
     return json({ ...result, generatedAt: Date.now() }, CACHE.none);
   } catch (err) {

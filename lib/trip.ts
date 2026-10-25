@@ -29,13 +29,13 @@ export interface TripResult {
 
 const REFRESH_MS = 30_000;
 
-export function useTrip(from: LngLat | null, req: TripRequest | null, accessible: boolean, replay = false) {
+export function useTrip(from: LngLat | null, req: TripRequest | null, accessible: boolean, replay = false, demoFull = false) {
   const [data, setData] = useState<TripResult | null>(null);
   const [error, setError] = useState<{ message: string; offMap: boolean } | null>(null);
   const [loading, setLoading] = useState(false);
   const origin: LngLat | null = req?.from ? [req.from.lng, req.from.lat] : from;
   const key = origin && req
-    ? JSON.stringify([origin.map(n => n.toFixed(4)), req.to.lng, req.to.lat, req.arriveBy, req.departAt, accessible, replay])
+    ? JSON.stringify([origin.map(n => n.toFixed(4)), req.to.lng, req.to.lat, req.arriveBy, req.departAt, accessible, replay, demoFull])
     : null;
 
   useEffect(() => {
@@ -51,6 +51,7 @@ export function useTrip(from: LngLat | null, req: TripRequest | null, accessible
       if (req.arriveBy) q.set("arriveBy", new Date(req.arriveBy).toISOString());
       if (req.departAt) q.set("time", new Date(req.departAt).toISOString());
       if (replay) q.set("replay", "1");
+      if (demoFull) q.set("demoFull", "1");
       try {
         const res = await fetch(`/api/route?${q}`);
         const body = await res.json();

@@ -5,6 +5,11 @@ import type { BusRoute, BusStop, LngLat, StopEta } from "./types";
 
 export const MAX_STOP_WALK_M = 600;
 export const BOARD_BUFFER_MS = 60_000; // be at the stop a minute early
+/**
+ * ETA Spot's capacity counts seats, and drivers let students stand once seats run out, so a bus
+ * only counts as one you can't board at 110% of its seats (about 10% standing room).
+ */
+export const FULL_LOAD = 1.1;
 const MAX_OPTIONS = 3;
 const HORIZON_MS = 2 * 60 * 60_000; // project estimated trips up to 2 h ahead
 // Off the campus walking map (e.g. Walmart, Port Jefferson) we fall back to straight-line walks.
@@ -28,6 +33,10 @@ export interface RouterDeps {
   liveBusCount: (routeId: number) => number;
   /** Historical stop-to-stop minutes (Tiger Data), used when ETA Spot can't pair a trip. */
   historicalRide?: (routeId: number, fromStop: number, toStop: number, at: Date) => number | null;
+  /** Live fraction of seats taken for a bus (0..1), from ETA Spot's load/capacity. */
+  busLoad?: (busId: string) => number | null;
+  /** Demo: treat the next catchable bus on every route as full, to show rerouting. */
+  demoFullFirst?: boolean;
 }
 
 export interface PlanRequest {
@@ -60,6 +69,7 @@ export interface BusLeg {
   stopCount: number;
   coords: LngLat[];
   live: boolean; // departure time comes from a bus ETA Spot is tracking
+  load: number | null; // fraction of seats taken (live buses only)
   rideSource: "eta" | "history" | "schedule" | "estimate";
 }
 export type Leg = WalkLeg | WaitLeg | BusLeg;
@@ -76,6 +86,8 @@ export interface RouteOption {
   reliability?: string | null; // from Tiger Data history, e.g. "Usually 2 min later than shown"
   /** A bus that loses to walking; only offered for the "Bus" filter, never as a best option. */
   slowerThanWalk?: boolean;
+  /** We skipped this packed bus to choose the option (shown to the rider, spoken on reroute). */
+  skippedFull?: { routeName: string; busId: string | null; at: number; demo: boolean };
   legs: Leg[];
 }
 
@@ -215,6 +227,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   };
 
   const candidates: RouteOption[] = [];
+  let firstSkipped: RouteOption["skippedFull"] | null = null;
   await Promise.all(deps.routes.map(async route => {
     const timing = deps.timing[route.id];
     const live = deps.liveBusCount(route.id);
@@ -248,7 +261,16 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
         const earliestAtStop = now + walkToStopMs + BOARD_BUFFER_MS;
         const usable = upcoming.filter(d => d.at >= earliestAtStop);
         const ordered = arriveBy ? usable.slice().reverse() : usable;
+        let skipped: RouteOption["skippedFull"] | null = null;
         for (const dep of ordered) {
+          // Can't board a packed bus: take the next one on this route (other routes compete as usual).
+          const load = dep.busId ? deps.busLoad?.(dep.busId) ?? null : null;
+          const demoFull = !!deps.demoFullFirst && dep === usable[0];
+          if ((load !== null && load >= FULL_LOAD) || demoFull) {
+            skipped ??= { routeName: route.name, busId: dep.busId, at: dep.at, demo: demoFull && !(load !== null && load >= FULL_LOAD) };
+            firstSkipped ??= skipped;
+            continue;
+          }
           const paired = dep.tripKey ? alightEtas.find(e => e.routeId === route.id && e.tripKey === dep.tripKey && e.arrivesAt > dep.at) : undefined;
           let rideMs: number, rideSource: BusLeg["rideSource"];
           if (paired) { rideMs = paired.arrivesAt - dep.at; rideSource = "eta"; }
@@ -269,7 +291,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
               busId: dep.busId, tripKey: dep.tripKey,
               boardStopId: board.id, boardStopName: board.name, alightStopId: alight.id, alightStopName: alight.name,
               departAt: dep.at, arriveAt: dep.at + rideMs, stopCount: stopsBetween(route, i, j),
-              coords: shapeBetween(route, board, alight), live: dep.busId !== null, rideSource,
+              coords: shapeBetween(route, board, alight), live: dep.busId !== null, rideSource, load,
             },
             { type: "walk", ...fromStop, toLabel: "your destination" },
           ];
@@ -282,6 +304,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
             totalMinutes: minutes(arriveAt - start),
             breakdown: { walk: minutes(walkToStopMs + walkFromStopMs), wait: minutes(waitMs), ride: minutes(rideMs) },
             estimated: dep.estimated,
+            ...(skipped && { skippedFull: skipped }),
             legs,
           };
           const better = !best || compareOptions(option, best, !!arriveBy) < 0;
@@ -302,5 +325,7 @@ export async function plan(req: PlanRequest, deps: RouterDeps): Promise<RouteOpt
   // For the "Bus" filter, also keep the fastest bus that loses to walking, flagged and ranked last.
   const slower = candidates.filter(c => !useful.includes(c)).sort(rank)[0];
   const extra = !buses.length && slower ? [{ ...slower, slowerThanWalk: true }] : [];
+  // If a packed bus pushed us onto walking, say so on the walk option too.
+  if (walk && firstSkipped && !buses.some(b => b.skippedFull)) walk.skippedFull = firstSkipped;
   return [...[...options, ...buses].sort(rank), ...extra];
 }

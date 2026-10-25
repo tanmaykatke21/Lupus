@@ -52,13 +52,18 @@ function classRequest(cls: ClassEntry, startsAt: number): TripRequest | null {
   };
 }
 
-function overlayFor(option: RouteOption | undefined, from: LngLat | null, to: Endpoint | null): TripOverlay | null {
+const pathsOf = (o: RouteOption) => ({
+  walk: o.legs.flatMap(l => (l.type === "walk" ? [l.coords] : [])),
+  bus: o.legs.flatMap(l => (l.type === "bus" ? [{ coords: l.coords, color: l.color }] : [])),
+});
+
+function overlayFor(option: RouteOption | undefined, from: LngLat | null, to: Endpoint | null, others: RouteOption[] = []): TripOverlay | null {
   if (!option) return null;
   return {
-    walk: option.legs.flatMap(l => (l.type === "walk" ? [l.coords] : [])),
-    bus: option.legs.flatMap(l => (l.type === "bus" ? [{ coords: l.coords, color: l.color }] : [])),
+    ...pathsOf(option),
     from: from ?? undefined,
     to: to ? [to.lng, to.lat] : undefined,
+    alternatives: others.filter(o => o.id !== option.id && !o.slowerThanWalk).map(pathsOf),
   };
 }
 
@@ -66,6 +71,7 @@ export default function TransitApp() {
   const { routes, stops, error: networkError } = useNetwork();
   const [settings, setSettings] = useStored<Settings>("settings", DEFAULT_SETTINGS);
   const [replay, setReplay] = useStored<boolean>("replay", false);
+  const [demoFull, setDemoFull] = useStored<boolean>("demoFull", false);
   const { buses, source, updatedAt, error: busError } = useBuses(replay);
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
   const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
@@ -106,7 +112,7 @@ export default function TransitApp() {
   );
   const compassRequest = request ?? scheduleRequest;
   const activeRequest = mode === "compass" ? compassRequest : view === "results" ? request : null;
-  const trip = useTrip(fromCoords, activeRequest, settings.accessible, replay);
+  const trip = useTrip(fromCoords, activeRequest, settings.accessible, replay, demoFull);
 
   // Plan from the device location without a tap when permission was already granted.
   useEffect(() => {
@@ -120,12 +126,12 @@ export default function TransitApp() {
     const p = new URLSearchParams(window.location.search).get("replay");
     if (p === "1" || p === "0") setReplay(p === "1");
   }, [setReplay]);
-  const options = trip.data?.options ?? [];
+  const options = useMemo(() => trip.data?.options ?? [], [trip.data]);
   const selected = options.find(o => o.id === selectedId) ?? options[0];
   const overlay = useMemo(
-    () => (view === "results" ? overlayFor(selected, fromCoords, request?.to ?? null)
+    () => (view === "results" ? overlayFor(selected, fromCoords, request?.to ?? null, options)
       : view === "nav" && navOption ? overlayFor(navOption, fromCoords, request?.to ?? null) : null),
-    [view, selected, navOption, fromCoords, request],
+    [view, selected, navOption, fromCoords, request, options],
   );
 
   const goTo = useCallback((req: TripRequest) => {
@@ -219,6 +225,7 @@ export default function TransitApp() {
   if (view === "settings") {
     body = (
       <SettingsPanel settings={settings} onChange={setSettings} replay={replay} onReplay={setReplay}
+        demoFull={demoFull} onDemoFull={setDemoFull}
         onClose={() => setView(navOption ? "nav" : request ? "results" : "home")} />
     );
   } else if (view === "stop" && stop) {

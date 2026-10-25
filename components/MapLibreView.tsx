@@ -36,6 +36,17 @@ function stopsData(stops: BusStop[]): FC {
   })));
 }
 
+function altData(o: TripOverlay | null | undefined): FC {
+  return fc((o?.alternatives ?? []).flatMap(a => [
+    ...a.walk.filter(l => l.length > 1).map(coords => ({
+      type: "Feature" as const, properties: { kind: "walk", color: "#000" }, geometry: { type: "LineString" as const, coordinates: coords },
+    })),
+    ...a.bus.map(b => ({
+      type: "Feature" as const, properties: { kind: "bus", color: b.color }, geometry: { type: "LineString" as const, coordinates: b.coords },
+    })),
+  ]));
+}
+
 function overlayData(o: TripOverlay | null | undefined): FC {
   if (!o) return fc([]);
   return fc([
@@ -119,12 +130,20 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
       map.addSource("routes", { type: "geojson", data: routesData(routes) });
       map.addSource("stops", { type: "geojson", data: stopsData(stops) });
       map.addSource("trip", { type: "geojson", data: overlayData(overlay) });
+      map.addSource("alts", { type: "geojson", data: altData(overlay) });
       map.addLayer({ id: "routes-casing", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25, "line-offset": LANE_OFFSET } });
       map.addLayer({ id: "routes", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8, "line-offset": LANE_OFFSET } });
+      // Other possible routes, faded, under the chosen one.
+      map.addLayer({ id: "alt-bus", type: "line", source: "alts", filter: ["==", ["get", "kind"], "bus"],
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": ["get", "color"], "line-width": 5, "line-opacity": 0.4 } });
+      map.addLayer({ id: "alt-walk", type: "line", source: "alts", filter: ["==", ["get", "kind"], "walk"],
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 3, "line-opacity": 0.45, "line-dasharray": [0.5, 2] } });
       map.addLayer({ id: "trip-walk", type: "line", source: "trip", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 4, "line-dasharray": [0.6, 1.6] } });
@@ -166,6 +185,7 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
     const map = mapRef.current;
     if (!map || !styleReady) return;
     (map.getSource("trip") as GeoJSONSource | undefined)?.setData(overlayData(overlay));
+    (map.getSource("alts") as GeoJSONSource | undefined)?.setData(altData(overlay));
     if (map.getLayer("routes")) map.setPaintProperty("routes", "line-opacity", overlay ? 0.25 : 0.8);
   }, [overlay, styleReady]);
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { guide, phaseDone, phasesFor, turn, type Phase } from "@/lib/compass";
+import { crowding } from "@/lib/crowding";
 import { meters } from "@/lib/geo";
 import type { RouteOption } from "@/lib/router";
 import type { HeadingStatus } from "@/lib/useHeading";
@@ -171,6 +172,9 @@ export default function CompassView({ option, destination, location, heading, he
           <span className="mt-2 inline-block rounded-md px-2 py-1 text-xs font-bold text-white" style={{ background: phase.color }}>
             🚌 {phase.routeName}{phase.kind === "wait" && phase.live ? " · live" : ""}
           </span>
+        )}
+        {phase.kind === "wait" && crowding(phase.load) && (
+          <p className="mt-2 text-sm font-semibold">{crowding(phase.load)!.icon} {crowding(phase.load)!.label}</p>
         )}
       </section>
 

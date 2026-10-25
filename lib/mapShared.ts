@@ -3,11 +3,16 @@ import type { Bus, BusRoute, BusStop, LngLat } from "./types";
 
 export const CAMPUS_CENTER: LngLat = [-73.1235, 40.9125];
 
-export interface TripOverlay {
+export interface TripPaths {
   walk: LngLat[][];
   bus: { coords: LngLat[]; color: string }[];
+}
+
+export interface TripOverlay extends TripPaths {
   from?: LngLat;
   to?: LngLat;
+  /** The other possible routes, drawn faded under the chosen one. */
+  alternatives?: TripPaths[];
 }
 
 export interface MapProps {

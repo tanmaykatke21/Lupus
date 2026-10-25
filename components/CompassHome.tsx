@@ -1,6 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { skippedNote } from "@/lib/crowding";
+import { announce } from "@/lib/voice";
 import CompassView from "./CompassView";
 import Gauge from "./Gauge";
 import type { RouteOption } from "@/lib/router";
@@ -33,6 +36,15 @@ interface Props {
   ask?: React.ReactNode;
 }
 
+/** What changed, in words, when the plan switches mid-trip. */
+function rerouteText(o: RouteOption) {
+  const bus = o.legs.find(l => l.type === "bus");
+  const plan = bus?.type === "bus"
+    ? `take the ${bus.routeName} from ${bus.boardStopName} at ${formatClock(bus.departAt)}`
+    : "walk the rest of the way";
+  return o.skippedFull ? `${skippedNote(o.skippedFull)} New plan: ${plan}.` : `Faster way found: ${plan}.`;
+}
+
 function legSummary(o: RouteOption) {
   return o.legs
     .filter(l => l.type === "bus" || (l.type === "walk" && l.seconds >= 30))
@@ -42,6 +54,19 @@ function legSummary(o: RouteOption) {
 
 export default function CompassHome(p: Props) {
   const o = p.option;
+
+  // Reroute: while guiding, a new best option (e.g. our bus filled up) replaces the plan; say so.
+  const [seenId, setSeenId] = useState<string | null>(o?.id ?? null);
+  const [reroute, setReroute] = useState<string | null>(null);
+  if (o && o.id !== seenId) {
+    if (p.guiding && seenId !== null) setReroute(rerouteText(o));
+    setSeenId(o.id);
+  }
+  useEffect(() => {
+    if (reroute && p.voice) announce(reroute, { lang: p.lang });
+    // Speak once per new reroute message.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reroute]);
   const late = o && p.request?.arriveBy ? Math.round((o.arriveAt - p.request.arriveBy) / 60_000) : null;
 
   // The ETA lives in the header on every screen of the trip.
@@ -76,6 +101,13 @@ export default function CompassHome(p: Props) {
     return (
       <div className="flex h-dvh flex-col bg-bg">
         {header}
+        {reroute && (
+          <div role="alert" className="mx-4 mt-3 flex items-start gap-2 rounded-2xl border-2 border-copper bg-copper/15 p-3 text-sm font-semibold">
+            <span aria-hidden>🔀</span>
+            <span className="flex-1">{reroute}</span>
+            <button onClick={() => setReroute(null)} aria-label="Dismiss" className="-m-1 h-8 w-8 rounded-full">✕</button>
+          </div>
+        )}
         <CompassView key={o.id} option={o} destination={p.request.to.name} location={p.location}
           heading={p.heading} headingStatus={p.headingStatus} now={p.now} voice={p.voice} lang={p.lang} onEnd={p.onEnd} />
       </div>
@@ -113,6 +145,7 @@ export default function CompassHome(p: Props) {
                     {o.slackMinutes === null || o.leaveBy - p.now <= 0 ? "Go now" : countdown(o.leaveBy - p.now)}
                   </p>
                   <p className="mt-1 text-sm">{legSummary(o)}</p>
+                  {o.skippedFull && <p className="mt-1 text-xs font-semibold text-copper">🚫 {skippedNote(o.skippedFull)}</p>}
                 </div>
                 <Gauge slack={o.slackMinutes === null ? null : (o.leaveBy - p.now) / 60_000} size={72} />
               </div>
