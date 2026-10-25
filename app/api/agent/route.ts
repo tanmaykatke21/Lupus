@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     console.error("[agent] failed:", msg);
     if (/API key|PERMISSION|401|403/i.test(msg)) return json({ error: "Gemini rejected the API key." }, CACHE.none, 502);
     if (/quota|429|RESOURCE_EXHAUSTED|UNAVAILABLE|503|504|DEADLINE/i.test(msg)) {
-      return json({ error: "Lupus is busy right now (Gemini is overloaded). Try again in a moment." }, CACHE.none, 503);
+      return json({ error: "The conductor is swamped right now (Gemini is busy). Try again in a moment." }, CACHE.none, 503);
     }
     return json({ error: "Couldn't reach Gemini. Try again." }, CACHE.none, 502);
   }

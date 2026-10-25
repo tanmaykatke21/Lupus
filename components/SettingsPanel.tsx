@@ -38,7 +38,7 @@ export default function SettingsPanel({ settings, onChange, onClose, replay, onR
         </label>
         <label className="flex min-h-12 items-center justify-between gap-3 card rounded-2xl px-3 py-2">
           <span>
-            <span className="block font-medium">Voice guidance</span>
+            <span className="block font-medium">Conductor voice</span>
             <span className="block text-xs text-muted">Speak steps and leave-by alerts</span>
           </span>
           <input type="checkbox" role="switch" className="switch" checked={settings.voice}

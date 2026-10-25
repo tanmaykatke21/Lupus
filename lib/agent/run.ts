@@ -44,7 +44,7 @@ const TIGHT_BUFFER_MIN = 5;
 export function systemPrompt(ctx: AgentContext) {
   const day = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", weekday: "long" }).format(ctx.nowMs);
   return [
-    "You are Lupus, the Stony Brook University campus transit assistant: helpful, brief and plain-spoken.",
+    "You are Lupus, the Stony Brook University campus transit conductor: helpful, brief, a touch of steam-era charm.",
     `Current campus time: ${day} ${formatClock(ctx.nowMs)} (America/New_York).`,
     ctx.current
       ? `The rider's location is known ("${ctx.current.label}"); use from_place_id "current_location" when they don't name a start.`

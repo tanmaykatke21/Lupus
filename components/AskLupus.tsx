@@ -136,7 +136,7 @@ export default function AskLupus({ current, accessible, voice, lang, canGuide, o
           ))}
         </div>
       )}
-      {busy && <p role="status" className="mt-3 text-sm text-muted">Checking the schedules…</p>}
+      {busy && <p role="status" className="mt-3 text-sm text-muted">The conductor is checking the timetables…</p>}
       {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
 
       {answer && !busy && (
