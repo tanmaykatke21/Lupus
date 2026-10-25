@@ -73,7 +73,7 @@ export default function LocationHelp({ status, onRetry, onPickStart }: Props) {
 
   return (
     <div role="alert" className="rounded-2xl border-2 border-warn bg-warn/10 p-4 text-left text-sm">
-      <p className="font-bold">📍 Lupus can&apos;t see where you are</p>
+      <p className="font-bold">Lupus can&apos;t see where you are</p>
       <p className="mt-1">{info.why}</p>
       <ol className="mt-2 list-decimal space-y-1 pl-5">
         {info.steps.map(s => <li key={s}>{s}</li>)}

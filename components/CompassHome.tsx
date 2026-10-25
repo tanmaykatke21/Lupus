@@ -1,11 +1,14 @@
 "use client";
 
 import Image from "next/image";
+import lupusIcon from "@/assets/icon.png";
+import lupusLogo from "@/assets/logo.png";
 import { useEffect, useState } from "react";
 import { skippedNote } from "@/lib/crowding";
 import { announce } from "@/lib/voice";
 import CompassView from "./CompassView";
 import Gauge from "./Gauge";
+import Icon from "./Icon";
 import LocationHelp from "./LocationHelp";
 import type { RouteOption } from "@/lib/router";
 import { formatClock } from "@/lib/time";
@@ -52,7 +55,7 @@ function rerouteText(o: RouteOption) {
 function legSummary(o: RouteOption) {
   return o.legs
     .filter(l => l.type === "bus" || (l.type === "walk" && l.seconds >= 30))
-    .map(l => (l.type === "walk" ? `🚶 ${Math.max(1, Math.round(l.seconds / 60))}` : l.type === "bus" ? `🚌 ${l.routeName}` : ""))
+    .map(l => (l.type === "walk" ? `Walk ${Math.max(1, Math.round(l.seconds / 60))} min` : l.type === "bus" ? l.routeName : ""))
     .join("  ›  ");
 }
 
@@ -76,7 +79,7 @@ export default function CompassHome(p: Props) {
   // The ETA lives in the header on every screen of the trip.
   const header = (
     <header className="plate mx-3 mt-[max(env(safe-area-inset-top),12px)] flex items-center gap-3 rounded-[24px] px-3 py-2.5">
-      <Image src="/icon-192.png" alt="" width={36} height={36} className="rounded-[10px] shadow-sm ring-1 ring-line" priority />
+      <Image src={lupusIcon} alt="" width={36} height={36} className="h-9 w-9" priority />
       <div className="min-w-0 flex-1">
         {p.request ? (
           <>
@@ -93,11 +96,11 @@ export default function CompassHome(p: Props) {
             </p>
           </>
         ) : (
-          <h1 className="font-display text-xl font-bold">Lupus</h1>
+          <h1 className="leading-none"><Image src={lupusLogo} alt="Lupus" className="h-[22px] w-auto dark:invert" priority /></h1>
         )}
       </div>
-      <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass px-3 text-sm font-semibold" aria-label="Open map">🗺 Map</button>
-      <button onClick={p.onSettings} aria-label="Settings" className="glass-icon h-10 w-10 text-lg">⚙︎</button>
+      <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass px-3 text-sm font-semibold" aria-label="Open map">Map</button>
+      <button onClick={p.onSettings} aria-label="Settings" className="glass-icon h-10 w-10"><Icon name="gear" /></button>
     </header>
   );
 
@@ -108,9 +111,8 @@ export default function CompassHome(p: Props) {
         <div className="mx-4 mt-3"><LocationHelp status={p.locationStatus} onRetry={p.onRetryLocation} onPickStart={p.onPickStart} /></div>
         {reroute && (
           <div role="alert" className="mx-4 mt-3 flex items-start gap-2 rounded-2xl border-2 border-copper bg-copper/15 p-3 text-sm font-semibold">
-            <span aria-hidden>🔀</span>
             <span className="flex-1">{reroute}</span>
-            <button onClick={() => setReroute(null)} aria-label="Dismiss" className="-m-1 h-8 w-8 rounded-full">✕</button>
+            <button onClick={() => setReroute(null)} aria-label="Dismiss" className="-m-1 grid h-8 w-8 place-items-center rounded-full"><Icon name="close" className="h-4 w-4" /></button>
           </div>
         )}
         <CompassView key={o.id} option={o} destination={p.request.to.name} location={p.location}
@@ -125,10 +127,10 @@ export default function CompassHome(p: Props) {
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-5">
         {!p.request ? (
           <section className="plate rounded-3xl p-5 text-center">
-            <p className="text-5xl" aria-hidden>🧭</p>
+            <Icon name="compass" className="mx-auto h-14 w-14 text-brass" />
             <h2 className="mt-2 font-display text-2xl font-bold">Your schedule drives Lupus</h2>
             <p className="mt-1 text-muted">Add your classes once. Lupus picks the next one, finds the fastest way there, and points the way.</p>
-            <button onClick={p.onAddSchedule} className="btn-brass mt-4 h-12 w-full rounded-full font-bold">📸 Add my schedule</button>
+            <button onClick={p.onAddSchedule} className="btn-brass mt-4 h-12 w-full rounded-full font-bold">Add my schedule</button>
             <button onClick={p.onPickDestination} className="mt-2 h-12 w-full rounded-full btn-glass font-semibold">Go somewhere else</button>
           </section>
         ) : (
@@ -150,7 +152,7 @@ export default function CompassHome(p: Props) {
                     {o.slackMinutes === null || o.leaveBy - p.now <= 0 ? "Go now" : countdown(o.leaveBy - p.now)}
                   </p>
                   <p className="mt-1 text-sm">{legSummary(o)}</p>
-                  {o.skippedFull && <p className="mt-1 text-xs font-semibold text-copper">🚫 {skippedNote(o.skippedFull)}</p>}
+                  {o.skippedFull && <p className="mt-1 text-xs font-semibold text-copper">{skippedNote(o.skippedFull)}</p>}
                 </div>
                 <Gauge slack={o.slackMinutes === null ? null : (o.leaveBy - p.now) / 60_000} size={72} />
               </div>
@@ -162,7 +164,7 @@ export default function CompassHome(p: Props) {
               </p>
             )}
 
-            <button onClick={p.onGuide} className="btn-brass mt-5 h-14 w-full rounded-full text-lg font-bold">🧭 Guide me</button>
+            <button onClick={p.onGuide} className="btn-brass mt-5 h-14 w-full rounded-full text-lg font-bold">Guide me</button>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass text-sm font-semibold">See on map</button>
               <button onClick={p.onPickDestination} className="h-11 rounded-full btn-glass text-sm font-semibold">Somewhere else</button>

@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { busApproaching, conductorIntro, conductorLine } from "@/lib/conductor";
 import { meters } from "@/lib/geo";
 import type { RouteOption } from "@/lib/router";
-import { stepsFor, type Step } from "@/lib/steps";
+import { stepsFor } from "@/lib/steps";
 import type { LngLat } from "@/lib/types";
 import { countdown } from "@/lib/useNow";
 import { playWhistle, speak, stopSpeaking, translateLines } from "@/lib/voice";
+import Icon, { STEP_ICON } from "./Icon";
 
-const ICON: Record<Step["icon"], string> = { walk: "🚶", wait: "⏳", bus: "🚌", arrive: "🏁", shortcut: "🚪" };
 const ARRIVE_RADIUS_M = 20;
 const WHISTLE_AT_MS = 2 * 60_000;
 
@@ -88,7 +88,7 @@ export default function NavMode({ option, destination, lang, voice, now, locatio
       </div>
 
       <div className="plate rounded-2xl p-4">
-        <div className="mb-2 text-4xl" aria-hidden>{ICON[step.icon]}</div>
+        <Icon name={STEP_ICON[step.icon]} className="mb-2 h-9 w-9 text-brass" />
         <p className="text-2xl font-bold leading-snug">{lineFor(index)}</p>
         {lines?.translated && lang !== "en" && <p className="mt-1 text-sm text-muted">{step.text}</p>}
         {step.detail && <p className="mt-2 text-sm text-muted">{step.detail}</p>}
@@ -101,20 +101,20 @@ export default function NavMode({ option, destination, lang, voice, now, locatio
 
       <div className="grid grid-cols-4 gap-2">
         <button onClick={() => setIndex(i => Math.max(0, i - 1))} disabled={index === 0}
-          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40" aria-label="Previous step">◀</button>
-        <button onClick={repeat} className="h-12 rounded-full btn-glass text-sm font-medium" aria-label="Repeat step">🔁</button>
+          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40" aria-label="Previous step"><Icon name="chevronLeft" className="mx-auto h-5 w-5" /></button>
+        <button onClick={repeat} className="h-12 rounded-full btn-glass text-sm font-medium" aria-label="Repeat step"><Icon name="repeat" className="mx-auto h-5 w-5" /></button>
         <button onClick={() => { setMuted(m => !m); stopSpeaking(); }} aria-pressed={muted}
           className="h-12 rounded-full btn-glass text-sm font-medium" aria-label={muted ? "Unmute voice" : "Mute voice"}>
-          {muted ? "🔇" : "🔊"}
+          <Icon name={muted ? "speakerOff" : "speaker"} className="mx-auto h-5 w-5" />
         </button>
         <button onClick={() => setIndex(i => Math.min(steps.length - 1, i + 1))} disabled={index === steps.length - 1}
-          className="btn-brass h-12 rounded-full text-sm font-bold disabled:opacity-40" aria-label="Next step">▶</button>
+          className="btn-brass h-12 rounded-full text-sm font-bold disabled:opacity-40" aria-label="Next step"><Icon name="chevronRight" className="mx-auto h-5 w-5" /></button>
       </div>
 
       <ol className="space-y-1 text-sm">
         {steps.map((s, i) => (
-          <li key={i} className={`rounded-lg px-2 py-1 ${i === index ? "bg-brass/15 font-semibold" : i < index ? "text-muted line-through" : ""}`}>
-            {ICON[s.icon]} {lineFor(i)}
+          <li key={i} className={`flex items-start gap-2 rounded-lg px-2 py-1 ${i === index ? "bg-brass/15 font-semibold" : i < index ? "text-muted line-through" : ""}`}>
+            <Icon name={STEP_ICON[s.icon]} className="mt-px h-4 w-4 text-muted" /> <span>{lineFor(i)}</span>
           </li>
         ))}
       </ol>

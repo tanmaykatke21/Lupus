@@ -17,11 +17,6 @@ export const PLACES = placesFile.places as Place[];
 export const placeById = (id: string) => PLACES.find(p => p.id === id);
 export const lngLat = (p: { lng: number; lat: number }): LngLat => [p.lng, p.lat];
 
-export const CATEGORY_ICON: Record<PlaceCategory, string> = {
-  academic: "🏛️", dorm: "🛏️", dining: "🍽️", medical: "🏥", transit: "🚂", athletics: "🏟️", services: "🛎️", parking: "🅿️",
-  shopping: "🛒", town: "⚓",
-};
-
 const norm = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[^\w\s]/g, "").trim();
 
 // Exact alias > prefix > word prefix > substring. Ties keep file order.

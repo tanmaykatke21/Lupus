@@ -2,8 +2,11 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import lupusIcon from "@/assets/icon.png";
+import lupusLogo from "@/assets/logo.png";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import AskLupus from "./AskLupus";
+import Icon from "./Icon";
 import BottomSheet, { type Snap } from "./BottomSheet";
 import ClassesPanel from "./ClassesPanel";
 import CompassHome from "./CompassHome";
@@ -26,6 +29,7 @@ import type { BusStop, LngLat } from "@/lib/types";
 import { useHeading } from "@/lib/useHeading";
 import { useBuses, useNetwork } from "@/lib/useLiveData";
 import { useLeaveAlert } from "@/lib/useLeaveAlert";
+import { useHandheld } from "@/lib/useHandheld";
 import { useLocation } from "@/lib/useLocation";
 import { useNow } from "@/lib/useNow";
 import { unlockAudio } from "@/lib/voice";
@@ -80,7 +84,10 @@ export default function TransitApp() {
   const heading = useHeading();
   const now = useNow();
   // Compass (schedule-first) is home; the map is secondary.
-  const [mode, setMode] = useStored<"compass" | "map">("mode", "compass");
+  const [storedMode, setMode] = useStored<"compass" | "map">("mode", "compass");
+  // Laptops and desktops have no GPS or compass: they always get the map.
+  const handheld = useHandheld();
+  const mode = handheld ? storedMode : "map";
   const [guiding, setGuiding] = useState(false);
 
   const [view, setView] = useState<View>("home");
@@ -170,7 +177,7 @@ export default function TransitApp() {
   const agentCurrent = location.coords ? { lng: location.coords[0], lat: location.coords[1], label: "Your location" }
     : origin.kind === "place" ? { lng: origin.place.lng, lat: origin.place.lat, label: origin.place.name } : null;
   const askLupus = (
-    <AskLupus current={agentCurrent} accessible={settings.accessible} voice={settings.voice} lang={settings.language}
+    <AskLupus current={agentCurrent} canGuide={handheld} accessible={settings.accessible} voice={settings.voice} lang={settings.language}
       onGuide={card => {
         const req = requestFromCard(card);
         if (!req) return;
@@ -200,16 +207,18 @@ export default function TransitApp() {
 
   const header = (
     <header className="flex items-center gap-3 px-4 pb-3 pt-1 md:pt-4">
-      <Image src="/icon-192.png" alt="" width={40} height={40} className="rounded-[12px] shadow-sm ring-1 ring-line" priority />
+      <Image src={lupusIcon} alt="" width={40} height={40} className="h-10 w-10" priority />
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-[22px] font-bold leading-none tracking-tight">Lupus</h1>
+        <h1 className="leading-none"><Image src={lupusLogo} alt="Lupus" className="h-[22px] w-auto dark:invert" priority /></h1>
         {etaOption ? (
           <p className="truncate text-xs font-semibold text-ink" aria-live="polite">ETA {formatClock(etaOption.arriveAt)} · {request?.to.name}</p>
         ) : (
           <p className="truncate text-xs text-muted">Campus transit</p>
         )}
       </div>
-      <button onClick={() => setMode("compass")} aria-label="Compass" className="glass-icon h-10 w-10 text-lg">🧭</button>
+      {handheld && (
+        <button onClick={() => setMode("compass")} aria-label="Compass" className="glass-icon h-10 w-10"><Icon name="compass" /></button>
+      )}
       <span
         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${busError ? "bg-danger/15 text-danger" : "bg-ok/15 text-ok"}`}
         aria-live="polite"
@@ -217,7 +226,7 @@ export default function TransitApp() {
         {busError ? "Bus feed down" : `${source === "replay" ? "Replay" : "Live"} · ${ago(updatedAt, now)}`}
       </span>
       <button onClick={() => setView("settings")} aria-label="Settings" className="glass-icon h-10 w-10 text-lg">
-        ⚙︎
+        <Icon name="gear" />
       </button>
     </header>
   );
@@ -297,7 +306,7 @@ export default function TransitApp() {
           onClick={() => { setView("search-to"); setSnap("full"); }}
           className="mb-3 flex h-11 w-full items-center gap-2.5 rounded-full bg-surface-2 px-4 text-left text-[17px] text-muted transition active:scale-[0.99]"
         >
-          <span aria-hidden>🔎</span> Where to?
+          <Icon name="search" className="h-[18px] w-[18px]" /> Where to?
         </button>
         {saved.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2" aria-label="Saved places">
@@ -306,7 +315,7 @@ export default function TransitApp() {
               return p && (
                 <button key={s.placeId} onClick={() => pickDestination(p)}
                   className="min-h-10 rounded-full bg-brass/12 px-3.5 text-sm font-semibold text-brass">
-                  ★ {s.label}
+                  {s.label}
                 </button>
               );
             })}
@@ -403,7 +412,7 @@ export default function TransitApp() {
           className={`absolute right-4 z-10 flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold ${followOn ? "btn-brass" : "plate"}`}
           style={{ bottom: sheetPx + 20 }}
         >
-          {followOn ? "🧭 Following" : "📍 Follow me"}
+          {followOn ? "Following" : "Follow me"}
         </button>
       )}
       <BottomSheet snap={snap} onSnapChange={setSnap} onHeightChange={onHeight} header={header}>
@@ -412,7 +421,7 @@ export default function TransitApp() {
             {(["go", "trains", "classes"] as const).map(t => (
               <button key={t} role="tab" aria-selected={homeTab === t} onClick={() => setHomeTab(t)}
                 className={`min-h-9 rounded-full text-sm font-semibold transition ${homeTab === t ? "plate text-ink" : "text-muted"}`}>
-                {t === "go" ? "🧭 Go" : t === "trains" ? "🚂 Trains" : "🎓 Classes"}
+                {t === "go" ? "Go" : t === "trains" ? "Trains" : "Classes"}
               </button>
             ))}
           </div>

@@ -5,6 +5,7 @@ import { classStartsAt, nextClass, type ClassEntry } from "@/lib/classes";
 import { PLACES, placeById } from "@/lib/places";
 import { campusClock, formatClock, type DayKey } from "@/lib/time";
 import { countdown } from "@/lib/useNow";
+import Icon from "./Icon";
 
 const DAYS: { key: DayKey; label: string }[] = [
   { key: "mon", label: "M" }, { key: "tue", label: "Tu" }, { key: "wed", label: "W" },
@@ -58,7 +59,7 @@ function ClassEditor({ value, onChange, onRemove }: { value: ClassEntry; onChang
             {ACADEMIC.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
-        <button type="button" onClick={onRemove} className="h-11 rounded-lg px-3 text-sm text-danger" aria-label={`Remove ${value.course}`}>✕</button>
+        <button type="button" onClick={onRemove} className="h-11 rounded-lg px-3 text-sm text-danger" aria-label={`Remove ${value.course}`}><Icon name="close" className="h-4 w-4" /></button>
       </div>
     </fieldset>
   );
@@ -118,7 +119,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
       {next ? (
         <button onClick={() => onGo(next.cls, classStartsAt(now, next.inMinutes))}
           className="plate flex w-full items-center gap-3 rounded-2xl p-4 text-left">
-          <span className="text-3xl" aria-hidden>🎓</span>
+          <Icon name="cap" className="h-8 w-8 text-brass" />
           <span className="flex-1">
             <span className="block text-xs font-bold uppercase tracking-wide text-muted">Next class</span>
             <span className="block font-display text-lg font-bold">{next.cls.course}</span>
@@ -126,7 +127,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
               {placeById(next.cls.placeId!)?.name} · starts in {countdown(next.inMinutes * 60_000)}
             </span>
           </span>
-          <span className="btn-brass rounded-full px-3 py-2 text-sm font-bold">Go ▶</span>
+          <span className="btn-brass rounded-full px-3 py-2 text-sm font-bold">Go</span>
         </button>
       ) : (
         <p className="rounded-xl bg-surface-2 p-3 text-sm text-muted">Add your classes and Lupus will get you to the next one on time.</p>
@@ -134,8 +135,8 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
 
       <div className="flex gap-2">
         <button onClick={() => fileRef.current?.click()} disabled={busy}
-          className="h-12 flex-1 rounded-xl border border-brass/60 bg-brass/10 text-sm font-semibold disabled:opacity-60">
-          📸 Import SOLAR screenshot
+          className="h-12 flex-1 rounded-full bg-brass/12 text-sm font-semibold text-brass disabled:opacity-60">
+          Import SOLAR screenshot
         </button>
         <button onClick={() => setReview([blank()])} className="h-12 rounded-full btn-glass px-4 text-sm font-semibold">+ Add</button>
         <input ref={fileRef} type="file" accept="image/*" className="hidden" aria-label="Schedule screenshot"
@@ -153,7 +154,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
                 {" · "}{c.placeId ? placeById(c.placeId)?.name : "no building"}{c.room ? ` ${c.room}` : ""}
               </span>
             </span>
-            <button onClick={() => onChange(classes.filter(x => x.id !== c.id))} className="h-11 px-2 text-sm text-danger" aria-label={`Remove ${c.course}`}>✕</button>
+            <button onClick={() => onChange(classes.filter(x => x.id !== c.id))} className="h-11 px-2 text-sm text-danger" aria-label={`Remove ${c.course}`}><Icon name="close" className="h-4 w-4" /></button>
           </li>
         ))}
       </ul>

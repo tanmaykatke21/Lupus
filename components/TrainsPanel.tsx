@@ -64,7 +64,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
   };
 
   const choices = [
-    ...saved.map(s => ({ id: s.placeId, label: `★ ${s.label}` })),
+    ...saved.map(s => ({ id: s.placeId, label: s.label })),
     ...HOME_CHOICES.filter(id => !saved.some(s => s.placeId === id)).map(id => ({ id, label: placeById(id)?.name ?? id })),
   ].filter(c => PLACES.some(p => p.id === c.id));
 
@@ -74,7 +74,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan }: Props) {
         {(["catch", "back"] as Mode[]).map(m => (
           <button key={m} role="tab" aria-selected={mode === m} onClick={() => { setMode(m); setArriving(null); }}
             className={`min-h-11 rounded-lg text-sm font-semibold ${mode === m ? "plate" : "text-muted"}`}>
-            {m === "catch" ? "🚂 Catch a train" : "🏠 Coming back"}
+            {m === "catch" ? "Catch a train" : "Coming back"}
           </button>
         ))}
       </div>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { CATEGORY_ICON, PLACES, searchPlaces, type Place } from "@/lib/places";
+import { PLACES, searchPlaces, type Place } from "@/lib/places";
+import Icon, { CATEGORY_ICON } from "./Icon";
 import type { SavedPlace } from "@/lib/storage";
 
 interface Props {
@@ -40,7 +41,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
 
       {allowMyLocation && !q && (
         <button onClick={onMyLocation} className="mb-2 flex min-h-12 w-full items-center gap-3 card rounded-2xl px-3 text-left font-medium">
-          <span aria-hidden>📍</span> My current location
+          <Icon name="location" className="h-5 w-5 text-brass" /> My current location
         </button>
       )}
 
@@ -50,7 +51,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
             const p = PLACES.find(x => x.id === s.placeId);
             return p && (
               <button key={s.placeId} onClick={() => onPick(p)} className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-3 text-sm font-medium">
-                ★ {s.label}: {p.name}
+                {s.label}: {p.name}
               </button>
             );
           })}
@@ -62,7 +63,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
           {QUICK.map(c => (
             <button key={c} onClick={() => setCategory(category === c ? null : c)} aria-pressed={category === c}
               className={`min-h-11 shrink-0 rounded-full border px-3 text-sm font-medium capitalize ${category === c ? "border-brass bg-brass/20" : "border-line bg-surface"}`}>
-              {CATEGORY_ICON[c]} {c === "medical" ? "Hospital" : c === "transit" ? "LIRR" : c === "town" ? "Towns" : c}
+              {c === "medical" ? "Hospital" : c === "transit" ? "LIRR" : c === "town" ? "Towns" : c}
             </button>
           ))}
         </div>
@@ -72,10 +73,10 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
         {results.map(p => (
           <li key={p.id}>
             <button onClick={() => onPick(p)} className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left">
-              <span aria-hidden>{CATEGORY_ICON[p.category]}</span>
+              <Icon name={CATEGORY_ICON[p.category]} className="h-5 w-5 text-muted" />
               <span className="flex-1">
                 <span className="block font-medium">{p.name}</span>
-                {p.service ? <span className="block text-xs text-copper">🚌 {p.service}</span>
+                {p.service ? <span className="block text-xs text-copper">{p.service}</span>
                   : p.aliases[0] && <span className="block text-xs text-muted">{p.aliases.slice(0, 3).join(" · ")}</span>}
               </span>
             </button>

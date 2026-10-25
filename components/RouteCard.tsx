@@ -51,23 +51,23 @@ export default function RouteCard({ option, now, selected, fastest, onSelect }: 
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs font-medium">
-        <span className="rounded-md bg-surface-2 px-2 py-1">🚶 {m(option.breakdown.walk)} min</span>
+        <span className="rounded-md bg-surface-2 px-2 py-1">Walk {m(option.breakdown.walk)} min</span>
         {option.kind === "bus" && (
           <>
-            <span className="rounded-md bg-surface-2 px-2 py-1">⏳ {Math.round(option.breakdown.wait)} min</span>
+            <span className="rounded-md bg-surface-2 px-2 py-1">Wait {Math.round(option.breakdown.wait)} min</span>
             <span className="rounded-md px-2 py-1 text-white" style={{ background: bus?.type === "bus" ? bus.color : undefined }}>
-              🚌 {bus?.type === "bus" ? bus.routeName : "Bus"} · {m(option.breakdown.ride)} min
+              {bus?.type === "bus" ? bus.routeName : "Bus"} · {m(option.breakdown.ride)} min
             </span>
           </>
         )}
         {bus?.type === "bus" && (bus.live
-          ? <span className="text-ok">● live</span>
+          ? <span className="inline-flex items-center gap-1 text-ok"><span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden />live</span>
           : <span className="text-muted">{option.estimated ? "estimated" : "scheduled"}</span>)}
         {stairs && <span className="text-muted">· stairs</span>}
-        {crowd && <span className={crowd.tone === "ok" ? "text-ok" : crowd.tone === "warn" ? "text-warn" : "text-danger"}>· {crowd.icon} {crowd.label}</span>}
+        {crowd && <span className={crowd.tone === "ok" ? "text-ok" : crowd.tone === "warn" ? "text-warn" : "text-danger"}>· {crowd.label}</span>}
       </div>
-      {option.skippedFull && <p className="mt-1.5 text-xs font-semibold text-copper">🚫 {skippedNote(option.skippedFull)}</p>}
-      {option.reliability && <p className="mt-1.5 text-xs text-copper">⏱ {option.reliability}</p>}
+      {option.skippedFull && <p className="mt-1.5 text-xs font-semibold text-copper">{skippedNote(option.skippedFull)}</p>}
+      {option.reliability && <p className="mt-1.5 text-xs text-copper">{option.reliability}</p>}
     </button>
   );
 }

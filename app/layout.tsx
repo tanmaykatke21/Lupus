@@ -9,7 +9,6 @@ export const metadata: Metadata = {
   title: "Lupus · Campus Transit",
   description: "Fastest walk + bus routes around Stony Brook, with LIRR connections and voice directions.",
   appleWebApp: { capable: true, title: "Lupus", statusBarStyle: "black-translucent" },
-  icons: { apple: "/icon-192.png" },
 };
 
 export const viewport: Viewport = {

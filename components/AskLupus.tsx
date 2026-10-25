@@ -3,6 +3,7 @@
 import { useRef, useState, useSyncExternalStore } from "react";
 import type { AgentAnswer, AnswerCard, Verdict } from "@/lib/agent/run";
 import { announce } from "@/lib/voice";
+import Icon from "./Icon";
 
 export type AgentResponse = AgentAnswer & { mode: "gemini" | "mock" };
 
@@ -11,6 +12,8 @@ interface Props {
   accessible: boolean;
   voice: boolean;
   lang: string;
+  /** Whether "Guide me" (the compass) is offered: phones and tablets only. */
+  canGuide: boolean;
   onGuide: (card: AnswerCard) => void;
   onShowMap: (card: AnswerCard) => void;
 }
@@ -56,7 +59,7 @@ function bufferLine(card: AnswerCard) {
 
 const noop = () => () => {};
 
-export default function AskLupus({ current, accessible, voice, lang, onGuide, onShowMap }: Props) {
+export default function AskLupus({ current, accessible, voice, lang, canGuide, onGuide, onShowMap }: Props) {
   // False on the server and during hydration, so the mic button can't cause a mismatch.
   const canListen = useSyncExternalStore(noop, () => !!speechCtor(), () => false);
   const [q, setQ] = useState("");
@@ -121,7 +124,7 @@ export default function AskLupus({ current, accessible, voice, lang, onGuide, on
           className="h-12 min-w-0 flex-1 card rounded-2xl px-3 text-base placeholder:text-muted" />
         {canListen && (
           <button type="button" onClick={listen} aria-label="Ask by voice" aria-pressed={listening}
-            className={`h-12 w-12 shrink-0 rounded-full text-lg ${listening ? "bg-danger/20" : "btn-glass"}`}>🎙</button>
+            className={`h-12 w-12 shrink-0 rounded-full text-lg ${listening ? "bg-danger/20" : "btn-glass"}`}><Icon name="mic" className="mx-auto h-5 w-5" /></button>
         )}
         <button disabled={busy} className="btn-brass h-12 shrink-0 rounded-full px-4 font-bold disabled:opacity-60">{busy ? "…" : "Ask"}</button>
       </form>
@@ -133,29 +136,29 @@ export default function AskLupus({ current, accessible, voice, lang, onGuide, on
           ))}
         </div>
       )}
-      {busy && <p role="status" className="mt-3 text-sm text-muted">🎩 The conductor is checking the timetables…</p>}
+      {busy && <p role="status" className="mt-3 text-sm text-muted">The conductor is checking the timetables…</p>}
       {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
 
       {answer && !busy && (
         <div className="mt-3" aria-live="polite">
           {badge && <span className={`inline-block rounded-full px-3 py-1 text-sm font-bold ${badge.cls}`}>{badge.label}</span>}
-          <p className="mt-2 text-base">🎩 {answer.message}</p>
+          <p className="mt-2 text-base">{answer.message}</p>
 
           {card && (
             <div className="mt-3 rounded-xl bg-surface-2 p-3 text-sm">
               {card.kind === "bus" ? (
                 <>
                   <p className="font-display text-xl font-bold">{card.slackMin > 0 ? `Leave by ${card.leaveBy}` : "Leave now"}</p>
-                  <p className="mt-1">🚌 {card.route} from {card.boardStop}, bus at {card.busAt}</p>
+                  <p className="mt-1">{card.route} from {card.boardStop}, bus at {card.busAt}</p>
                   <p className="text-muted">Get off at {card.alightStop}. Arrive <b className="text-ink">{card.arriveAt}</b>.</p>
                 </>
               ) : (
-                <p>🚶 Walk from {card.fromName} to {card.toName}. Arrive <b>{card.arriveAt}</b>.</p>
+                <p>Walk from {card.fromName} to {card.toName}. Arrive <b>{card.arriveAt}</b>.</p>
               )}
               {bufferLine(card) && <p className={`mt-1 font-semibold ${card.bufferMin! < 0 ? "text-danger" : ""}`}>{bufferLine(card)}</p>}
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button onClick={() => onGuide(card)} className="btn-brass h-11 rounded-full font-bold">🧭 Guide me</button>
-                <button onClick={() => onShowMap(card)} className="h-11 rounded-full btn-glass font-semibold">🗺 Show on map</button>
+              <div className={`mt-3 grid gap-2 ${canGuide ? "grid-cols-2" : "grid-cols-1"}`}>
+                {canGuide && <button onClick={() => onGuide(card)} className="btn-brass h-11 rounded-full font-bold">Guide me</button>}
+                <button onClick={() => onShowMap(card)} className={`h-11 rounded-full font-semibold ${canGuide ? "btn-glass" : "btn-brass"}`}>Show on map</button>
               </div>
             </div>
           )}

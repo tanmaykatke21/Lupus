@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { LANGUAGES } from "@/lib/languages";
 import type { Settings } from "@/lib/storage";
+import Icon from "./Icon";
 
 interface Props {
   settings: Settings;
@@ -64,7 +65,7 @@ export default function SettingsPanel({ settings, onChange, onClose, replay, onR
       </div>
 
       <Link href="/stats" className="mt-4 flex min-h-12 items-center justify-between card rounded-2xl px-3 font-medium">
-        How accurate are bus ETAs? <span aria-hidden>→</span>
+        How accurate are bus ETAs? <Icon name="chevronRight" className="h-4 w-4 text-muted" />
       </Link>
 
       {demo && (

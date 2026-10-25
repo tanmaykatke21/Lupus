@@ -9,6 +9,7 @@ import type { HeadingStatus } from "@/lib/useHeading";
 import type { LngLat } from "@/lib/types";
 import { countdown } from "@/lib/useNow";
 import { announce, playWhistle } from "@/lib/voice";
+import Icon from "./Icon";
 
 interface Props {
   option: RouteOption;
@@ -156,7 +157,7 @@ export default function CompassView({ option, destination, location, heading, he
             </span>
           </div>
         )}
-        {phase.kind === "arrive" && <div className="absolute inset-0 grid place-items-center text-6xl" aria-hidden>🏁</div>}
+        {phase.kind === "arrive" && <div className="absolute inset-0 grid place-items-center text-brass"><Icon name="flag" className="h-16 w-16" /></div>}
       </div>
 
       {distanceLabel && <p className="-mt-2 font-display text-2xl font-bold tabular-nums">{distanceLabel}</p>}
@@ -167,11 +168,11 @@ export default function CompassView({ option, destination, location, heading, he
         <p className="mt-1 text-muted">{text.detail}</p>
         {(phase.kind === "wait" || phase.kind === "ride") && (
           <span className="mt-2 inline-block rounded-md px-2 py-1 text-xs font-bold text-white" style={{ background: phase.color }}>
-            🚌 {phase.routeName}{phase.kind === "wait" && phase.live ? " · live" : ""}
+            {phase.routeName}{phase.kind === "wait" && phase.live ? " · live" : ""}
           </span>
         )}
         {phase.kind === "wait" && crowding(phase.load) && (
-          <p className="mt-2 text-sm font-semibold">{crowding(phase.load)!.icon} {crowding(phase.load)!.label}</p>
+          <p className="mt-2 text-sm font-semibold">{crowding(phase.load)!.label}</p>
         )}
       </section>
 
@@ -188,14 +189,14 @@ export default function CompassView({ option, destination, location, heading, he
 
       <div className="mt-auto grid w-full max-w-md grid-cols-3 gap-2">
         <button onClick={() => setIndex(Math.max(0, i - 1))} disabled={i === 0}
-          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">◀ Back</button>
+          className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">Back</button>
         {phase.kind === "wait" ? (
-          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-full text-sm font-bold">I&apos;m on 🚌</button>
+          <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-full text-sm font-bold">I&apos;m on the bus</button>
         ) : phase.kind === "ride" ? (
           <button onClick={() => setIndex(i + 1)} className="btn-brass h-12 rounded-full text-sm font-bold">I&apos;m off</button>
         ) : (
           <button onClick={() => setIndex(Math.min(phases.length - 1, i + 1))} disabled={phase.kind === "arrive"}
-            className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">Next ▶</button>
+            className="h-12 rounded-full btn-glass text-sm font-medium disabled:opacity-40">Next</button>
         )}
         <button onClick={onEnd} className="h-12 rounded-full btn-glass text-sm font-medium">End</button>
       </div>

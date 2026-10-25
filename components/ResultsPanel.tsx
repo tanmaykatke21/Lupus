@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import RouteCard from "./RouteCard";
+import Icon, { STEP_ICON } from "./Icon";
 import { placeById } from "@/lib/places";
 import type { RouteOption } from "@/lib/router";
-import { stepsFor, type Step } from "@/lib/steps";
+import { stepsFor } from "@/lib/steps";
 import { SAVED_LABELS, type SavedLabel } from "@/lib/storage";
 import { formatClock } from "@/lib/time";
 import type { TripRequest, TripResult } from "@/lib/trip";
 
-const STEP_ICON: Record<Step["icon"], string> = { walk: "🚶", wait: "⏳", bus: "🚌", arrive: "🏁", shortcut: "🚪" };
 
 interface Props {
   originName: string;
@@ -65,7 +65,7 @@ export default function ResultsPanel(p: Props) {
 
       {p.request.to.placeId && placeById(p.request.to.placeId)?.service && !options.some(o => o.kind === "bus") && p.result && (
         <p role="status" className="mb-2 rounded-xl bg-brass/15 px-3 py-2 text-sm">
-          🚌 {placeById(p.request.to.placeId)!.service}. Check back when it&apos;s running.
+          {placeById(p.request.to.placeId)!.service}. Check back when it&apos;s running.
         </p>
       )}
       {p.result?.warnings.map(w => (
@@ -90,7 +90,7 @@ export default function ResultsPanel(p: Props) {
           {(["best", "bus", "walk"] as const).map(f => (
             <button key={f} role="tab" aria-selected={filter === f} onClick={() => pickFilter(f)}
               className={`min-h-10 rounded-lg text-sm font-semibold capitalize ${filter === f ? "plate" : "text-muted"}`}>
-              {f === "best" ? "⭐ Best" : f === "bus" ? "🚌 Bus" : "🚶 Walk"}
+              {f}
             </button>
           ))}
         </div>
@@ -115,14 +115,14 @@ export default function ResultsPanel(p: Props) {
             <h3 id="steps-title" className="font-display text-sm font-bold uppercase tracking-wide text-muted">Steps</h3>
             {p.onStart && (
               <button onClick={() => p.onStart!(selected)} className="btn-brass h-11 rounded-full px-4 text-sm font-bold">
-                ▶ Start navigation
+                Start navigation
               </button>
             )}
           </div>
           <ol className="space-y-2">
             {stepsFor(selected, p.request.to.name).map((s, i) => (
               <li key={i} className={`flex gap-3 card rounded-2xl px-3 py-2 ${s.icon === "shortcut" ? "ml-6" : ""}`}>
-                <span aria-hidden className="text-lg">{STEP_ICON[s.icon]}</span>
+                <Icon name={STEP_ICON[s.icon]} className="mt-0.5 h-5 w-5 text-muted" />
                 <span>
                   <span className="block">{s.text}</span>
                   {s.detail && <span className="block text-xs text-muted">{s.detail}</span>}
@@ -136,7 +136,7 @@ export default function ResultsPanel(p: Props) {
       {p.request.to.placeId && (
         <div className="mt-4">
           {p.isSaved ? (
-            <button onClick={p.onUnsave} className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-4 text-sm font-medium">★ Saved · remove</button>
+            <button onClick={p.onUnsave} className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-4 text-sm font-medium">Saved · remove</button>
           ) : labeling ? (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Save as">
               {SAVED_LABELS.map(l => (
@@ -145,7 +145,7 @@ export default function ResultsPanel(p: Props) {
               ))}
             </div>
           ) : (
-            <button onClick={() => setLabeling(true)} className="min-h-11 rounded-full btn-glass px-4 text-sm font-medium">☆ Save this place</button>
+            <button onClick={() => setLabeling(true)} className="min-h-11 rounded-full btn-glass px-4 text-sm font-medium">Save this place</button>
           )}
         </div>
       )}
