@@ -213,7 +213,7 @@ export default function TransitApp() {
         {etaOption ? (
           <p className="truncate text-xs font-semibold text-ink" aria-live="polite">ETA {formatClock(etaOption.arriveAt)} · {request?.to.name}</p>
         ) : (
-          <p className="truncate text-xs text-muted">Campus transit</p>
+          <p className="truncate text-xs text-muted">Campus Transit</p>
         )}
       </div>
       {handheld && (
