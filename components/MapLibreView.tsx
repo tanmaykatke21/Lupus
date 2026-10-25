@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
-import { laneSpacingPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
-import { laneLines, type LaneLine } from "@/lib/lanes";
+import { laneUnitPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
+import { directionalLanes, type LaneLine } from "@/lib/directionalLanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
 // Fallback renderer (no Google key, or Google failed to load). Free OpenFreeMap tiles.
@@ -20,7 +20,7 @@ const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", fe
 // the offsets are in meters for the current zoom, recomputed when the zoom settles.
 function routesData(routes: BusRoute[], lines: LaneLine[], zoom: number): FC {
   const color = new Map(routes.map(r => [r.id, r.color]));
-  const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
+  const m = laneUnitPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
   return fc(lines.map(l => ({
     type: "Feature",
     properties: { id: l.id, color: color.get(l.id) },
@@ -70,7 +70,7 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   const markers = useRef(new Map<string, Marker>());
   const userMarker = useRef<Marker | null>(null);
   const [styleReady, setStyleReady] = useState(0); // bumps on every style load
-  const lines = useMemo(() => laneLines(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
+  const lines = useMemo(() => directionalLanes(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
   const latest = useRef({ routes, lines, stops, overlay, onStopClick, onUserPan });
   useEffect(() => {
     latest.current = { routes, lines, stops, overlay, onStopClick, onUserPan };

@@ -1,22 +1,25 @@
 // Server-side ETA Spot access shared across requests via Next's `use cache`.
 import { cacheLife } from "next/cache";
-import shapesFile from "@/data/route-shapes.json";
-import type { BusRoute, LngLat } from "./types";
+import roadGraphFile from "@/data/road-graph.json";
+import { RoadGraph, type RoadGraphFile } from "./roadMatch";
+import type { BusRoute } from "./types";
 import { getRoutes, getStopEtas, getStops, getVehicles } from "./etaspot";
 import { fetchRealtime } from "./lirrRealtime";
 
 const LIVE = { stale: 10, revalidate: 10, expire: 60 };
 
-// Route lines from laps the buses actually drove (Tiger Data GPS, snapped to OSM roads) replace
-// ETA Spot's coarse outlines wherever we have one (npm run build:shapes).
-const SHAPES = shapesFile.routes as unknown as Record<string, { coords: LngLat[] }>;
-export const withRecordedShapes = (routes: BusRoute[]) =>
-  routes.map(r => (SHAPES[r.id]?.coords.length ? { ...r, shape: SHAPES[r.id].coords } : r));
+// ETA Spot's route lines are coarse (chords across loops and corners); snap them onto OSM roads so
+// they follow the street. Works for whatever routes ETA Spot returns that day.
+let roads: RoadGraph | null = null;
+export function snapToRoads(routes: BusRoute[]) {
+  roads ??= new RoadGraph(roadGraphFile as unknown as RoadGraphFile);
+  return routes.map(r => ({ ...r, shape: roads!.match(r.shape) }));
+}
 
 export async function cachedRoutes() {
   "use cache";
   cacheLife("hours");
-  return withRecordedShapes(await getRoutes());
+  return snapToRoads(await getRoutes());
 }
 
 export async function cachedStops() {

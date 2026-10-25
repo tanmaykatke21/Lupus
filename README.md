@@ -44,7 +44,7 @@ billing, quota), the app switches to the free MapLibre map automatically.
 | `npm run build:walk` | Rebuild `data/walk-graph.json` from OpenStreetMap (Overpass) |
 | `npm run build:lirr` | Rebuild `data/lirr-stony-brook.json` from MTA's LIRR GTFS |
 | `npm run build:timing` | Rebuild `data/route-timing.json` from ETA Spot's per-stop schedule (best run early morning) |
-| `npm run build:shapes` | Rebuild `data/route-shapes.json`: each route's line from a lap buses actually drove (GPS in Tiger Data), snapped to OSM roads. Re-run after new routes have been recorded (e.g. Sunday's shopping shuttle) |
+| `npm run build:roads` | Rebuild `data/road-graph.json` (campus roads from OSM) used to snap ETA Spot's route lines onto roads |
 | `npm run make:whistle` | Generate `public/sounds/whistle.mp3` with ElevenLabs sound effects (run once, commit it) |
 
 Add `--refresh` to `build:walk` / `build:lirr` to re-download instead of using `data/cache/`.

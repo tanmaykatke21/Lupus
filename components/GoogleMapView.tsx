@@ -2,8 +2,8 @@
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { laneSpacingPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
-import { laneLines } from "@/lib/lanes";
+import { laneUnitPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
+import { directionalLanes } from "@/lib/directionalLanes";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
 import type { LngLat } from "@/lib/types";
@@ -107,7 +107,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
   // Route lines, side by side in lanes where routes share a road. Each route is one continuous line
   // offset point by point (Google has no line offset), so loops close and lane changes are smooth;
   // offsets are redone for each zoom so lanes keep the same spacing on screen.
-  const lines = useMemo(() => laneLines(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
+  const lines = useMemo(() => directionalLanes(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
   useEffect(() => {
     const map = mapRef.current, libs = libsRef.current;
     if (!map || !libs) return;
@@ -118,7 +118,7 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     }));
     const place = () => {
       const zoom = map.getZoom() ?? 15;
-      const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
+      const m = laneUnitPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
       lines.forEach((l, i) => routeLines.current[i]?.setPath(offsetLineVar(l.coords, l.lanes.map(x => x * m)).map(toLatLng)));
     };
     place();
