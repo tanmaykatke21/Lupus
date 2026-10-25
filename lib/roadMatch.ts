@@ -1,7 +1,6 @@
 // Snaps ETA Spot's coarse route lines onto real roads (OpenStreetMap), so they follow the street
 // instead of cutting chords across loops and intersections. Parts outside the mapped area stay as-is.
 import { meters } from "./geo";
-import { untangle } from "./laneOffset";
 import type { LngLat } from "./types";
 
 export interface RoadGraphFile {
@@ -16,6 +15,11 @@ interface Seg { id: number; a: number; b: number; ax: LngLat; bx: LngLat; len: n
 const MATCH_RADIUS_M = 30;
 const SWITCH_PENALTY_M = 12; // prefer staying on the same or a connected road
 const WRONG_WAY_PENALTY_M = 40;
+// A road running across the route's direction (e.g. a divided road being crossed) is a poor match.
+const CROSSWISE_PENALTY_M = 20;
+// A road path between two nearby trace points may be at most this much longer than the gap; more
+// means a detour the bus didn't drive (down one side of a divided road and back up the other).
+const PATH_SLACK_M = 60;
 const DENSIFY_M = 10;
 const CELL = 0.0005;
 
@@ -44,6 +48,34 @@ export function densify(line: LngLat[], step = DENSIFY_M): LngLat[] {
 
 /** Self-crossings in ETA Spot's own line shorter than this are glitches, not turnarounds. */
 const GLITCH_LOOP_M = 40;
+
+/** Where segments a-b and c-d properly cross, if they do. */
+function intersection(a: LngLat, b: LngLat, c: LngLat, d: LngLat): LngLat | null {
+  const r = [b[0] - a[0], b[1] - a[1]], s = [d[0] - c[0], d[1] - c[1]];
+  const den = r[0] * s[1] - r[1] * s[0];
+  if (!den) return null;
+  const t = ((c[0] - a[0]) * s[1] - (c[1] - a[1]) * s[0]) / den;
+  const u = ((c[0] - a[0]) * r[1] - (c[1] - a[1]) * r[0]) / den;
+  return t > 0 && t < 1 && u > 0 && u < 1 ? [a[0] + t * r[0], a[1] + t * r[1]] : null;
+}
+
+/** Cuts out any part of a line that crosses itself within `maxLoopM` of path (cut at the crossing). */
+export function untangle(line: LngLat[], maxLoopM: number): LngLat[] {
+  const out: LngLat[] = [];
+  let i = 0;
+  while (i < line.length) {
+    out.push(line[i]);
+    let cut = -1, hit: LngLat | null = null, walked = 0;
+    for (let j = i + 2; j + 1 < line.length; j++) {
+      walked += meters(line[j - 1], line[j]);
+      if (walked > maxLoopM) break;
+      const x = i + 1 < line.length ? intersection(line[i], line[i + 1], line[j], line[j + 1]) : null;
+      if (x) { cut = j; hit = x; }
+    }
+    if (hit) { out.push(hit); i = cut + 1; } else i++;
+  }
+  return out;
+}
 
 /** A path that returns to a junction within this distance was a mis-snap, not a real move. */
 const DETOUR_MAX_M = 120;
@@ -207,7 +239,11 @@ export class RoadGraph {
           if (pr.d > MATCH_RADIUS_M) continue;
           let score = pr.d;
           if (prev && s !== prev.s && s.a !== prev.s.b && !(this.out.get(prev.s.b) ?? []).some(n => n.b === s.a)) score += SWITCH_PENALTY_M;
-          if (heading !== null && angleDiff(heading, bearing(s.ax, s.bx)) > 100) score += WRONG_WAY_PENALTY_M;
+          if (heading !== null) {
+            const off = angleDiff(heading, bearing(s.ax, s.bx));
+            if (off > 100) score += WRONG_WAY_PENALTY_M;
+            else if (off > 50) score += CROSSWISE_PENALTY_M;
+          }
           if (!best || score < best.score) best = { s, pt: pr.pt, score };
         }
       }
@@ -216,7 +252,7 @@ export class RoadGraph {
         pushNode(best.s.a); pushNode(best.s.b);
       } else if (best.s !== prev.s) {
         const straight = meters(prev.pt, best.pt);
-        const route = this.path(prev.s.b, best.s.a, Math.max(straight * 3, straight + 300));
+        const route = this.path(prev.s.b, best.s.a, straight * 3 + PATH_SLACK_M);
         if (route) {
           for (const n of route) pushNode(n);
           pushNode(best.s.b);

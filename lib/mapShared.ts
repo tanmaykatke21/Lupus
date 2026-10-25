@@ -56,6 +56,9 @@ export function setBusHeading(el: HTMLElement, heading: number) {
   el.querySelector<SVGGElement>(".heading")?.setAttribute("transform", `rotate(${heading} 17 18)`);
 }
 
+/** Web Mercator ground resolution (meters per CSS pixel) at a latitude and zoom. */
+export const metersPerPixel = (lat: number, zoom: number) => (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
+
 export function prefersDark() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
