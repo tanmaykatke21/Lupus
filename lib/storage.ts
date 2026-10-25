@@ -39,12 +39,13 @@ export function useStored<T>(key: string, fallback: T) {
   return [value, set] as const;
 }
 
-export type SavedLabel = "Dorm" | "Dining hall" | "Lab" | "Lecture" | "Hospital" | "Other";
-export const SAVED_LABELS: SavedLabel[] = ["Dorm", "Dining hall", "Lab", "Lecture", "Hospital", "Other"];
+/** Quick names offered when saving a place; any name works. */
+export const SAVED_LABELS = ["Home", "Dorm", "Dining hall", "Lab", "Lecture", "Gym", "Work"];
 
 export interface SavedPlace {
   placeId: string;
-  label: SavedLabel;
+  /** What the chip says: the place's own name until the user renames it. */
+  label: string;
 }
 
 export interface Settings {

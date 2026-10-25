@@ -10,6 +10,9 @@ import CompassView from "./CompassView";
 import Gauge from "./Gauge";
 import Icon from "./Icon";
 import LocationHelp from "./LocationHelp";
+import { SavedChips } from "./PlaceResults";
+import type { Place } from "@/lib/places";
+import type { SavedPlace } from "@/lib/storage";
 import type { RouteOption } from "@/lib/router";
 import { formatClock } from "@/lib/time";
 import type { TripRequest } from "@/lib/trip";
@@ -40,6 +43,8 @@ interface Props {
   onAddSchedule: () => void;
   onPickDestination: () => void;
   onSettings: () => void;
+  saved: SavedPlace[];
+  onGoSaved: (place: Place) => void;
   ask?: React.ReactNode;
 }
 
@@ -132,6 +137,7 @@ export default function CompassHome(p: Props) {
             <p className="mt-1 text-muted">Add your classes once. Lupus picks the next one, finds the fastest way there, and points the way.</p>
             <button onClick={p.onAddSchedule} className="btn-brass mt-4 h-12 w-full rounded-full font-bold">Add my schedule</button>
             <button onClick={p.onPickDestination} className="mt-2 h-12 w-full rounded-full btn-glass font-semibold">Go somewhere else</button>
+            <SavedChips saved={p.saved} onPick={p.onGoSaved} className="mt-3 justify-center" />
           </section>
         ) : (
           <section className="plate rounded-3xl p-5">
@@ -169,6 +175,7 @@ export default function CompassHome(p: Props) {
               <button onClick={p.onOpenMap} className="h-11 rounded-full btn-glass text-sm font-semibold">See on map</button>
               <button onClick={p.onPickDestination} className="h-11 rounded-full btn-glass text-sm font-semibold">Somewhere else</button>
             </div>
+            <SavedChips saved={p.saved} exclude={p.request.to.placeId} onPick={p.onGoSaved} className="mt-3" />
           </section>
         )}
         {p.ask}

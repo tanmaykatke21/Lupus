@@ -15,6 +15,7 @@ interface Props {
   saved: SavedPlace[];
   onPlan: (req: TripRequest) => void;
   onSave: (place: SavedPlace) => void;
+  onUnsave: (placeId: string) => void;
 }
 
 interface Feed {
@@ -28,7 +29,7 @@ type Mode = "catch" | "back";
 
 const HOME_CHOICES = ["sac", "hospital", "chapin", "west-apts"];
 
-export default function TrainsPanel({ now, bufferMin, saved, onPlan, onSave }: Props) {
+export default function TrainsPanel({ now, bufferMin, saved, onPlan, onSave, onUnsave }: Props) {
   const [mode, setMode] = useState<Mode>("catch");
   const [direction, setDirection] = useState<"west" | "east">("west");
   const [feed, setFeed] = useState<Feed | null>(null);
@@ -67,7 +68,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan, onSave }: P
   };
 
   const choices = [
-    ...saved.map(s => ({ id: s.placeId, label: s.label })),
+    ...saved.map(s => ({ id: s.placeId, label: `★ ${s.label}` })),
     ...HOME_CHOICES.filter(id => !saved.some(s => s.placeId === id)).map(id => ({ id, label: placeById(id)?.name ?? id })),
   ].filter(c => PLACES.some(p => p.id === c.id));
   const results = q.trim() ? searchPlaces(q).slice(0, 6) : [];
@@ -126,7 +127,7 @@ export default function TrainsPanel({ now, bufferMin, saved, onPlan, onSave }: P
           />
           <PlaceResults places={results} saved={saved} className="mt-2"
             onPick={p => goHome(arriving, p.id)}
-            onSave={p => { onSave(p); setQ(""); }} />
+            onSave={onSave} onUnsave={onUnsave} />
           {q.trim() && results.length === 0 && <p className="mt-2 text-sm text-muted">No campus places match “{q}”.</p>}
 
           <button onClick={leaveArriving} className="mt-3 min-h-11 text-sm text-muted underline">Back to trains</button>

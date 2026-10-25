@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PLACES, searchPlaces, type Place } from "@/lib/places";
 import Icon from "./Icon";
-import PlaceResults from "./PlaceResults";
+import PlaceResults, { SavedChips } from "./PlaceResults";
 import type { SavedPlace } from "@/lib/storage";
 
 interface Props {
@@ -14,11 +14,12 @@ interface Props {
   onMyLocation?: () => void;
   onCancel: () => void;
   onSave?: (place: SavedPlace) => void;
+  onUnsave?: (placeId: string) => void;
 }
 
 const QUICK = ["dining", "dorm", "medical", "transit", "shopping", "town"] as const;
 
-export default function SearchPanel({ title, saved, allowMyLocation, onPick, onMyLocation, onCancel, onSave }: Props) {
+export default function SearchPanel({ title, saved, allowMyLocation, onPick, onMyLocation, onCancel, onSave, onUnsave }: Props) {
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<Place["category"] | null>(null);
   const results = q ? searchPlaces(q) : category ? PLACES.filter(p => p.category === category) : [];
@@ -47,18 +48,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
         </button>
       )}
 
-      {!q && saved.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-2" aria-label="Saved places">
-          {saved.map(s => {
-            const p = PLACES.find(x => x.id === s.placeId);
-            return p && (
-              <button key={s.placeId} onClick={() => onPick(p)} className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-3 text-sm font-medium">
-                {s.label}: {p.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {!q && <SavedChips saved={saved} onPick={onPick} className="mb-3" />}
 
       {!q && (
         <div className="mb-3 flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Browse by category">
@@ -71,7 +61,7 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
         </div>
       )}
 
-      <PlaceResults places={results} saved={saved} onPick={onPick} onSave={onSave} />
+      <PlaceResults places={results} saved={saved} onPick={onPick} onSave={onSave} onUnsave={onUnsave} />
       {q && results.length === 0 && <p className="p-3 text-sm text-muted">No campus places match “{q}”.</p>}
     </div>
   );

@@ -17,6 +17,7 @@ import SearchPanel from "./SearchPanel";
 import SettingsPanel from "./SettingsPanel";
 import StopPanel from "./StopPanel";
 import TrainsPanel from "./TrainsPanel";
+import { SavedChips } from "./PlaceResults";
 import type { TripOverlay } from "@/lib/mapShared";
 import { lngLat, placeById, PLACES, type Place } from "@/lib/places";
 import type { AnswerCard } from "@/lib/agent/run";
@@ -79,7 +80,10 @@ export default function TransitApp() {
   const [demoFull, setDemoFull] = useStored<boolean>("demoFull", false);
   const { buses, source, updatedAt, error: busError } = useBuses(replay);
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
-  const savePlace = (p: SavedPlace) => setSaved(s => [...s.filter(x => x.placeId !== p.placeId), p]);
+  // Renaming keeps a saved place where it was in the chip row; new ones go on the end.
+  const savePlace = (p: SavedPlace) => setSaved(s => s.some(x => x.placeId === p.placeId)
+    ? s.map(x => (x.placeId === p.placeId ? p : x)) : [...s, p]);
+  const unsavePlace = (placeId: string) => setSaved(s => s.filter(x => x.placeId !== placeId));
   const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
   const location = useLocation();
   const heading = useHeading();
@@ -204,7 +208,6 @@ export default function TransitApp() {
   }, []);
 
   const etaOption = view === "nav" ? navOption ?? undefined : view === "results" ? selected : undefined;
-  const savedHere = !!request?.to.placeId && saved.some(s => s.placeId === request.to.placeId);
 
   const header = (
     <header className="flex items-center gap-3 px-4 pb-3 pt-1 md:pt-4">
@@ -243,13 +246,13 @@ export default function TransitApp() {
     body = <StopPanel key={stop.id} stop={stop} routes={routes} onClose={() => setView("home")} />;
   } else if (view === "search-to") {
     body = (
-      <SearchPanel title="Where to?" saved={saved} onSave={savePlace}
+      <SearchPanel title="Where to?" saved={saved} onSave={savePlace} onUnsave={unsavePlace}
         onPick={p => { setSnap("half"); pickDestination(p); }}
         onCancel={() => setView(request ? "results" : "home")} />
     );
   } else if (view === "search-from") {
     body = (
-      <SearchPanel title="Starting from…" saved={saved} allowMyLocation onSave={savePlace}
+      <SearchPanel title="Starting from…" saved={saved} allowMyLocation onSave={savePlace} onUnsave={unsavePlace}
         onMyLocation={() => { setOrigin({ kind: "me" }); location.start(); setView(request ? "results" : "home"); }}
         onPick={p => { setOrigin({ kind: "place", place: p }); setView(request ? "results" : "home"); }}
         onCancel={() => setView(request ? "results" : "home")} />
@@ -280,9 +283,14 @@ export default function TransitApp() {
         onChangeOrigin={() => { setRequest(r => (r ? { ...r, from: undefined, departAt: undefined } : r)); setView("search-from"); setSnap("full"); }}
         onChangeDestination={() => { setView("search-to"); setSnap("full"); }}
         onClose={() => { setRequest(null); setView("home"); }}
-        isSaved={savedHere}
-        onSave={label => request.to.placeId && setSaved(s => [...s.filter(x => x.placeId !== request.to.placeId), { placeId: request.to.placeId!, label }])}
-        onUnsave={() => setSaved(s => s.filter(x => x.placeId !== request.to.placeId))}
+        saved={saved}
+        onSave={label => request.to.placeId && savePlace({ placeId: request.to.placeId, label })}
+        onUnsave={() => request.to.placeId && unsavePlace(request.to.placeId)}
+        originIsMe={origin.kind === "me"}
+        onPickOrigin={p => {
+          if (p) setOrigin({ kind: "place", place: p });
+          else { setOrigin({ kind: "me" }); location.start(); }
+        }}
         onStart={option => {
           unlockAudio(); // must run inside the tap for iOS
           heading.start(); // iOS asks for motion access here, for the heading-up map
@@ -298,7 +306,7 @@ export default function TransitApp() {
   } else if (homeTab === "classes") {
     body = <ClassesPanel classes={classes} now={now} onChange={setClasses} onGo={goToClass} />;
   } else if (homeTab === "trains") {
-    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} onSave={savePlace} />;
+    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} onSave={savePlace} onUnsave={unsavePlace} />;
   } else {
     body = (
       <>
@@ -309,19 +317,7 @@ export default function TransitApp() {
         >
           <Icon name="search" className="h-[18px] w-[18px]" /> Where to?
         </button>
-        {saved.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2" aria-label="Saved places">
-            {saved.map(s => {
-              const p = PLACES.find(x => x.id === s.placeId);
-              return p && (
-                <button key={s.placeId} onClick={() => pickDestination(p)}
-                  className="min-h-10 rounded-full bg-brass/12 px-3.5 text-sm font-semibold text-brass">
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        <SavedChips saved={saved} onPick={pickDestination} className="mb-4" />
         {networkError && (
           <p role="alert" className="mb-3 rounded-xl bg-danger/10 p-3 text-sm text-danger">
             Couldn&apos;t load bus routes ({networkError}). Walking directions still work.
@@ -380,6 +376,8 @@ export default function TransitApp() {
           onAddSchedule={() => { setMode("map"); setView("home"); setHomeTab("classes"); setSnap("full"); }}
           onPickDestination={() => { setGuiding(false); setMode("map"); setView("search-to"); setSnap("full"); }}
           onSettings={() => { setMode("map"); setView("settings"); setSnap("full"); }}
+          saved={saved}
+          onGoSaved={p => { setGuiding(false); pickDestination(p); }}
           onRetryLocation={() => location.start()}
           onPickStart={() => {
             setGuiding(false);

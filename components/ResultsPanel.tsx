@@ -3,10 +3,11 @@
 import { useState } from "react";
 import RouteCard from "./RouteCard";
 import Icon, { STEP_ICON } from "./Icon";
-import { placeById } from "@/lib/places";
+import { placeById, type Place } from "@/lib/places";
 import type { RouteOption } from "@/lib/router";
 import { stepsFor } from "@/lib/steps";
-import { SAVED_LABELS, type SavedLabel } from "@/lib/storage";
+import type { SavedPlace } from "@/lib/storage";
+import { SaveEditor, SavedChips, StarButton } from "./PlaceResults";
 import { formatClock } from "@/lib/time";
 import type { TripRequest, TripResult } from "@/lib/trip";
 
@@ -23,16 +24,21 @@ interface Props {
   onChangeOrigin: () => void;
   onChangeDestination: () => void;
   onClose: () => void;
-  isSaved: boolean;
-  onSave: (label: SavedLabel) => void;
+  saved: SavedPlace[];
+  onSave: (label: string) => void;
   onUnsave: () => void;
+  /** Quick start: a saved place, or null for "my location". */
+  onPickOrigin: (place: Place | null) => void;
+  originIsMe: boolean;
   onStart?: (option: RouteOption) => void;
 }
 
 type Filter = "best" | "bus" | "walk";
 
 export default function ResultsPanel(p: Props) {
-  const [labeling, setLabeling] = useState(false);
+  const [naming, setNaming] = useState(false);
+  const toId = p.request.to.placeId;
+  const savedLabel = p.saved.find(s => s.placeId === toId)?.label;
   const [filter, setFilter] = useState<Filter>("best");
   const all = p.result?.options ?? [];
   // Best: our ranking (no slower-than-walk bus). Bus: fastest bus even if walking wins. Walk: walk only.
@@ -60,8 +66,25 @@ export default function ResultsPanel(p: Props) {
             </p>
           )}
         </div>
+        {toId && (
+          <StarButton saved={!!savedLabel} name={p.request.to.name} className="grid h-11 w-11 place-items-center rounded-full btn-glass"
+            onClick={() => { if (!savedLabel) p.onSave(p.request.to.name); setNaming(n => !n); }} />
+        )}
         <button onClick={p.onClose} className="h-11 rounded-full btn-glass px-4 text-sm font-medium">Close</button>
       </div>
+      {naming && savedLabel && (
+        <SaveEditor placeName={p.request.to.name} label={savedLabel} className="mb-3 card rounded-2xl p-3"
+          onRename={p.onSave} onRemove={() => { p.onUnsave(); setNaming(false); }} onDone={() => setNaming(false)} />
+      )}
+      {!p.request.from && (
+        <SavedChips saved={p.saved} exclude={toId} onPick={p.onPickOrigin} label="Start from" className="mb-3"
+          leading={
+            <button onClick={() => p.onPickOrigin(null)} aria-pressed={p.originIsMe}
+              className={`flex min-h-10 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold ${p.originIsMe ? "bg-brass text-white" : "bg-surface-2"}`}>
+              <Icon name="location" className="h-3.5 w-3.5" />My location
+            </button>
+          } />
+      )}
 
       {p.request.to.placeId && placeById(p.request.to.placeId)?.service && !options.some(o => o.kind === "bus") && p.result && (
         <p role="status" className="mb-2 rounded-xl bg-brass/15 px-3 py-2 text-sm">
@@ -133,22 +156,6 @@ export default function ResultsPanel(p: Props) {
         </section>
       )}
 
-      {p.request.to.placeId && (
-        <div className="mt-4">
-          {p.isSaved ? (
-            <button onClick={p.onUnsave} className="min-h-11 rounded-full border border-brass/50 bg-brass/10 px-4 text-sm font-medium">Saved · remove</button>
-          ) : labeling ? (
-            <div className="flex flex-wrap gap-2" role="group" aria-label="Save as">
-              {SAVED_LABELS.map(l => (
-                <button key={l} onClick={() => { p.onSave(l); setLabeling(false); }}
-                  className="min-h-11 rounded-full card px-3 text-sm">{l}</button>
-              ))}
-            </div>
-          ) : (
-            <button onClick={() => setLabeling(true)} className="min-h-11 rounded-full btn-glass px-4 text-sm font-medium">Save this place</button>
-          )}
-        </div>
-      )}
     </div>
   );
 }
