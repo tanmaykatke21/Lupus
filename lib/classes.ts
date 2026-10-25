@@ -33,3 +33,8 @@ export function nextClass(classes: ClassEntry[], now: Date, campusClock: (d: Dat
   }
   return best;
 }
+
+/** Exact start time (ms) for a class `inMinutes` away, aligned to the minute (nextClass counts whole minutes). */
+export function classStartsAt(now: number, inMinutes: number) {
+  return Math.floor(now / 60_000) * 60_000 + inMinutes * 60_000;
+}

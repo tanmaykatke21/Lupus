@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import AskBar from "./AskBar";
 import BottomSheet, { type Snap } from "./BottomSheet";
 import ClassesPanel from "./ClassesPanel";
+import CompassHome from "./CompassHome";
 import NavMode from "./NavMode";
 import ResultsPanel from "./ResultsPanel";
 import SearchPanel from "./SearchPanel";
@@ -15,13 +16,14 @@ import TrainsPanel from "./TrainsPanel";
 import type { TripOverlay } from "@/lib/mapShared";
 import { lngLat, PLACES, type Place } from "@/lib/places";
 import type { AskAction } from "@/lib/ask";
-import { NO_CLASSES, nextClass, type ClassEntry } from "@/lib/classes";
+import { classStartsAt, NO_CLASSES, nextClass, type ClassEntry } from "@/lib/classes";
 import { meters } from "@/lib/geo";
 import type { RouteOption } from "@/lib/router";
 import { campusClock, formatClock } from "@/lib/time";
 import { DEFAULT_SETTINGS, NO_SAVED, useStored, type SavedPlace, type Settings } from "@/lib/storage";
 import { catchTrainRequest, useTrip, type Endpoint, type TripRequest } from "@/lib/trip";
 import type { BusStop, LngLat } from "@/lib/types";
+import { useHeading } from "@/lib/useHeading";
 import { useBuses, useNetwork } from "@/lib/useLiveData";
 import { useLeaveAlert } from "@/lib/useLeaveAlert";
 import { useLocation } from "@/lib/useLocation";
@@ -37,6 +39,18 @@ function ago(ts: number | null, now: number) {
   if (!ts) return "connecting…";
   const s = Math.max(0, Math.round((now - ts) / 1000));
   return s < 5 ? "just now" : `${s}s ago`;
+}
+
+function classRequest(cls: ClassEntry, startsAt: number): TripRequest | null {
+  const p = cls.placeId ? PLACES.find(x => x.id === cls.placeId) : undefined;
+  if (!p) return null;
+  const label = `${cls.course} at ${formatClock(startsAt)}`;
+  return {
+    to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id },
+    arriveBy: startsAt - 2 * 60_000, // a couple of minutes to find a seat
+    context: label,
+    purpose: `to make ${label}`,
+  };
 }
 
 function overlayFor(option: RouteOption | undefined, from: LngLat | null, to: Endpoint | null): TripOverlay | null {
@@ -57,7 +71,11 @@ export default function TransitApp() {
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
   const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
   const location = useLocation();
+  const heading = useHeading();
   const now = useNow();
+  // Compass (schedule-first) is home; the map is secondary.
+  const [mode, setMode] = useStored<"compass" | "map">("mode", "compass");
+  const [guiding, setGuiding] = useState(false);
 
   const [view, setView] = useState<View>("home");
   const [snap, setSnap] = useState<Snap>("half");
@@ -77,7 +95,24 @@ export default function TransitApp() {
     : location.status === "locating" ? "Finding you…"
     : location.status === "denied" ? "Location blocked: tap to choose"
     : "My location";
-  const trip = useTrip(fromCoords, view === "results" ? request : null, settings.accessible, replay);
+  // In compass mode with no explicit trip, the next class on the schedule is the trip.
+  const upcoming = now ? nextClass(classes, new Date(now), campusClock) : null;
+  const upcomingCls = upcoming?.cls ?? null;
+  const upcomingStart = upcoming ? classStartsAt(now, upcoming.inMinutes) : 0;
+  const scheduleRequest = useMemo(
+    () => (upcomingCls ? classRequest(upcomingCls, upcomingStart) : null),
+    [upcomingCls, upcomingStart],
+  );
+  const compassRequest = request ?? scheduleRequest;
+  const activeRequest = mode === "compass" ? compassRequest : view === "results" ? request : null;
+  const trip = useTrip(fromCoords, activeRequest, settings.accessible, replay);
+
+  // Plan from the device location without a tap when permission was already granted.
+  useEffect(() => {
+    navigator.permissions?.query({ name: "geolocation" as PermissionName })
+      .then(s => { if (s.state === "granted") location.start(); })
+      .catch(() => {});
+  }, [location]);
 
   // ?replay=1 / ?replay=0 in the URL switches replay mode (handy on the judging laptop).
   useEffect(() => {
@@ -100,20 +135,15 @@ export default function TransitApp() {
     if (!req.from && origin.kind === "me") location.start();
   }, [origin.kind, location]);
 
-  useLeaveAlert(view === "results" ? selected : view === "nav" ? navOption ?? undefined : undefined, request, now, settings.voice, settings.language);
+  useLeaveAlert(
+    mode === "compass" ? (guiding ? undefined : selected) : view === "results" ? selected : view === "nav" ? navOption ?? undefined : undefined,
+    mode === "compass" ? compassRequest : request, now, settings.voice, settings.language);
 
   const pickDestination = (p: Place) => goTo({ to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id } });
 
   const goToClass = (cls: ClassEntry, startsAt: number) => {
-    const p = cls.placeId ? PLACES.find(x => x.id === cls.placeId) : undefined;
-    if (!p) return;
-    const label = `${cls.course} at ${formatClock(startsAt)}`;
-    goTo({
-      to: { name: p.name, lng: p.lng, lat: p.lat, placeId: p.id },
-      arriveBy: startsAt - 2 * 60_000, // a couple of minutes to find a seat
-      context: label,
-      purpose: `to make ${label}`,
-    });
+    const req = classRequest(cls, startsAt);
+    if (req) goTo(req);
   };
 
   const onAsk = (a: AskAction) => {
@@ -130,7 +160,7 @@ export default function TransitApp() {
     } else if (a.type === "class") {
       const cls = classes.find(c => c.id === a.classId);
       const next = cls && nextClass([cls], new Date(), campusClock);
-      if (cls && next) goToClass(cls, Date.now() + next.inMinutes * 60_000);
+      if (cls && next) goToClass(cls, classStartsAt(Date.now(), next.inMinutes));
     }
   };
 
@@ -140,6 +170,7 @@ export default function TransitApp() {
     setSnap("half");
   }, []);
 
+  const etaOption = view === "nav" ? navOption ?? undefined : view === "results" ? selected : undefined;
   const savedHere = !!request?.to.placeId && saved.some(s => s.placeId === request.to.placeId);
 
   const header = (
@@ -147,8 +178,13 @@ export default function TransitApp() {
       <Image src="/icon-192.png" alt="" width={40} height={40} className="rounded-full ring-2 ring-brass" priority />
       <div className="min-w-0 flex-1">
         <h1 className="font-display text-xl font-bold leading-none tracking-wide">Lupus</h1>
-        <p className="truncate text-xs text-muted">Steel &amp; Steam campus transit</p>
+        {etaOption ? (
+          <p className="truncate text-xs font-semibold text-ink" aria-live="polite">ETA {formatClock(etaOption.arriveAt)} · {request?.to.name}</p>
+        ) : (
+          <p className="truncate text-xs text-muted">Steel &amp; Steam campus transit</p>
+        )}
       </div>
+      <button onClick={() => setMode("compass")} aria-label="Compass" className="grid h-11 w-11 place-items-center rounded-full border border-line text-lg">🧭</button>
       <span
         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${busError ? "bg-danger/15 text-danger" : "bg-ok/15 text-ok"}`}
         aria-live="polite"
@@ -263,6 +299,44 @@ export default function TransitApp() {
           <p className="mt-3 text-sm text-muted">No buses in service right now. Tap a stop to see the next scheduled arrivals.</p>
         )}
       </>
+    );
+  }
+
+  if (mode === "compass") {
+    const toMap = () => {
+      setGuiding(false);
+      if (compassRequest) { setRequest(compassRequest); setView("results"); setSnap("half"); }
+      setMode("map");
+    };
+    return (
+      <main className="h-dvh w-full overflow-hidden">
+        <CompassHome
+          now={now}
+          request={compassRequest}
+          fromSchedule={!request && !!scheduleRequest}
+          option={selected}
+          loading={trip.loading}
+          error={trip.error?.message ?? null}
+          location={location.coords}
+          locationStatus={location.status}
+          heading={heading.heading}
+          headingStatus={heading.status}
+          guiding={guiding}
+          voice={settings.voice}
+          lang={settings.language}
+          onGuide={() => {
+            unlockAudio(); // inside the tap, for iOS audio
+            heading.start(); // iOS asks for motion access here
+            location.start();
+            setGuiding(true);
+          }}
+          onEnd={() => setGuiding(false)}
+          onOpenMap={toMap}
+          onAddSchedule={() => { setMode("map"); setView("home"); setHomeTab("classes"); setSnap("full"); }}
+          onPickDestination={() => { setGuiding(false); setMode("map"); setView("search-to"); setSnap("full"); }}
+          onSettings={() => { setMode("map"); setView("settings"); setSnap("full"); }}
+        />
+      </main>
     );
   }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { nextClass, type ClassEntry } from "@/lib/classes";
+import { classStartsAt, nextClass, type ClassEntry } from "@/lib/classes";
 import { PLACES, placeById } from "@/lib/places";
 import { campusClock, formatClock, type DayKey } from "@/lib/time";
 import { countdown } from "@/lib/useNow";
@@ -116,7 +116,7 @@ export default function ClassesPanel({ classes, now, onChange, onGo }: Props) {
   return (
     <div className="space-y-3">
       {next ? (
-        <button onClick={() => onGo(next.cls, now + next.inMinutes * 60_000)}
+        <button onClick={() => onGo(next.cls, classStartsAt(now, next.inMinutes))}
           className="plate rivets flex w-full items-center gap-3 rounded-2xl p-4 text-left">
           <span className="text-3xl" aria-hidden>🎓</span>
           <span className="flex-1">
