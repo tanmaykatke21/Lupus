@@ -254,8 +254,8 @@
    "name": "West Side Dining",
    "category": "dining",
    "aliases": ["West Side", "WSD"],
-   "lng": -73.13032,
-   "lat": 40.91324
+   "lng": -73.130409,
+   "lat": 40.913265
   },
   {
    "id": "roth-cafe",
@@ -378,14 +378,6 @@
    "lat": 40.91228
   },
   {
-   "id": "schomburg",
-   "name": "Schomburg Apartments",
-   "category": "dorm",
-   "aliases": ["Schomburg"],
-   "lng": -73.13281,
-   "lat": 40.91348
-  },
-  {
    "id": "greeley",
    "name": "Greeley Hall",
    "category": "dorm",
@@ -448,14 +440,6 @@
    "aliases": ["LIRR", "train station", "railroad", "train", "Stony Brook station"],
    "lng": -73.12855,
    "lat": 40.92032
-  },
-  {
-   "id": "south-p",
-   "name": "South P Lot",
-   "category": "parking",
-   "aliases": ["South P", "commuter lot"],
-   "lng": -73.12666,
-   "lat": 40.89689
   },
   {
    "id": "north-p",
@@ -582,6 +566,374 @@
    "aliases": [],
    "lng": -73.119762,
    "lat": 40.91791
+  },
+  {
+   "id": "baruch-college",
+   "name": "Baruch College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.131794,
+   "lat": 40.913901
+  },
+  {
+   "id": "dewey-college",
+   "name": "Dewey College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.131307,
+   "lat": 40.913276
+  },
+  {
+   "id": "hamilton-college",
+   "name": "Hamilton College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.130615,
+   "lat": 40.913844
+  },
+  {
+   "id": "schick-college",
+   "name": "Schick College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.131061,
+   "lat": 40.914395
+  },
+  {
+   "id": "eisenhower-college",
+   "name": "Eisenhower College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.131848,
+   "lat": 40.914607
+  },
+  {
+   "id": "schomburg-b",
+   "name": "Schomburg B",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.132702,
+   "lat": 40.913027
+  },
+  {
+   "id": "schomburg-a",
+   "name": "Schomburg A",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.132187,
+   "lat": 40.913349
+  },
+  {
+   "id": "schomburg-commons",
+   "name": "Schomburg commons",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.132648,
+   "lat": 40.913449
+  },
+  {
+   "id": "west-apartment-a",
+   "name": "West Apartment A",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.132414,
+   "lat": 40.911658
+  },
+  {
+   "id": "west-apartment-c",
+   "name": "West Apartment C",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.133227,
+   "lat": 40.911856
+  },
+  {
+   "id": "west-apartment-d",
+   "name": "West Apartment D",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.132487,
+   "lat": 40.912355
+  },
+  {
+   "id": "west-apartment-b",
+   "name": "West Apartment B",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.133983,
+   "lat": 40.911617
+  },
+  {
+   "id": "west-apartment-e",
+   "name": "West Apartment E",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.13428,
+   "lat": 40.912296
+  },
+  {
+   "id": "west-apartment-f",
+   "name": "West Apartment F",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.135301,
+   "lat": 40.912026
+  },
+  {
+   "id": "west-apartment-g",
+   "name": "West Apartment G",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.135786,
+   "lat": 40.912792
+  },
+  {
+   "id": "west-apartment-h",
+   "name": "West Apartment H",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.13445,
+   "lat": 40.912859
+  },
+  {
+   "id": "west-apartment-i",
+   "name": "West Apartment I",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.134563,
+   "lat": 40.913393
+  },
+  {
+   "id": "west-apartment-j",
+   "name": "West Apartment J",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.135254,
+   "lat": 40.911248
+  },
+  {
+   "id": "west-apartment-k",
+   "name": "West Apartment K",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.136422,
+   "lat": 40.912452
+  },
+  {
+   "id": "keller-college",
+   "name": "Keller College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.130071,
+   "lat": 40.911524
+  },
+  {
+   "id": "stimson-college",
+   "name": "Stimson College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.129325,
+   "lat": 40.912104
+  },
+  {
+   "id": "wagner-college",
+   "name": "Wagner College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.131042,
+   "lat": 40.912548
+  },
+  {
+   "id": "chavez-college",
+   "name": "Chavez College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.120178,
+   "lat": 40.917174
+  },
+  {
+   "id": "hendrix-college",
+   "name": "Hendrix College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.123058,
+   "lat": 40.91178
+  },
+  {
+   "id": "greshwin-college",
+   "name": "Greshwin College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.122552,
+   "lat": 40.911246
+  },
+  {
+   "id": "whitman-college",
+   "name": "Whitman College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.122937,
+   "lat": 40.910783
+  },
+  {
+   "id": "cardozo-college",
+   "name": "Cardozo College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.124948,
+   "lat": 40.910839
+  },
+  {
+   "id": "mount-college",
+   "name": "Mount College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.124455,
+   "lat": 40.911575
+  },
+  {
+   "id": "douglass-college",
+   "name": "Douglass College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.126644,
+   "lat": 40.909263
+  },
+  {
+   "id": "dreiser-college",
+   "name": "Dreiser College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.127473,
+   "lat": 40.908982
+  },
+  {
+   "id": "chinn-college",
+   "name": "Chinn College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.128,
+   "lat": 40.909715
+  },
+  {
+   "id": "toscanini-college",
+   "name": "Toscanini College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.127816,
+   "lat": 40.910002
+  },
+  {
+   "id": "hand-college",
+   "name": "Hand College",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.126302,
+   "lat": 40.909568
+  },
+  {
+   "id": "chapin-building-a",
+   "name": "Chapin Building A",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.110646,
+   "lat": 40.907852
+  },
+  {
+   "id": "chapin-building-b",
+   "name": "Chapin Building B",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.110039,
+   "lat": 40.907696
+  },
+  {
+   "id": "chapin-building-c",
+   "name": "Chapin Building C",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.109155,
+   "lat": 40.907691
+  },
+  {
+   "id": "chapin-building-d",
+   "name": "Chapin Building D",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.10878,
+   "lat": 40.90713
+  },
+  {
+   "id": "chapin-building-e",
+   "name": "Chapin Building E",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.109493,
+   "lat": 40.90705
+  },
+  {
+   "id": "chapin-building-f",
+   "name": "Chapin Building F",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.11033,
+   "lat": 40.907241
+  },
+  {
+   "id": "chapin-building-g",
+   "name": "Chapin Building G",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.109955,
+   "lat": 40.906611
+  },
+  {
+   "id": "chapin-building-h",
+   "name": "Chapin Building H",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.1096,
+   "lat": 40.906666
+  },
+  {
+   "id": "chapin-building-i",
+   "name": "Chapin Building I",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.108786,
+   "lat": 40.906643
+  },
+  {
+   "id": "chapin-building-j",
+   "name": "Chapin Building J",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.107956,
+   "lat": 40.906816
+  },
+  {
+   "id": "chapin-building-k",
+   "name": "Chapin Building K",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.108116,
+   "lat": 40.907077
+  },
+  {
+   "id": "chapin-building-l",
+   "name": "Chapin Building L",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.108067,
+   "lat": 40.90772
+  },
+  {
+   "id": "lot-40",
+   "name": "Lot 40",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.126658,
+   "lat": 40.896872
   }
  ]
 }
