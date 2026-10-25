@@ -49,10 +49,45 @@ function distToSeg(px: number, py: number, s: Seg): number {
   return Math.hypot(px - (s.ax + t * vx), py - (s.ay + t * vy));
 }
 
-export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
-  const usable = routes.filter((r) => r.coords.length >= 2);
-  if (!usable.length) return [];
+/** One continuous line per route with a lane at every point (for gap-free, closed drawing). */
+export interface LaneLine {
+  id: number;
+  coords: [number, number][];
+  /** Lane at each point, same units as LanePiece.lane. */
+  lanes: number[];
+}
 
+interface Solved {
+  usable: LaneRoute[];
+  points: [number, number][][];
+  lanes: number[][];
+  /** For steps that repeat road the route already drove: the earlier step and its direction (+1/-1). */
+  repeatOf: ({ j: number; sign: number } | undefined)[][];
+}
+
+export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
+  const solved = solve(routes);
+  if (!solved) return [];
+  const { usable, points, lanes } = solved;
+
+  // Join consecutive steps in the same lane into one piece.
+  const pieces: LanePiece[] = [];
+  lanes.forEach((row, r) => {
+    const pts = points[r];
+    let start = 0;
+    for (let k = 1; k <= row.length; k++) {
+      if (k === row.length || row[k] !== row[start]) {
+        if (row[start] !== REPEAT) pieces.push({ id: usable[r].id, lane: row[start], coords: pts.slice(start, k + 1) });
+        start = k;
+      }
+    }
+  });
+  return pieces;
+}
+
+function solve(routes: LaneRoute[]): Solved | null {
+  const usable = routes.filter((r) => r.coords.length >= 2);
+  if (!usable.length) return null;
   // Flat x/y in meters around the routes' middle; plenty accurate across a campus.
   let lat0 = 0;
   let n = 0;
@@ -102,6 +137,7 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
     else grid.set(k, [s]);
   }
 
+  const repeatOf: Solved["repeatOf"] = usable.map(() => []);
   const lanes: number[][] = segs.map((list) =>
     list.map((s) => {
       const cx = Math.floor(s.mx / CELL_M);
@@ -121,7 +157,11 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
         }
       // The way back along road this route already drove sits in the same lane, so draw that road once:
       // two faded strokes on top of each other would look like a darker, different line.
-      if (firstMatch.get(s.r) !== s) return REPEAT;
+      const own = firstMatch.get(s.r)!;
+      if (own !== s) {
+        repeatOf[s.r][s.i] = { j: own.i, sign: s.dx * own.dx + s.dy * own.dy >= 0 ? 1 : -1 };
+        return REPEAT;
+      }
       const sharing = [...firstMatch.keys()].sort((a, b) => usable[a].id - usable[b].id);
       if (sharing.length === 1) return 0;
       // Lanes are counted across the road in the direction the lowest-id route first travels it, so routes
@@ -147,17 +187,46 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
     }
   }
 
-  // Join consecutive steps in the same lane into one piece.
-  const pieces: LanePiece[] = [];
-  lanes.forEach((row, r) => {
-    const pts = points[r];
-    let start = 0;
-    for (let k = 1; k <= row.length; k++) {
-      if (k === row.length || row[k] !== row[start]) {
-        if (row[start] !== REPEAT) pieces.push({ id: usable[r].id, lane: row[start], coords: pts.slice(start, k + 1) });
-        start = k;
-      }
+  return { usable, points, lanes, repeatOf };
+}
+
+/**
+ * Continuous lane lines: every route drawn as a single line, so loops close and lane changes are
+ * smooth. Road a route drives twice (out and back) takes the mirrored lane of its first pass, so
+ * both passes coincide instead of being dropped.
+ */
+export function laneLines(routes: LaneRoute[]): LaneLine[] {
+  const solved = solve(routes);
+  if (!solved) return [];
+  const { usable, points, lanes, repeatOf } = solved;
+  return usable.map((r, ri) => {
+    const row = lanes[ri].slice();
+    for (let i = 0; i < row.length; i++) {
+      if (row[i] !== REPEAT) continue;
+      const rep = repeatOf[ri][i];
+      const base = rep && rep.j < i ? row[rep.j] : 0;
+      // A step's lane is relative to its own direction, so the way back mirrors the way out.
+      row[i] = base === REPEAT ? 0 : (rep?.sign ?? 1) * base;
     }
+    // Lane per point: each point takes the lane of the step that starts there (the last, of the last step).
+    const perPoint = points[ri].map((_, k) => row[Math.min(k, row.length - 1)] ?? 0);
+    // Ease lane changes over a few steps (~60 m) so the line slides across instead of jogging.
+    // A closed loop wraps around, and its two ends share one lane so the join has no gap.
+    const pts = points[ri];
+    const first = pts[0], last = pts[pts.length - 1];
+    const closed = Math.abs(first[0] - last[0]) < 5e-5 && Math.abs(first[1] - last[1]) < 5e-5;
+    const n = perPoint.length;
+    const at = (k: number) => (closed ? perPoint[((k % (n - 1)) + (n - 1)) % (n - 1)] : perPoint[k]);
+    const W = 2;
+    const eased = perPoint.map((_, k) => {
+      let sum = 0, count = 0;
+      for (let d = -W; d <= W; d++) {
+        const v = at(k + d);
+        if (v !== undefined) { sum += v; count++; }
+      }
+      return sum / count;
+    });
+    if (closed) eased[n - 1] = eased[0];
+    return { id: r.id, coords: pts, lanes: eased };
   });
-  return pieces;
 }

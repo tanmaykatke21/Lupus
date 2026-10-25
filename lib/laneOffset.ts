@@ -36,3 +36,25 @@ export function offsetLine(line: LngLat[], offsetM: number): LngLat[] {
     return [p[0] + (nx * offsetM) / kx, p[1] + (ny * offsetM) / ky];
   });
 }
+
+/** Like offsetLine, but each point has its own offset (meters, right of travel), so lanes change smoothly. */
+export function offsetLineVar(line: LngLat[], offsetsM: number[]): LngLat[] {
+  if (line.length < 2) return line;
+  const lat0 = line[0][1];
+  const kx = 111_320 * Math.cos((lat0 * Math.PI) / 180), ky = 110_540;
+  const dir = (a: LngLat, b: LngLat) => {
+    const dx = (b[0] - a[0]) * kx, dy = (b[1] - a[1]) * ky;
+    const len = Math.hypot(dx, dy) || 1;
+    return [dx / len, dy / len];
+  };
+  return line.map((p, i) => {
+    const off = offsetsM[i] ?? 0;
+    if (!off) return p;
+    const a = dir(line[Math.max(0, i - 1)], line[Math.max(1, i)]);
+    const b = dir(line[Math.min(line.length - 2, i)], line[Math.min(line.length - 1, i + 1)]);
+    let nx = (a[1] + b[1]) / 2, ny = -(a[0] + b[0]) / 2;
+    const len = Math.hypot(nx, ny) || 1;
+    nx /= len; ny /= len;
+    return [p[0] + (nx * off) / kx, p[1] + (ny * off) / ky];
+  });
+}

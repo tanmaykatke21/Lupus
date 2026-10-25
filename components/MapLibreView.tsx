@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
-import { laneRoutes } from "@/lib/lanes";
+import { laneSpacingPx, metersPerPixel, offsetLineVar } from "@/lib/laneOffset";
+import { laneLines, type LaneLine } from "@/lib/lanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
 // Fallback renderer (no Google key, or Google failed to load). Free OpenFreeMap tiles.
@@ -15,18 +16,17 @@ type FC = GeoJSON.FeatureCollection;
 const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", features });
 
 // Where routes share a road they're drawn side by side in lanes (lib/lanes.ts, from Tanmay's branch).
-function routesData(routes: BusRoute[]): FC {
+// Each route is one continuous line offset point by point, so loops close and lanes never break;
+// the offsets are in meters for the current zoom, recomputed when the zoom settles.
+function routesData(routes: BusRoute[], lines: LaneLine[], zoom: number): FC {
   const color = new Map(routes.map(r => [r.id, r.color]));
-  return fc(laneRoutes(routes.map(r => ({ id: r.id, coords: r.shape }))).map(p => ({
+  const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
+  return fc(lines.map(l => ({
     type: "Feature",
-    properties: { id: p.id, color: color.get(p.id), lane: p.lane },
-    geometry: { type: "LineString", coordinates: p.coords },
+    properties: { id: l.id, color: color.get(l.id) },
+    geometry: { type: "LineString", coordinates: offsetLineVar(l.coords, l.lanes.map(x => x * m)) },
   })));
 }
-
-// Lane spacing in pixels by zoom (matches laneSpacingPx for the Google renderer).
-const LANE_OFFSET = ["interpolate", ["linear"], ["zoom"],
-  12, ["*", ["get", "lane"], 3.2], 15, ["*", ["get", "lane"], 5.6], 18, ["*", ["get", "lane"], 9.5]] as unknown as number;
 
 function stopsData(stops: BusStop[]): FC {
   return fc(stops.map(s => ({
@@ -70,9 +70,10 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   const markers = useRef(new Map<string, Marker>());
   const userMarker = useRef<Marker | null>(null);
   const [styleReady, setStyleReady] = useState(0); // bumps on every style load
-  const latest = useRef({ routes, stops, overlay, onStopClick, onUserPan });
+  const lines = useMemo(() => laneLines(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
+  const latest = useRef({ routes, lines, stops, overlay, onStopClick, onUserPan });
   useEffect(() => {
-    latest.current = { routes, stops, overlay, onStopClick, onUserPan };
+    latest.current = { routes, lines, stops, overlay, onStopClick, onUserPan };
   });
   const lastCamera = useRef<{ heading: number; lng: number; lat: number } | null>(null);
 
@@ -101,6 +102,11 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
         const stop = latest.current.stops.find(s => s.id === id);
         if (stop) latest.current.onStopClick?.(stop);
       });
+      // Lane offsets are in meters for a zoom level: recompute them when the zoom settles.
+      map.on("zoomend", () => {
+        const { routes, lines } = latest.current;
+        (map.getSource("routes") as GeoJSONSource | undefined)?.setData(routesData(routes, lines, map.getZoom()));
+      });
       // A drag by the user (not our own camera moves) pauses follow mode.
       map.on("dragstart", e => { if (e.originalEvent) latest.current.onUserPan?.(); });
       map.on("mouseenter", "stops", () => (map.getCanvas().style.cursor = "pointer"));
@@ -127,16 +133,16 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
     if (!map || !styleReady) return;
     const { routes, stops, overlay } = latest.current;
     if (!map.getSource("routes")) {
-      map.addSource("routes", { type: "geojson", data: routesData(routes) });
+      map.addSource("routes", { type: "geojson", data: routesData(routes, latest.current.lines, map.getZoom()) });
       map.addSource("stops", { type: "geojson", data: stopsData(stops) });
       map.addSource("trip", { type: "geojson", data: overlayData(overlay) });
       map.addSource("alts", { type: "geojson", data: altData(overlay) });
       map.addLayer({ id: "routes-casing", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25, "line-offset": LANE_OFFSET } });
+        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25 } });
       map.addLayer({ id: "routes", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8, "line-offset": LANE_OFFSET } });
+        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8 } });
       // Other possible routes, faded, under the chosen one.
       map.addLayer({ id: "alt-bus", type: "line", source: "alts", filter: ["==", ["get", "kind"], "bus"],
         layout: { "line-join": "round", "line-cap": "round" },
@@ -168,8 +174,9 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
   }, [styleReady]);
 
   useEffect(() => {
-    (mapRef.current?.getSource("routes") as GeoJSONSource | undefined)?.setData(routesData(routes));
-  }, [routes, styleReady]);
+    const map = mapRef.current;
+    (map?.getSource("routes") as GeoJSONSource | undefined)?.setData(routesData(routes, lines, map!.getZoom()));
+  }, [routes, lines, styleReady]);
 
   useEffect(() => {
     (mapRef.current?.getSource("stops") as GeoJSONSource | undefined)?.setData(stopsData(stops));
