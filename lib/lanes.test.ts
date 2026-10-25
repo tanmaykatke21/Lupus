@@ -7,6 +7,10 @@ const EAST: [number, number] = [-73.12, 40.912];
 const NORTH_END: [number, number] = [-73.12, 40.92];
 
 const lanesOf = (pieces: ReturnType<typeof laneRoutes>, id: number) => [...new Set(pieces.filter((p) => p.id === id).map((p) => p.lane))];
+// Which side of the east-west road a piece is drawn on, whichever way it runs: lanes are relative to the
+// direction of travel (positive = right), so going east positive is south and going west it's north.
+const northOf = (p: ReturnType<typeof laneRoutes>[number]) => (p.coords[p.coords.length - 1][0] > p.coords[0][0] ? -p.lane : p.lane);
+const sidesOf = (pieces: ReturnType<typeof laneRoutes>, id: number) => [...new Set(pieces.filter((p) => p.id === id).map(northOf))];
 
 describe("laneRoutes", () => {
   it("leaves a route alone on its own road", () => {
@@ -34,16 +38,14 @@ describe("laneRoutes", () => {
     expect(lanesOf(pieces, 2)).toEqual([-0.5]);
   });
 
-  it("draws an out-and-back route's road once, in one lane", () => {
+  it("keeps an out-and-back route's way back in the lane of its way out", () => {
     const pieces = laneRoutes([
       { id: 1, coords: [WEST, EAST, WEST] },
       { id: 2, coords: [WEST, EAST] },
     ]);
-    const mine = pieces.filter((p) => p.id === 1);
-    // The way back covers the same road in the same lane, so only the way out is drawn.
-    expect(mine.every((p) => p.coords[0][0] < p.coords[1][0])).toBe(true);
-    expect(new Set(mine.map((p) => p.lane))).toEqual(new Set([-0.5]));
-    expect(lanesOf(pieces, 2)).toEqual([0.5]);
+    // The way back covers the same road, so it's skipped (bar a short run onto it), on the same side.
+    expect(sidesOf(pieces, 1)).toHaveLength(1);
+    expect(sidesOf(pieces, 2)).toEqual([-sidesOf(pieces, 1)[0]]);
   });
 
   it("still pairs a route with an out-and-back route on its way back", () => {
@@ -52,9 +54,8 @@ describe("laneRoutes", () => {
       { id: 1, coords: [WEST, EAST, WEST] },
       { id: 2, coords: [EAST, WEST] },
     ]);
-    expect(new Set(lanesOf(pieces, 1))).toEqual(new Set([-0.5]));
-    // Opposite direction to route 1's first pass, so -0.5 here is the far side from route 1.
-    expect(lanesOf(pieces, 2)).toEqual([-0.5]);
+    expect(sidesOf(pieces, 1)).toHaveLength(1);
+    expect(sidesOf(pieces, 2)).toEqual([-sidesOf(pieces, 1)[0]]);
   });
 
   it("only uses lanes where the routes actually overlap", () => {
@@ -66,6 +67,30 @@ describe("laneRoutes", () => {
     expect(new Set(lanesOf(pieces, 1))).toEqual(new Set([-0.5, 0]));
     const northbound = pieces.filter((p) => p.id === 1 && p.lane === 0);
     expect(northbound.every((p) => p.coords.every((c) => c[0] === EAST[0]))).toBe(true);
+  });
+
+  it("draws both sides of a divided road", () => {
+    // Out on the eastbound carriageway, back on the westbound one 10 m north: two roads, not one repeated.
+    const north = (c: [number, number]): [number, number] => [c[0], c[1] + 10 / 110_540];
+    const pieces = laneRoutes([{ id: 1, coords: [WEST, EAST, north(EAST), north(WEST)] }]);
+    const onNorthSide = pieces.flatMap((p) => p.coords).filter((c) => c[1] > WEST[1] + 5 / 110_540 && c[0] > WEST[0] + 0.001 && c[0] < EAST[0] - 0.001);
+    expect(onNorthSide.length).toBeGreaterThan(10);
+  });
+
+  it("doesn't cut a loop route where it starts and ends", () => {
+    // A square loop starting at the corner it shares with route 2: drawn from its far corner instead, so
+    // the shared corner is in the middle of the line.
+    const SW: [number, number] = [-73.13, 40.912];
+    const SE: [number, number] = [-73.125, 40.912];
+    const NE: [number, number] = [-73.125, 40.916];
+    const NW: [number, number] = [-73.13, 40.916];
+    const pieces = laneRoutes([
+      { id: 1, coords: [SW, SE, NE, NW, SW] },
+      { id: 2, coords: [[-73.135, 40.912], SE] },
+    ]);
+    const mine = pieces.filter((p) => p.id === 1);
+    expect(mine[0].coords[0]).toEqual(NE);
+    expect(mine.at(-1)!.coords.at(-1)).toEqual(NE);
   });
 
   it("gives three routes on one road three lanes", () => {

@@ -68,3 +68,31 @@ export function joinLanes<P extends LanePiece>(pieces: P[]): P[] {
   }
   return out;
 }
+
+export interface LaneChain {
+  id: number;
+  coords: LngLat[];
+  /** Lane at each point of `coords`. */
+  lanes: number[];
+}
+
+/**
+ * Consecutive pieces of the same route that touch, as one line with a lane per point. Drawn as a single
+ * stroke there are no overlapping ends where a lane changes, which would show as darker dots on a faded line.
+ */
+export function chainLanes(pieces: LanePiece[]): LaneChain[] {
+  const out: LaneChain[] = [];
+  for (const p of pieces) {
+    const coords = p.coords as LngLat[];
+    const last = out[out.length - 1];
+    if (last && last.id === p.id && same(last.coords[last.coords.length - 1], coords[0])) {
+      // The shared point sits between both lanes.
+      last.lanes[last.lanes.length - 1] = (last.lanes[last.lanes.length - 1] + p.lane) / 2;
+      last.coords.push(...coords.slice(1));
+      last.lanes.push(...coords.slice(1).map(() => p.lane));
+    } else {
+      out.push({ id: p.id, coords: [...coords], lanes: coords.map(() => p.lane) });
+    }
+  }
+  return out;
+}

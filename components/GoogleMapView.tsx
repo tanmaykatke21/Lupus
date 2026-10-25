@@ -2,6 +2,7 @@
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { chainLanes } from "@/lib/laneJoin";
 import { laneSpacingPx, laneWidthPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
 import { turn } from "@/lib/compass";
 import { busElement, CAMPUS_CENTER, FADED, FOLLOW_MIN_TURN, FOLLOW_TILT, FOLLOW_ZOOM, prefersDark, rideEnds, routeFocusKey, routeLanes, setBusHeading, type MapProps } from "@/lib/mapShared";
@@ -106,30 +107,35 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
   // Route lines, side by side in lanes where routes share a road. Google has no line offset, so each
   // lane's geometry is shifted by the lane spacing for the current zoom, and redone when zoom changes. The
   // stroke narrows with the spacing so neighboring lanes don't paint over each other. The route being ridden
-  // is solid and on top; the rest are faded.
+  // is solid and on top; the rest are faded. Each connected run of a route is one polyline with its offset
+  // varying point by point, so lane changes don't leave darker overlaps on the faded lines.
   const focusKey = routeFocusKey(overlay);
-  const pieces = useMemo(() => routeLanes(routes, focusKey), [routes, focusKey]);
+  const chains = useMemo(() => {
+    const pieces = routeLanes(routes, focusKey);
+    const style = new Map(pieces.map(p => [p.id, p]));
+    return chainLanes(pieces).map(c => ({ ...c, color: style.get(c.id)!.color, solid: style.get(c.id)!.solid }));
+  }, [routes, focusKey]);
   useEffect(() => {
     const map = mapRef.current, libs = libsRef.current;
     if (!map || !libs) return;
     routeLines.current.forEach(l => l.setMap(null));
-    routeLines.current = pieces.map(p => new libs.maps.Polyline({
-      map, path: p.coords.map(toLatLng), strokeColor: p.color, strokeOpacity: p.solid ? 1 : FADED,
-      strokeWeight: laneWidthPx(map.getZoom() ?? 15), zIndex: p.solid ? 2 : 1, clickable: false,
+    routeLines.current = chains.map(c => new libs.maps.Polyline({
+      map, path: c.coords.map(toLatLng), strokeColor: c.color, strokeOpacity: c.solid ? 1 : FADED,
+      strokeWeight: laneWidthPx(map.getZoom() ?? 15), zIndex: c.solid ? 2 : 1, clickable: false,
     }));
     const place = () => {
       const zoom = map.getZoom() ?? 15;
       const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
       const strokeWeight = laneWidthPx(zoom);
-      pieces.forEach((p, i) => {
-        routeLines.current[i]?.setPath(offsetLine(p.coords, p.lane * m).map(toLatLng));
+      chains.forEach((c, i) => {
+        routeLines.current[i]?.setPath(offsetLine(c.coords, c.lanes.map(l => l * m)).map(toLatLng));
         routeLines.current[i]?.setOptions({ strokeWeight });
       });
     };
     place();
     const listener = map.addListener("zoom_changed", place);
     return () => listener.remove();
-  }, [pieces, ready]);
+  }, [chains, ready]);
 
   // Stops.
   useEffect(() => {

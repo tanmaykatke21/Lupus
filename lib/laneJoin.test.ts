@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { joinLanes } from "./laneJoin";
+import { chainLanes, joinLanes } from "./laneJoin";
 import { laneRoutes } from "./lanes";
 
 const WEST: [number, number] = [-73.13, 40.912];
@@ -26,6 +26,20 @@ describe("joinLanes", () => {
         expect(mine[i].coords[0]).toEqual(mine[i - 1].coords[mine[i - 1].coords.length - 1]);
         expect(Math.abs(mine[i].lane - mine[i - 1].lane)).toBeLessThanOrEqual(0.25 + 1e-9);
       }
+    }
+  });
+});
+
+describe("chainLanes", () => {
+  it("makes each connected run of a route one line with a lane per point", () => {
+    const chains = chainLanes(joinLanes(laneRoutes([
+      { id: 1, coords: [WEST, MID, EAST] },
+      { id: 2, coords: [WEST, MID, NORTH] },
+    ])));
+    for (const id of [1, 2]) {
+      const mine = chains.filter(c => c.id === id);
+      expect(mine).toHaveLength(1);
+      expect(mine[0].lanes).toHaveLength(mine[0].coords.length);
     }
   });
 });

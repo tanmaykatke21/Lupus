@@ -20,9 +20,13 @@ export const laneWidthPx = (zoom: number) => interpolate([[12, 2.5], [15, 4.5], 
 /** Web Mercator ground resolution (meters per CSS pixel) at a latitude and zoom. */
 export const metersPerPixel = (lat: number, zoom: number) => (156_543.03392 * Math.cos((lat * Math.PI) / 180)) / 2 ** zoom;
 
-/** Shift a line `offsetM` meters to the right of its direction of travel (negative = left). */
-export function offsetLine(line: LngLat[], offsetM: number): LngLat[] {
-  if (!offsetM || line.length < 2) return line;
+/**
+ * Shift a line `offsetM` meters to the right of its direction of travel (negative = left): one offset for the
+ * whole line, or one per point.
+ */
+export function offsetLine(line: LngLat[], offsetM: number | number[]): LngLat[] {
+  const at = (i: number) => (typeof offsetM === "number" ? offsetM : offsetM[i] ?? 0);
+  if (line.length < 2 || (typeof offsetM === "number" ? !offsetM : offsetM.every(o => !o))) return line;
   const lat0 = line[0][1];
   const kx = 111_320 * Math.cos((lat0 * Math.PI) / 180), ky = 110_540;
   const dir = (a: LngLat, b: LngLat) => {
@@ -37,6 +41,6 @@ export function offsetLine(line: LngLat[], offsetM: number): LngLat[] {
     let nx = (a[1] + b[1]) / 2, ny = -(a[0] + b[0]) / 2; // right-hand normal
     const len = Math.hypot(nx, ny) || 1;
     nx /= len; ny /= len;
-    return [p[0] + (nx * offsetM) / kx, p[1] + (ny * offsetM) / ky];
+    return [p[0] + (nx * at(i)) / kx, p[1] + (ny * at(i)) / ky];
   });
 }

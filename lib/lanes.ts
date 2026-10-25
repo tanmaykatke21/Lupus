@@ -25,6 +25,15 @@ const STEP_M = 15;
 /** Lane changes shorter than this many steps are treated as noise (a crossing street, a GPS wiggle). */
 const MIN_RUN = 3;
 const CELL_M = 40;
+/**
+ * A route only counts as repeating its own road when it's really on top of it. The two sides of a divided
+ * road are further apart than this, so a route's way back there is drawn, not skipped.
+ */
+const SAME_ROAD_M = 6;
+/** Steps into a skipped repeat, drawn in the lane of the road they repeat, so the route runs onto it unbroken. */
+const BRIDGE = 2;
+/** A route whose ends are this close (meters) is a loop. */
+const RING_GAP_M = 15;
 /** Marks a step that repeats road the same route already covers (the way back of an out-and-back). */
 const REPEAT = Infinity;
 
@@ -49,8 +58,30 @@ function distToSeg(px: number, py: number, s: Seg): number {
   return Math.hypot(px - (s.ax + t * vx), py - (s.ay + t * vy));
 }
 
+/**
+ * A loop route usually starts and ends at its terminal, where every route crowds together. Started there, the
+ * loop is cut at its busiest spot and its two ends can land in different lanes. Start it instead at the
+ * point furthest from there, so the terminal is drawn as one unbroken stretch.
+ */
+function startAwayFromEnds(coords: [number, number][]): [number, number][] {
+  if (coords.length < 3) return coords;
+  const kx = 111_320 * Math.cos((coords[0][1] * Math.PI) / 180);
+  const ky = 110_540;
+  const dist = (a: [number, number], b: [number, number]) => Math.hypot((b[0] - a[0]) * kx, (b[1] - a[1]) * ky);
+  const first = coords[0];
+  const last = coords[coords.length - 1];
+  if (dist(first, last) > RING_GAP_M) return coords;
+  const ring = dist(first, last) < 0.5 ? coords.slice(0, -1) : coords;
+  let far = 0;
+  ring.forEach((c, i) => {
+    if (dist(c, first) > dist(ring[far], first)) far = i;
+  });
+  const rotated = [...ring.slice(far), ...ring.slice(0, far)];
+  return [...rotated, rotated[0]];
+}
+
 export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
-  const usable = routes.filter((r) => r.coords.length >= 2);
+  const usable = routes.filter((r) => r.coords.length >= 2).map((r) => ({ ...r, coords: startAwayFromEnds(r.coords) }));
   if (!usable.length) return [];
 
   // Flat x/y in meters around the routes' middle; plenty accurate across a campus.
@@ -102,6 +133,8 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
     else grid.set(k, [s]);
   }
 
+  // For each skipped repeat step, the route's own earlier step it repeats.
+  const covers = segs.map(() => new Map<number, Seg>());
   const lanes: number[][] = segs.map((list) =>
     list.map((s) => {
       const cx = Math.floor(s.mx / CELL_M);
@@ -114,14 +147,19 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
           for (const o of grid.get(`${gx},${gy}`) ?? []) {
             if (o.r === s.r && Math.abs(o.i - s.i) <= 3) continue; // its own neighbors, not a shared stretch
             if (Math.abs(o.dx * s.dx + o.dy * s.dy) < 0.85) continue; // crossing, not running alongside
-            if (distToSeg(s.mx, s.my, o) > SHARE_M) continue;
+            const d = distToSeg(s.mx, s.my, o);
+            if (d > SHARE_M) continue;
+            if (o.r === s.r && d > SAME_ROAD_M) continue; // the route's own other carriageway, not the same road
             const prev = firstMatch.get(o.r);
             if (!prev || o.i < prev.i) firstMatch.set(o.r, o);
           }
         }
       // The way back along road this route already drove sits in the same lane, so draw that road once:
       // two faded strokes on top of each other would look like a darker, different line.
-      if (firstMatch.get(s.r) !== s) return REPEAT;
+      if (firstMatch.get(s.r) !== s) {
+        covers[s.r].set(s.i, firstMatch.get(s.r)!);
+        return REPEAT;
+      }
       const sharing = [...firstMatch.keys()].sort((a, b) => usable[a].id - usable[b].id);
       if (sharing.length === 1) return 0;
       // Lanes are counted across the road in the direction the lowest-id route first travels it, so routes
@@ -146,6 +184,37 @@ export function laneRoutes(routes: LaneRoute[]): LanePiece[] {
       start = end + 1;
     }
   }
+
+  // A skipped repeat leaves a hole whose ends must meet the copy of the road that covers it. Draw the first and
+  // last BRIDGE steps of each hole in that copy's lane (flipped when travelling the other way); joinLanes then
+  // slides the route onto it instead of leaving a gap.
+  const coverLane = (r: number, i: number, depth = 0): number | null => {
+    const o = covers[r].get(i);
+    if (!o || depth > 20) return null;
+    const lane = lanes[r][o.i] === REPEAT ? coverLane(r, o.i, depth + 1) : lanes[r][o.i];
+    if (lane === null) return null;
+    const s = segs[r][i];
+    return s.dx * o.dx + s.dy * o.dy >= 0 ? lane : -lane;
+  };
+  lanes.forEach((row, r) => {
+    const orig = [...row];
+    let k = 0;
+    while (k < orig.length) {
+      if (orig[k] !== REPEAT) {
+        k++;
+        continue;
+      }
+      const start = k;
+      while (k < orig.length && orig[k] === REPEAT) k++;
+      const edges = new Set<number>();
+      if (start > 0) for (let i = start; i < Math.min(k, start + BRIDGE); i++) edges.add(i);
+      if (k < orig.length) for (let i = Math.max(start, k - BRIDGE); i < k; i++) edges.add(i);
+      for (const i of edges) {
+        const lane = coverLane(r, i);
+        if (lane !== null) row[i] = lane;
+      }
+    }
+  });
 
   // Join consecutive steps in the same lane into one piece.
   const pieces: LanePiece[] = [];
