@@ -29,10 +29,20 @@ interface Props {
   onStart?: (option: RouteOption) => void;
 }
 
+type Filter = "best" | "bus" | "walk";
+
 export default function ResultsPanel(p: Props) {
   const [labeling, setLabeling] = useState(false);
-  const options = p.result?.options ?? [];
+  const [filter, setFilter] = useState<Filter>("best");
+  const all = p.result?.options ?? [];
+  // Best: our ranking (no slower-than-walk bus). Bus: fastest bus even if walking wins. Walk: walk only.
+  const options = all.filter(o => (filter === "best" ? !o.slowerThanWalk : o.kind === filter));
   const selected = options.find(o => o.id === p.selectedId) ?? options[0];
+  const pickFilter = (f: Filter) => {
+    setFilter(f);
+    const first = all.find(o => (f === "best" ? !o.slowerThanWalk : o.kind === f));
+    if (first) p.onSelect(first.id);
+  };
 
   return (
     <div>
@@ -73,6 +83,23 @@ export default function ResultsPanel(p: Props) {
         <div className="space-y-2" aria-label="Finding routes" role="status">
           {[0, 1].map(i => <div key={i} className="h-28 animate-pulse rounded-2xl bg-surface-2" />)}
         </div>
+      )}
+
+      {all.length > 0 && (
+        <div className="mb-2 grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="Show">
+          {(["best", "bus", "walk"] as const).map(f => (
+            <button key={f} role="tab" aria-selected={filter === f} onClick={() => pickFilter(f)}
+              className={`min-h-10 rounded-lg text-sm font-semibold capitalize ${filter === f ? "plate" : "text-muted"}`}>
+              {f === "best" ? "⭐ Best" : f === "bus" ? "🚌 Bus" : "🚶 Walk"}
+            </button>
+          ))}
+        </div>
+      )}
+      {filter === "bus" && all.length > 0 && !options.length && (
+        <p role="status" className="mb-2 rounded-xl bg-surface-2 px-3 py-2 text-sm">No bus gets you there right now.</p>
+      )}
+      {filter === "bus" && options.some(o => o.slowerThanWalk) && (
+        <p role="status" className="mb-2 text-sm text-muted">Walking is faster right now, but here&apos;s the quickest bus.</p>
       )}
 
       <div className="space-y-2">

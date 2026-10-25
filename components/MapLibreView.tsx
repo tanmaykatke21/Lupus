@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Map as MlMap, Marker, GeoJSONSource } from "maplibre-gl";
 import { busElement, CAMPUS_CENTER, prefersDark, setBusHeading, type MapProps, type TripOverlay } from "@/lib/mapShared";
+import { laneRoutes } from "@/lib/lanes";
 import type { BusRoute, BusStop } from "@/lib/types";
 
 // Fallback renderer (no Google key, or Google failed to load). Free OpenFreeMap tiles.
@@ -12,13 +13,19 @@ const STYLE_DARK = "https://tiles.openfreemap.org/styles/dark";
 type FC = GeoJSON.FeatureCollection;
 const fc = (features: GeoJSON.Feature[]): FC => ({ type: "FeatureCollection", features });
 
+// Where routes share a road they're drawn side by side in lanes (lib/lanes.ts, from Tanmay's branch).
 function routesData(routes: BusRoute[]): FC {
-  return fc(routes.map(r => ({
+  const color = new Map(routes.map(r => [r.id, r.color]));
+  return fc(laneRoutes(routes.map(r => ({ id: r.id, coords: r.shape }))).map(p => ({
     type: "Feature",
-    properties: { id: r.id, color: r.color },
-    geometry: { type: "LineString", coordinates: r.shape },
+    properties: { id: p.id, color: color.get(p.id), lane: p.lane },
+    geometry: { type: "LineString", coordinates: p.coords },
   })));
 }
+
+// Lane spacing in pixels by zoom (matches laneSpacingPx for the Google renderer).
+const LANE_OFFSET = ["interpolate", ["linear"], ["zoom"],
+  12, ["*", ["get", "lane"], 3.2], 15, ["*", ["get", "lane"], 5.6], 18, ["*", ["get", "lane"], 9.5]] as unknown as number;
 
 function stopsData(stops: BusStop[]): FC {
   return fc(stops.map(s => ({
@@ -110,10 +117,10 @@ export default function MapLibreView({ routes, stops, buses, overlay, userLocati
       map.addSource("trip", { type: "geojson", data: overlayData(overlay) });
       map.addLayer({ id: "routes-casing", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25 } });
+        paint: { "line-color": "#1d150b", "line-width": 6, "line-opacity": 0.25, "line-offset": LANE_OFFSET } });
       map.addLayer({ id: "routes", type: "line", source: "routes",
         layout: { "line-join": "round", "line-cap": "round" },
-        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8 } });
+        paint: { "line-color": ["get", "color"], "line-width": 3.5, "line-opacity": overlay ? 0.25 : 0.8, "line-offset": LANE_OFFSET } });
       map.addLayer({ id: "trip-walk", type: "line", source: "trip", filter: ["==", ["get", "kind"], "walk"],
         layout: { "line-join": "round", "line-cap": "round" },
         paint: { "line-color": prefersDark() ? "#f0c46a" : "#3a3631", "line-width": 4, "line-dasharray": [0.6, 1.6] } });

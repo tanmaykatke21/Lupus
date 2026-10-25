@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import type { AgentAnswer, AnswerCard, Verdict } from "@/lib/agent/run";
 import { announce } from "@/lib/voice";
 
@@ -54,7 +54,11 @@ function bufferLine(card: AnswerCard) {
   return `About ${m} min late for ${card.deadline}`;
 }
 
+const noop = () => () => {};
+
 export default function AskLupus({ current, accessible, voice, lang, onGuide, onShowMap }: Props) {
+  // False on the server and during hydration, so the mic button can't cause a mismatch.
+  const canListen = useSyncExternalStore(noop, () => !!speechCtor(), () => false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [asked, setAsked] = useState("");
@@ -115,7 +119,7 @@ export default function AskLupus({ current, accessible, voice, lang, onGuide, on
         <input id="ask-lupus" value={q} onChange={e => setQ(e.target.value)} enterKeyHint="send"
           placeholder={answer?.verdict === "need_info" ? "Reply…" : "Ask: “Will I make my 2pm lab?”"}
           className="h-12 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 text-base placeholder:text-muted" />
-        {speechCtor() && (
+        {canListen && (
           <button type="button" onClick={listen} aria-label="Ask by voice" aria-pressed={listening}
             className={`h-12 w-12 shrink-0 rounded-xl border border-line text-lg ${listening ? "bg-danger/20" : ""}`}>🎙</button>
         )}

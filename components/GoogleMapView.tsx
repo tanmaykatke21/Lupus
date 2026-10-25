@@ -1,7 +1,9 @@
 "use client";
 
 import { importLibrary, setOptions } from "@googlemaps/js-api-loader";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { laneSpacingPx, metersPerPixel, offsetLine } from "@/lib/laneOffset";
+import { laneRoutes } from "@/lib/lanes";
 import { busElement, CAMPUS_CENTER, prefersDark, setBusHeading, type MapProps } from "@/lib/mapShared";
 import type { LngLat } from "@/lib/types";
 
@@ -91,15 +93,26 @@ export default function GoogleMapView({ routes, stops, buses, overlay, userLocat
     };
   }, []);
 
-  // Route lines.
+  // Route lines, side by side in lanes where routes share a road. Google has no line offset, so each
+  // lane's geometry is shifted by the lane spacing for the current zoom, and redone when zoom changes.
+  const pieces = useMemo(() => laneRoutes(routes.map(r => ({ id: r.id, coords: r.shape }))), [routes]);
   useEffect(() => {
     const map = mapRef.current, libs = libsRef.current;
     if (!map || !libs) return;
+    const color = new Map(routes.map(r => [r.id, r.color]));
     routeLines.current.forEach(l => l.setMap(null));
-    routeLines.current = routes.map(r => new libs.maps.Polyline({
-      map, path: r.shape.map(toLatLng), strokeColor: r.color, strokeOpacity: 0.8, strokeWeight: 4, zIndex: 1, clickable: false,
+    routeLines.current = pieces.map(p => new libs.maps.Polyline({
+      map, path: p.coords.map(toLatLng), strokeColor: color.get(p.id), strokeOpacity: 0.8, strokeWeight: 4, zIndex: 1, clickable: false,
     }));
-  }, [routes, ready]);
+    const place = () => {
+      const zoom = map.getZoom() ?? 15;
+      const m = laneSpacingPx(zoom) * metersPerPixel(CAMPUS_CENTER[1], zoom);
+      pieces.forEach((p, i) => routeLines.current[i]?.setPath(offsetLine(p.coords, p.lane * m).map(toLatLng)));
+    };
+    place();
+    const listener = map.addListener("zoom_changed", place);
+    return () => listener.remove();
+  }, [pieces, routes, ready]);
 
   // Dim the network while a trip is shown.
   useEffect(() => {
