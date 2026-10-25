@@ -1,0 +1,7 @@
+# Never upload local secrets or bulky local-only files with `vercel deploy`.
+.env*
+!.env.example
+node_modules
+.next
+data/cache
+public/maplibre-gl-worker.mjs
