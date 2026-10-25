@@ -1,4 +1,15 @@
 {
  "_readme": "Footpaths drawn by hand in /editor (npm run dev, then open /editor). Coordinates are [lng, lat]. stairs=true paths are skipped in accessible mode.",
- "paths": []
+ "paths": [
+  {
+   "id": "hsc-inside",
+   "name": "HSC inside",
+   "coords": [
+    [-73.117167, 40.91097],
+    [-73.116341, 40.910078],
+    [-73.116121, 40.909778]
+   ],
+   "stairs": false
+  }
+ ]
 }

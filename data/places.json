@@ -414,8 +414,8 @@
    "name": "Health Sciences Tower",
    "category": "medical",
    "aliases": ["HST"],
-   "lng": -73.116228,
-   "lat": 40.909862
+   "lng": -73.116128,
+   "lat": 40.909813
   },
   {
    "id": "bst",
@@ -934,6 +934,14 @@
    "aliases": [],
    "lng": -73.126658,
    "lat": 40.896872
+  },
+  {
+   "id": "health-science-library",
+   "name": "Health Science Library",
+   "category": "academic",
+   "aliases": [],
+   "lng": -73.116228,
+   "lat": 40.909953
   }
  ]
 }
