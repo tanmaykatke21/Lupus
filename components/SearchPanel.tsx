@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { PLACES, searchPlaces, type Place } from "@/lib/places";
-import Icon, { CATEGORY_ICON } from "./Icon";
+import Icon from "./Icon";
+import PlaceResults from "./PlaceResults";
 import type { SavedPlace } from "@/lib/storage";
 
 interface Props {
@@ -12,11 +13,12 @@ interface Props {
   onPick: (place: Place) => void;
   onMyLocation?: () => void;
   onCancel: () => void;
+  onSave?: (place: SavedPlace) => void;
 }
 
 const QUICK = ["dining", "dorm", "medical", "transit", "shopping", "town"] as const;
 
-export default function SearchPanel({ title, saved, allowMyLocation, onPick, onMyLocation, onCancel }: Props) {
+export default function SearchPanel({ title, saved, allowMyLocation, onPick, onMyLocation, onCancel, onSave }: Props) {
   const [q, setQ] = useState("");
   const [category, setCategory] = useState<Place["category"] | null>(null);
   const results = q ? searchPlaces(q) : category ? PLACES.filter(p => p.category === category) : [];
@@ -69,21 +71,8 @@ export default function SearchPanel({ title, saved, allowMyLocation, onPick, onM
         </div>
       )}
 
-      <ul className="divide-y divide-line overflow-hidden card rounded-2xl" aria-live="polite">
-        {results.map(p => (
-          <li key={p.id}>
-            <button onClick={() => onPick(p)} className="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left">
-              <Icon name={CATEGORY_ICON[p.category]} className="h-5 w-5 text-muted" />
-              <span className="flex-1">
-                <span className="block font-medium">{p.name}</span>
-                {p.service ? <span className="block text-xs text-copper">{p.service}</span>
-                  : p.aliases[0] && <span className="block text-xs text-muted">{p.aliases.slice(0, 3).join(" · ")}</span>}
-              </span>
-            </button>
-          </li>
-        ))}
-        {q && results.length === 0 && <li className="p-3 text-sm text-muted">No campus places match “{q}”.</li>}
-      </ul>
+      <PlaceResults places={results} saved={saved} onPick={onPick} onSave={onSave} />
+      {q && results.length === 0 && <p className="p-3 text-sm text-muted">No campus places match “{q}”.</p>}
     </div>
   );
 }

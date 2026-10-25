@@ -79,6 +79,7 @@ export default function TransitApp() {
   const [demoFull, setDemoFull] = useStored<boolean>("demoFull", false);
   const { buses, source, updatedAt, error: busError } = useBuses(replay);
   const [saved, setSaved] = useStored<SavedPlace[]>("saved", NO_SAVED);
+  const savePlace = (p: SavedPlace) => setSaved(s => [...s.filter(x => x.placeId !== p.placeId), p]);
   const [classes, setClasses] = useStored<ClassEntry[]>("classes", NO_CLASSES);
   const location = useLocation();
   const heading = useHeading();
@@ -242,13 +243,13 @@ export default function TransitApp() {
     body = <StopPanel key={stop.id} stop={stop} routes={routes} onClose={() => setView("home")} />;
   } else if (view === "search-to") {
     body = (
-      <SearchPanel title="Where to?" saved={saved}
+      <SearchPanel title="Where to?" saved={saved} onSave={savePlace}
         onPick={p => { setSnap("half"); pickDestination(p); }}
         onCancel={() => setView(request ? "results" : "home")} />
     );
   } else if (view === "search-from") {
     body = (
-      <SearchPanel title="Starting from…" saved={saved} allowMyLocation
+      <SearchPanel title="Starting from…" saved={saved} allowMyLocation onSave={savePlace}
         onMyLocation={() => { setOrigin({ kind: "me" }); location.start(); setView(request ? "results" : "home"); }}
         onPick={p => { setOrigin({ kind: "place", place: p }); setView(request ? "results" : "home"); }}
         onCancel={() => setView(request ? "results" : "home")} />
@@ -297,8 +298,7 @@ export default function TransitApp() {
   } else if (homeTab === "classes") {
     body = <ClassesPanel classes={classes} now={now} onChange={setClasses} onGo={goToClass} />;
   } else if (homeTab === "trains") {
-    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo}
-      onSave={p => setSaved(s => [...s.filter(x => x.placeId !== p.placeId), p])} />;
+    body = <TrainsPanel now={now} bufferMin={settings.trainBufferMin} saved={saved} onPlan={goTo} onSave={savePlace} />;
   } else {
     body = (
       <>
