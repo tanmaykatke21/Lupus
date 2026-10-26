@@ -1,0 +1,39 @@
+<html><head><link rel=stylesheet href=common.css><script src=lines.js></script></head><body><div id=c>
+<h1>Lupus · System Architecture</h1><p class=sub>Next.js 16 PWA on Vercel · live SBU Transit + LIRR data · Gemini + ElevenLabs · Tiger Data history</p>
+<div style="display:flex;gap:80px">
+<div style="flex:1">
+ <div class=layer id=L1 style="--b:#2563eb;--bg:#eff5ff"><div class=t>① Client · phone / laptop browser · installable PWA (React 19, Tailwind 4)</div>
+  <div class=row><div class=n><b>Compass home</b><small>schedule-first guidance</small></div><div class=n><b>Map + sheet</b><small>Google Maps / MapLibre · route cards · gauge</small></div><div class=n><b>Ask Lupus</b><small>text or voice</small></div><div class=n><b>Classes · Trains</b><small>Settings · saved places</small></div><div class=n><b>Device APIs</b><small>GPS · compass · speech · localStorage</small></div></div></div>
+ <div class=layer id=L2 style="--b:#0f766e;--bg:#ecfdf8;margin-bottom:34px"><div class=t>② Vercel CDN</div>
+  <div class=row><div class=n>s-maxage caching: buses 10 s · LIRR 30 s · voice clips 1 year · per-IP rate limit</div></div></div>
+ <div class=layer id=L3 style="--b:#7c3aed;--bg:#f6f2ff"><div class=t>③ Next.js 16 API routes · Node.js functions (Fluid Compute)</div>
+  <div class=row><div class=n><b>/api/route</b><small>trip plan</small></div><div class=n><b>/api/agent</b><small>Ask Lupus</small></div><div class=n><b>/api/buses · etas<br>stops · routes</b></div><div class=n><b>/api/lirr/<br>departures</b></div><div class=n><b>/api/translate<br>/api/voice</b></div><div class=n><b>/api/schedule-ocr</b><small>SOLAR import</small></div></div></div>
+ <div class=layer id=L4 style="--b:#b45309;--bg:#fff8eb"><div class=t>④ Domain core · lib/</div>
+  <div class=row style="margin-bottom:10px"><div class=n id=ag><b>Agent loop</b><small>Gemini picks from 7 tools</small></div><div class=n id=pl><b>Planner</b><small>live or replay data</small></div><div class=n id=rt><b>Router</b><small>walk · walk→bus→walk · arrive-by</small></div><div class=n id=wg><b>Walk graph</b><small>Dijkstra · OSM + shortcuts</small></div></div>
+  <div class=row><div class=n><b>LIRR</b><small>static GTFS + realtime</small></div><div class=n><b>Crowding</b><small>skip ≥110% seats</small></div><div class=n><b>Reliability · accuracy</b><small>history aggregates</small></div><div class=n><b>Network cache</b><small>'use cache' upstream sharing</small></div><div class=n><b>Steps · conductor</b><small>plain-English lines</small></div></div></div>
+ <div style="display:flex;gap:20px">
+ <div class=layer id=L6 style="--b:#475569;--bg:#f4f6f9;flex:1;margin:0"><div class=t>⑥ Data</div>
+  <div class=row><div class=n><b>Committed JSON</b><small>walk graph · 117 places · shortcuts · route timing · LIRR schedule</small></div><div class=n id=ts><b>Tiger Data (TimescaleDB)</b><small>5 hypertables · 2 continuous aggregates · compression · replay</small></div></div></div>
+ <div class=layer id=POLL style="--b:#475569;--bg:#f4f6f9;width:300px;margin:0"><div class=t>Recorder</div>
+  <div class=row><div class=n id=po><b>Poller (Node script)</b><small>positions every 10 s · ETAs every 60 s · arrivals · errors</small></div></div></div>
+ </div>
+</div>
+<div class=layer id=L5 style="--b:#be123c;--bg:#fff1f3;width:300px;margin:0"><div class=t>⑤ External services</div>
+ <div style="display:flex;flex-direction:column;gap:14px">
+ <div class=n id=eta><b>ETA Spot</b><small>SBU Transit: buses, stop ETAs, load</small></div>
+ <div class=n id=mta><b>MTA LIRR</b><small>GTFS static + GTFS-realtime</small></div>
+ <div class=n id=gem><b>Google Gemini</b><small>tool-calling agent · translation · vision OCR</small></div>
+ <div class=n id=elv><b>ElevenLabs</b><small>multilingual TTS · whistle SFX</small></div>
+ <div class=n id=map><b>Google Maps JS API</b><small>fallback: MapLibre + OpenFreeMap tiles</small></div>
+ <div class=n><b>OpenStreetMap</b><small>footways (build-time, Overpass)</small></div>
+ </div></div>
+</div></div>
+<script>draw([
+ ['L1','L2','HTTPS · JSON'],['L2','L3',''],['L3','L4',''],
+ ['L4','L6','history · static data',{ax:0.3,bx:0.5}],
+ ['ag','pl','',{side:'h'}],['pl','rt','',{side:'h'}],['rt','wg','',{side:'h'}],
+ ['L4','L5','live feeds · AI · voice',{side:'h',ly:-8}],
+ ['L1','map','map tiles',{side:'h',dash:true,ay:0.5,lx:-4,ly:40}],
+ ['po','ts','writes',{side:'h',rev:true,ly:-8}],
+ ['POLL','eta','reads',{side:'h',ay:0.25,by:0.5,dash:true,lx:20}],
+]);</script></body></html>

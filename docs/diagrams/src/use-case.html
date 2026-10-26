@@ -1,0 +1,58 @@
+<html><head><link rel=stylesheet href=common.css><script src=lines.js></script>
+<style>
+.actor{width:170px;text-align:center;font-size:14px;font-weight:600}
+.actor .fig{font-size:40px;line-height:1}
+.uc{background:#fff;border:1.6px solid #7c3aed;border-radius:999px;padding:9px 16px;font-size:14px;text-align:center;white-space:nowrap}
+.sys{border:2.5px solid #1d2433;border-radius:18px;padding:16px 22px;background:#fafaff}
+.sys>.t{font-weight:800;font-size:16px;margin-bottom:10px;text-align:center}
+.grp{border:1.5px dashed #a3a3c2;border-radius:12px;padding:10px 12px 12px;margin-bottom:14px}
+.grp .gt{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b6b8f;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 70px}
+.ext{border:1.6px solid #be123c;background:#fff1f3;border-radius:6px;padding:10px;width:150px;text-align:center;font-weight:700;font-size:14px}
+.ext small{display:block;font-weight:400;color:#556;font-size:12px}
+</style></head><body><div id=c style="width:1500px">
+<h1>Lupus · Use Case Diagram</h1><p class=sub>Actors (left) · Lupus system boundary (center) · external systems (right). Dashed arrows: «include» / «extend».</p>
+<div style="display:flex;align-items:stretch;gap:90px">
+ <div style="display:flex;flex-direction:column;justify-content:space-around">
+  <div class=actor id=aS><div class=fig>🎓</div>Student<br><small style="font-weight:400;color:#667">~26,700</small></div>
+  <div class=actor id=aE><div class=fig>🩺</div>Faculty / staff</div>
+  <div class=actor id=aV><div class=fig>🧳</div>Visitor / commuter</div>
+  <div class=actor id=aA><div class=fig>♿</div>Rider needing<br>step-free routes</div>
+  <div class=actor id=aD><div class=fig>🛠️</div>Lupus team<br>(maintainer)</div>
+ </div>
+ <div class="sys" style="flex:1"><div class=t>Lupus · Campus Transit</div>
+  <div class=grp id=g1><div class=gt>Get there on time</div><div class=grid>
+   <div class=uc id=u1>Plan fastest trip (walk / walk + bus)</div><div class=uc id=u2>Arrive by a deadline (leave-by + gauge)</div>
+   <div class=uc id=u8>View live buses & stop arrivals</div><div class=uc id=u9>Save & name places</div></div></div>
+  <div class=grp id=g2><div class=gt>Be guided</div><div class=grid>
+   <div class=uc id=u4>Follow the route compass</div><div class=uc id=u11>Get rerouted around a full bus</div>
+   <div class=uc id=u5>Hear voice directions (7 languages)</div><div class=uc id=u10>Use accessible (step-free) routes</div></div></div>
+  <div class=grp id=g3><div class=gt>Plan ahead</div><div class=grid>
+   <div class=uc id=u3>Manage class schedule</div><div class=uc id=u3a>Import SOLAR screenshot</div>
+   <div class=uc id=u6>Ask Lupus (text or voice)</div><div class=uc id=u7>Catch / return by LIRR train</div></div></div>
+  <div class=grp id=g4 style="margin:0"><div class=gt>Operate</div><div class=grid>
+   <div class=uc id=u14>Record bus history · replay mode</div><div class=uc id=u12>View ETA accuracy (/stats)</div>
+   <div class=uc id=u13>Map campus places & shortcuts (/editor)</div><div></div></div></div>
+ </div>
+ <div style="display:flex;flex-direction:column;justify-content:space-around">
+  <div class=ext id=xE>«system»<br>ETA Spot<small>SBU Transit feed</small></div>
+  <div class=ext id=xG>«system»<br>Google Gemini<small>agent · translate · OCR</small></div>
+  <div class=ext id=xL>«system»<br>ElevenLabs<small>voice</small></div>
+  <div class=ext id=xM>«system»<br>MTA LIRR<small>GTFS + realtime</small></div>
+ </div>
+</div></div>
+<script>
+const A={noarrow:true,side:'h'};
+draw([
+ ['aS','g1','',{...A,by:.5}],['aS','g2','',{...A,by:.3}],['aS','g3','',{...A,by:.3}],
+ ['aE','g1','',{...A,by:.7}],['aE','g3','',{...A,by:.6}],
+ ['aV','g1','',{...A,by:.9}],['aV','g3','',{...A,by:.85}],
+ ['aA','g2','',{...A,by:.8}],
+ ['aD','g4','',{...A,by:.6}],
+ ['u3','u3a','«extend»',{side:'h',dash:true,ly:-6}],
+ ['u4','u11','«include»',{side:'h',dash:true,ly:-6}],
+ ['u6','u7','«include»',{side:'h',dash:true,ly:-6}],
+ ['g1','xE','',{...A,ay:.4}],['g4','xE','',{...A,ay:.3}],
+ ['g3','xG','',{...A,ay:.3}],['g2','xG','',{...A,ay:.7}],
+ ['g2','xL','',{...A,ay:.8}],['g3','xM','',{...A,ay:.8}],
+]);</script></body></html>

@@ -1,0 +1,30 @@
+<html><head><style>
+*{box-sizing:border-box;margin:0}
+body{width:1920px;height:1080px;font-family:-apple-system,"SF Pro Display","Helvetica Neue",sans-serif;background:radial-gradient(1200px 800px at 15% 20%,#dbe8ff 0,transparent 60%),radial-gradient(1000px 700px at 90% 90%,#f6dcec 0,transparent 60%),#eef1f7;color:#111827;padding:90px 120px}
+.k{font-size:24px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#007aff}
+h1{font-size:68px;margin-top:10px;letter-spacing:-.02em}
+.g{display:grid;grid-template-columns:repeat(4,1fr);gap:28px;margin-top:60px}
+.c{background:rgba(255,255,255,.75);border-radius:28px;padding:34px 30px;box-shadow:0 10px 40px rgba(0,0,0,.06);opacity:0;transform:translateY(20px);transition:all .8s}
+.c.on{opacity:1;transform:none}
+.n{font-size:76px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.l{font-size:26px;color:#4b5563;margin-top:6px}
+.tot{margin-top:46px;background:#007aff;color:#fff;border-radius:32px;padding:36px 44px;display:flex;align-items:baseline;gap:28px;opacity:0;transition:opacity .8s}
+.tot.on{opacity:1} .tot .n{font-size:110px} .tot .l{color:#dbeafe;font-size:34px}
+.src{position:absolute;bottom:40px;left:120px;font-size:19px;color:#6b7280}
+</style></head><body>
+<div class=k>Who benefits</div><h1>Everyone who crosses a 1,000-acre campus</h1>
+<div class=g>
+ <div class=c id=c1><div class=n data-v=26700>0</div><div class=l>students (Fall 2024)</div></div>
+ <div class=c id=c2><div class=n data-v=10000>0</div><div class=l>live on campus</div></div>
+ <div class=c id=c3><div class=n data-v=16000>0</div><div class=l>commute to campus</div></div>
+ <div class=c id=c4><div class=n data-v=15000>0</div><div class=l>faculty &amp; hospital staff</div></div>
+</div>
+<div class=tot id=t><div class=n data-v=40000>0</div><div class=l>people a day · any phone browser · nothing to install</div></div>
+<div class=src>Approximate. Students: SBU Office of Institutional Research fact book, Fall 2024 (26,689). Housing ≈10,300 beds. Employees: commonly cited figure.</div>
+<script>
+const fmt=n=>'~'+Math.round(n).toLocaleString();
+function show(id,ms){setTimeout(()=>{const el=document.getElementById(id);el.classList.add('on');const n=el.querySelector('.n'),v=+n.dataset.v,t0=performance.now();
+ (function f(t){const p=Math.min(1,(t-t0)/1400);n.textContent=fmt(v*(1-Math.pow(1-p,3)));if(p<1)requestAnimationFrame(f)})(t0)},ms)}
+// timed to narration: students ~3s, on campus ~6.5s, commuting ~8.5s, staff ~11s, total ~15s
+show('c1',2600);show('c2',6200);show('c3',8200);show('c4',10600);show('t',14500);
+</script></body></html>

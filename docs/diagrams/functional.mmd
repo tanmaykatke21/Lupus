@@ -1,0 +1,37 @@
+flowchart TB
+  subgraph IN["Inputs"]
+    direction LR
+    IN1["Destination<br/>search · saved · class · train · Ask Lupus"] ~~~ IN2["Origin<br/>GPS or chosen place"] ~~~ IN3["Deadline (optional)<br/>class start − 2 min · train − buffer"] ~~~ IN4["Settings<br/>accessible · language · voice"]
+  end
+
+  F1["F1 · Resolve request<br/>place ids → coordinates from our own data"]
+  F2["F2 · Gather live data<br/>buses · stop ETAs · bus load (ETA Spot) or replay (Tiger Data)"]
+  F3["F3 · Walk-only route<br/>Dijkstra over OSM footways + open building shortcuts<br/>(no stairs in accessible mode)"]
+  F4["F4 · Bus candidates<br/>board ≤ 600 m from origin · alight ≤ 600 m from destination"]
+  F5["F5 · Departure + ride time<br/>ETA Spot pair → Tiger Data history → timetable → estimate"]
+  F6{"F6 · Bus full?<br/>load ≥ 110 % of seats"}
+  F7["F7 · Rank + select ≤ 3 options<br/>earliest arrival (or latest leave-by)<br/>drop buses slower than walking"]
+  F8["F8 · Leave-by · slack · pressure gauge<br/>crowding + reliability notes"]
+
+  subgraph OUT["Outputs"]
+    direction LR
+    O1["Route cards<br/>+ map overlay"] ~~~ O2["Compass guidance<br/>bearing − heading"] ~~~ O3["Steps → Gemini translate<br/>→ ElevenLabs voice"] ~~~ O4["Leave-by alerts<br/>whistle at 2 min"] ~~~ O5["Ask Lupus<br/>verdict card"]
+  end
+
+  F9["F9 · Monitor while guiding<br/>re-plan on every refresh"]
+
+  subgraph BG["Background"]
+    direction LR
+    F10["F10 · Poller → Tiger Data<br/>arrivals · segment times · prediction errors"] --> F11["F11 · Accuracy model<br/>bias-corrected ETA · /stats"]
+  end
+
+  IN --> F1 --> F2
+  F2 --> F3
+  F2 --> F4 --> F5 --> F6
+  F6 -->|yes · skip, take next bus| F5
+  F6 -->|no| F7
+  F3 --> F7
+  F7 --> F8 --> OUT
+  F8 --> F9
+  F9 -->|better option · reroute + announce| F2
+  F10 -->|segment_hourly · lateness_hourly| F5
